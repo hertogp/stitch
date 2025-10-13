@@ -39,3 +39,9 @@ luac.out
 *.x86_64
 *.hex
 
+# Scratch dirs
+scr/
+
+**/.stitch
+examples/.stitch/id1-stderr
+
