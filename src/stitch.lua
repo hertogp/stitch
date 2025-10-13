@@ -11,16 +11,16 @@ local hardcoded = {
 	dir = ".stitch", -- where to store files (abs/rel path to cwd)
 	fmt = "png", -- format for images (if any)
 	log = 0, -- log notification level
-	ins = "cb:org out:fcb err:fcb art:img", -- "<file>[:type], .." -> ordered list of what to insert
+	ins = "cb:fcb out:fcb err:fcb art:img oops", -- "<file>[:type], .." -> ordered list of what to insert
 	cmd = "#prg #arg #art 1>#out 2>#err", -- cmd template string, expanded last
 }
 
 local hardfiles = {
 	-- filename templates, TODO: this is not platform independant
-	inp = "./#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
-	out = "./#dir/#cid-#sha.stdout", -- capture of stdout
-	err = "./#dir/#cid-#sha.stderr", -- capture of stderr
-	art = "./#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
+	inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
+	out = "#dir/#cid-#sha.stdout", -- capture of stdout
+	err = "#dir/#cid-#sha.stderr", -- capture of stderr
+	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
 }
 
 --Notes:
@@ -185,27 +185,32 @@ local function mkcmd(cb, opts)
 	return opts.cmd:gsub("%#(%w+)", opts) -- maybe error check here?
 end
 
-local function fread(key, opts)
-	local txt
-	local fh = io.open(opts[key], "r")
+-- returns file contents of file `opts[key]` or nil on empty file
+---@param path string opts field that denotes file to read
+---@return string|nil data file contents or nil if file has no data
+local function fread(path)
+	local fh = io.open(path, "r")
+
 	if fh then
-		txt = fh:read("a")
+		local txt = fh:read("a")
 		fh:close()
-		if #txt == 0 then
-			return nil, format("[%s] oops! <no output, %s bytes>", key, #txt)
-		else
+		if #txt > 0 then
 			return txt
 		end
 	end
-	return nil, "[error] error reading" .. fname
+
+	return nil
 end
-local function mkfcb(cb, opts, typ)
+
+-- clones `cb`, removes stitch properties and adds a 'stitched' class
+---@param cb table CodeBlock instance
+---@param opts table the cb's stitch options
+---@return table clone a new CodeBlock instance with only non-stitch attributes
+local function mkfcb(cb, opts)
 	-- `:Open https://pandoc.org/lua-filters.html#type-codeblock`
 	-- `:Open https://pandoc.org/lua-filters.html#pandoc.CodeBlock`
+
 	local clone = cb:clone()
-	if "org" == typ then
-		return clone
-	end
 
 	-- class stitch := stitched
 	clone.classes = cb.classes:map(function(c)
@@ -222,41 +227,74 @@ local function mkfcb(cb, opts, typ)
 	return clone
 end
 
+local mkres = {} -- funcs to create pandoc elements
+setmetatable(mkres, {
+	__index = function(_, key)
+		return function()
+			return pd.pdoc.Str(format("alas, unknown element '%s'", key))
+		end
+	end,
+})
+
+function mkres.cb(cb, opts, opt)
+	local ncb = cb:clone()
+	if "fcb" == opt then
+		ncb.text = pd.pdoc.write(pd.pdoc.Pandoc({ cb }, {}))
+	else
+		ncb = cb:clone()
+	end
+	return ncb
+end
+
 local function result(cb, opts)
 	-- insert pieces as per opts.ins
-	-- ins: "what:how,..", where:
-	-- * what= cb, out, err or art and
-	-- * how = org, fcb or img
 	local rv = {} -- collects the output elements
-	local menu = {}
+	local menu = {} -- {{what, how}, ..}
 	for k, v in ipairs(split(opts.ins, ",%s")) do
 		menu[k] = split(v, ":")
 	end
-	print("menu", dump(menu))
-	print("opts", dump(opts))
 
 	for _, add in pairs(menu) do
+		local ncb = mkfcb(cb, opts) -- scrubbed clone of cb
+		-- local elm, opt = table.unpack(add)
+		-- rv[#rv+1] = mkres[elm](cb, opts, opt)
+
 		if "cb" == add[1] then
-			rv[#rv + 1] = mkfcb(cb, opts, add[2])
+			-- mkres[add[1]](cb, opts, add[2])
+			if "fcb" == add[2] then
+				ncb.text = pd.pdoc.write(pd.pdoc.Pandoc({ cb }, {}))
+			else
+				ncb = cb:clone()
+			end
+			rv[#rv + 1] = ncb
 		elseif "out" == add[1] then
-			local txt, err = fread("out", opts)
-			local ncb =
-				pd.CodeBlock(txt or err, pd.pdoc.Attr(cb.identifier .. "-out-stitched", cb.classes, cb.attributes))
-			rv[#rv + 1] = mkfcb(ncb, opts)
+			-- mkres["out"](cb, opts, add[2])
+			local txt = fread(opts.out)
+			ncb.text = txt or "[stitch] stdout - no output"
+			ncb.identifier = cb.identifier and cb.identifier .. "-stitched-out" or nil
+			rv[#rv + 1] = ncb
 		elseif "err" == add[1] then
-			local txt, err = fread("err", opts)
-			local ncb = pd.CodeBlock(
-				txt or err or "stderr: no output",
-				pd.pdoc.Attr(cb.identifier .. "-err-stitched", cb.classes, cb.attributes)
-			)
-			rv[#rv + 1] = mkfcb(ncb, opts)
+			local txt = fread(opts.err)
+			ncb.text = txt or "[stitch] stderr - no output"
+			ncb.identifier = cb.identifier and cb.identifier .. "-stitched-err" or nil
+			rv[#rv + 1] = ncb
 		elseif "art" == add[1] then
+			-- https://pandoc.org/lua-filters.html#pandoc.Image
+			local caption = cb.attributes.caption or ""
+			ncb.identifier = cb.identifier and cb.identifier .. "-stitched-art" or nil
+			local img = pd.pdoc.Image(caption, opts.art, ncb.attributes.title, ncb.attr)
+			rv[#rv + 1] = img
 		else
-			rv[#rv + 1] = pd.CodeBlock(format("Error, unknow addition type %s", add))
+			ncb.text = format("[stitch] error - unknown ins-directive: '%s'", add[1])
+			rv[#rv + 1] = ncb
 		end
 	end
+	-- delme
+	rv[#rv + 1] = (mkres["nou moe"])(nil, nil, nil)
+	-- /delme
 
-	print("rv", dump(rv))
+	-- TODO: maybe put rv in a para or put all elements in their own para
+	-- with class stitched-{out, err, art}  (cb org is kept as-is, no changes)
 	return rv
 end
 
@@ -338,12 +376,6 @@ function M.codeblock(cb)
 
 	local opts = M.options(cb)
 
-	-- delme
-	-- for k, _ in pairs(pd.tmp.readers) do
-	-- 	print("reader", k)
-	-- end
-	--
-
 	local cmd, err = mkcmd(cb, opts)
 	if not cmd then
 		print(err)
@@ -354,7 +386,6 @@ function M.codeblock(cb)
 	local ok, code, nr = os.execute(cmd)
 	if not ok then
 		print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
-		return nil
 	end
 
 	return result(cb, opts)
