@@ -89,72 +89,6 @@ setmetatable(marshal, {
 	end,
 })
 
---[[ option handling ]]
-
--- `:Open https://yaml.org/spec/1.2/spec.html`
--- `:Open https://michelf.ca/projects/php-markdown/extra/`
-
----@param cb table pandoc codeblock with `.stitch` class or meta.stitch.<cfg> section
----@return table opts option,value store derived from cb or cfg section
-function M.options(cb)
-	-- `:Open https://pandoc.org/lua-filters.html#type-attr`
-	-- `:Open https://pandoc.org/MANUAL.html#extension-header_attributes`
-	-- `:Open https://pandoc.org/MANUAL.html#extension-backtick_code_blocks`
-	local opts = {}
-	local attr = cb.attributes or cb
-
-	for k, _ in pairs(hardcoded) do
-		-- only process known stitch options actually present in attr
-		opts[k] = attr[k] and marshal[k](attr[k])
-	end
-
-	-- assumes mkmeta(doc) has been called ealier
-	setmetatable(opts, { __index = ctx[opts.cfg] })
-
-	if cb.identifier then
-		-- set cb specific options
-		opts.cid = opts.cid or cb.identifier
-		opts.sha = mksha(cb, opts)
-
-		-- now derive the filenames
-		for k, v in pairs(hardfiles) do
-			opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
-			print(k, opts[k], v)
-		end
-	end
-
-	return opts
-end
-
---- extract `doc.meta.stitch` config from a doc's meta block (if any)
----@param doc table the doc's AST
----@return table config doc.meta.stitch's named configs: option,value-pairs
-function M.context(doc)
-	-- resolution order: cb -> meta[cb.cfg] -> defaults -> hardcoded
-
-	ctx = {} -- reset
-	for name, attr in pairs(doc.meta.stitch or {}) do
-		ctx[name] = M.options(attr)
-	end
-
-	local defaults = ctx.defaults or {}
-	setmetatable(defaults, { __index = hardcoded })
-
-	ctx.defaults = nil
-	for _, attr in pairs(ctx) do
-		setmetatable(attr, { __index = defaults })
-	end
-
-	-- codeblocks without cfg=name resolve via defaults, then hardcoded
-	setmetatable(ctx, {
-		__index = function()
-			return defaults
-		end,
-	})
-
-	return ctx -- make available for testing
-end
-
 --[[ file handling ]]
 
 -- filepath based on cb hash, options and desired extension
@@ -258,7 +192,7 @@ local function fread(key, opts)
 		txt = fh:read("a")
 		fh:close()
 		if #txt == 0 then
-			return format("[%s] <no output, %s bytes>", key, #txt)
+			return nil, format("[%s] oops! <no output, %s bytes>", key, #txt)
 		else
 			return txt
 		end
@@ -326,6 +260,71 @@ local function result(cb, opts)
 	return rv
 end
 
+--[[ option handling ]]
+
+-- `:Open https://yaml.org/spec/1.2/spec.html`
+-- `:Open https://michelf.ca/projects/php-markdown/extra/`
+
+---@param cb table pandoc codeblock with `.stitch` class or meta.stitch.<cfg> section
+---@return table opts option,value store derived from cb or cfg section
+function M.options(cb)
+	-- `:Open https://pandoc.org/lua-filters.html#type-attr`
+	-- `:Open https://pandoc.org/MANUAL.html#extension-header_attributes`
+	-- `:Open https://pandoc.org/MANUAL.html#extension-backtick_code_blocks`
+	local opts = {}
+	local attr = cb.attributes or cb
+
+	for k, _ in pairs(hardcoded) do
+		-- only process known stitch options actually present in attr
+		opts[k] = attr[k] and marshal[k](attr[k])
+	end
+
+	-- assumes mkmeta(doc) has been called ealier
+	setmetatable(opts, { __index = ctx[opts.cfg] })
+
+	if cb.identifier then
+		-- set cb specific options
+		opts.cid = opts.cid or cb.identifier
+		opts.sha = mksha(cb, opts)
+
+		-- now derive the filenames
+		for k, v in pairs(hardfiles) do
+			opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
+			print(k, opts[k], v)
+		end
+	end
+
+	return opts
+end
+
+--- extract `doc.meta.stitch` config from a doc's meta block (if any)
+---@param doc table the doc's AST
+---@return table config doc.meta.stitch's named configs: option,value-pairs
+function M.context(doc)
+	-- resolution order: cb -> meta[cb.cfg] -> defaults -> hardcoded
+
+	ctx = {} -- reset
+	for name, attr in pairs(doc.meta.stitch or {}) do
+		ctx[name] = M.options(attr)
+	end
+
+	local defaults = ctx.defaults or {}
+	setmetatable(defaults, { __index = hardcoded })
+
+	ctx.defaults = nil
+	for _, attr in pairs(ctx) do
+		setmetatable(attr, { __index = defaults })
+	end
+
+	-- codeblocks without cfg=name resolve via defaults, then hardcoded
+	setmetatable(ctx, {
+		__index = function()
+			return defaults
+		end,
+	})
+
+	return ctx -- make available for testing
+end
 --[[ checks ]]
 -- `:Open https://pandoc.org/lua-filters.html#global-variables`
 -- `:Open https://pandoc.org/lua-filters.html#type-version`

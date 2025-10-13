@@ -45,3 +45,9 @@ scr/
 **/.stitch
 examples/.stitch/id1-stderr
 
+# Scratch files
+*.html
+*.pdf
+
+
+
