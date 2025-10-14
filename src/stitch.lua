@@ -91,36 +91,37 @@ setmetatable(marshal, {
 
 --[[ file handling ]]
 
--- filepath based on cb hash, options and desired extension
----@param cb table pandoc's CodeBlock
----@param opts table options derived from cb's attrributes, meta & defaults
----@param ext? string|nil desired file extension (if any)
----@return string path for a desired file
-local function fname(cb, opts, ext)
-	ext = #ext > 0 and "." .. ext or ".cb"
-	-- use cached hash or created it on first call to fname
-	opts.sha = opts.sha or mksha(cb, opts)
-	local base = pd.path.join({ opts.dir, opts.hash })
-	return string.format("%s%s", base, ext)
-end
-
--- checks if a path on the system exists or not
----@param path string directory or file to check
----@return boolean ok true if `path` exists, false otherwise
-local function exists(path)
-	return true == os.rename(path, path) -- returns true or nil, msg
-end
-
--- create working directory for a codeblock, using its options
----@param opts table codeblock options
----@return boolean ok true if succesful, false otherwise
-local function mkdir(opts)
-	if exists(opts.dir) or os.execute("mkdir -p " .. opts.dir) then
-		return true
-	end
-
-	return false
-end
+-- -- filepath based on cb hash, options and desired extension
+-- ---@param cb table pandoc's CodeBlock
+-- ---@param opts table options derived from cb's attrributes, meta & defaults
+-- ---@param ext? string|nil desired file extension (if any)
+-- ---@return string path for a desired file
+-- local function fname(cb, opts, ext)
+-- 	ext = #ext > 0 and "." .. ext or ".cb"
+-- 	-- use cached hash or created it on first call to fname
+-- 	-- opts.sha = opts.sha or mksha(cb, opts)
+-- 	-- local base = pd.path.join({ opts.dir, opts.hash })
+-- 	local base = pd.path.join({ opts.dir, opts.sha })
+-- 	return string.format("%s%s", base, ext)
+-- end
+--
+-- -- checks if a path on the system exists or not
+-- ---@param path string directory or file to check
+-- ---@return boolean ok true if `path` exists, false otherwise
+-- local function exists(path)
+-- 	return true == os.rename(path, path) -- returns true or nil, msg
+-- end
+--
+-- -- create working directory for a codeblock, using its options
+-- ---@param opts table codeblock options
+-- ---@return boolean ok true if succesful, false otherwise
+-- local function mkdir(opts)
+-- 	if exists(opts.dir) or os.execute("mkdir -p " .. opts.dir) then
+-- 		return true
+-- 	end
+--
+-- 	return false
+-- end
 
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
@@ -137,6 +138,8 @@ local function mksha(cb, opts)
 	local fp = {}
 	table.sort(keys) -- eliminate random key order
 	for _, key in ipairs(keys) do
+		print("key,val", key, opts[key])
+		print("dump(opts)", dump(opts))
 		fp[#fp + 1] = pd.stringify(opts[key])
 	end
 	-- ignore whitespace in codeblock (only)
@@ -274,50 +277,46 @@ setmetatable(mkres, {
 
 local function result(cb, opts)
 	-- insert pieces as per opts.ins
-	local rv = {} -- collects the output elements
-	-- local menu = {} -- {{what, how}, ..}
-	for k, v in ipairs(split(opts.ins, ",%s")) do
+	local elms = {}
+	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, opt = table.unpack(split(v, ":"))
-		rv[#rv + 1] = mkres[elm](cb, opts, opt)
+		elms[#elms + 1] = mkres[elm](cb, opts, opt)
 	end
 
 	-- TODO: maybe put rv in a para or put all elements in their own para
 	-- with class stitched-{out, err, art}  (cb org is kept as-is, no changes)
-	return rv
+	return elms
 end
 
 --[[ option handling ]]
 
 -- `:Open https://yaml.org/spec/1.2/spec.html`
--- `:Open https://michelf.ca/projects/php-markdown/extra/`
+-- `:Open https://pandoc.org/lua-filters.html#type-attr`
+-- `:Open https://pandoc.org/MANUAL.html#extension-header_attributes`
+-- `:Open https://pandoc.org/MANUAL.html#extension-backtick_code_blocks`
 
----@param cb table pandoc codeblock with `.stitch` class or meta.stitch.<cfg> section
----@return table opts option,value store derived from cb or cfg section
+---@param cb table pandoc codeblock with `.stitch` class
+---@return table opts option,value store derived from codeblock `cb`
 function M.options(cb)
-	-- `:Open https://pandoc.org/lua-filters.html#type-attr`
-	-- `:Open https://pandoc.org/MANUAL.html#extension-header_attributes`
-	-- `:Open https://pandoc.org/MANUAL.html#extension-backtick_code_blocks`
 	local opts = {}
 	local attr = cb.attributes or cb
 
+	-- only known stitch options
 	for k, _ in pairs(hardcoded) do
-		-- only process known stitch options actually present in attr
 		opts[k] = attr[k] and marshal[k](attr[k])
 	end
 
-	-- assumes mkmeta(doc) has been called ealier
+	-- cb opts falls back to ctx[cfg] or defaults (if cfg not present)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
-	if cb.identifier then
-		-- set cb specific options
-		opts.cid = opts.cid or cb.identifier
-		opts.sha = mksha(cb, opts)
+	-- set cb specific, non-stitch options
+	opts.cid = cb.identifier or "x"
+	opts.sha = mksha(cb, opts)
 
-		-- now derive the filenames
-		for k, v in pairs(hardfiles) do
-			opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
-			print(k, opts[k], v)
-		end
+	-- derive the filenames
+	for k, v in pairs(hardfiles) do
+		opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
+		print(k, opts[k], v)
 	end
 
 	return opts
@@ -331,18 +330,24 @@ function M.context(doc)
 
 	ctx = {} -- reset
 	for name, attr in pairs(doc.meta.stitch or {}) do
-		ctx[name] = M.options(attr)
+		ctx[name] = {}
+		-- only known stich options
+		for k, _ in pairs(hardcoded) do
+			ctx[name][k] = attr[k] and marshal[k](attr[k])
+		end
 	end
 
+	-- defaults fallback to hardcoded
 	local defaults = ctx.defaults or {}
 	setmetatable(defaults, { __index = hardcoded })
 
+	-- named ctxpcfg] section falls back to defaults
 	ctx.defaults = nil
 	for _, attr in pairs(ctx) do
 		setmetatable(attr, { __index = defaults })
 	end
 
-	-- codeblocks without cfg=name resolve via defaults, then hardcoded
+	-- missing ctx[cfg] section falls back to defaults
 	setmetatable(ctx, {
 		__index = function()
 			return defaults
@@ -381,7 +386,6 @@ end
 
 function Pandoc(doc)
 	ctx = M.context(doc)
-	print("ctx:", dump(ctx))
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 

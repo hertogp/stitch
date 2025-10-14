@@ -2,6 +2,7 @@ PANDOC=pandoc
 BUSTED=busted
 FILTER=src/stitch.lua
 EXAMPLES=examples
+SCRATCH=.stitch
 
 # 'make' w/o a target will build this (first) one
 # cd is executed in its own subshell, to tag on cmd after ';'
@@ -13,6 +14,10 @@ ex01:
 
 test:
 	$(BUSTED)
+
+clean:
+	rm $(EXAMPLES)/$(SCRATCH)/*
+	rmdir $(EXAMPLES)/$(SCRATCH)
 
 
 
