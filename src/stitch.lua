@@ -227,7 +227,43 @@ local function mkfcb(cb, opts)
 	return clone
 end
 
-local mkres = {} -- funcs to create pandoc elements
+local mkres = {
+	-- functin signature (cb, opts, opt)
+	cb = function(cb, _, opt)
+		local ncb = cb:clone()
+		if "fcb" == opt then
+			ncb.text = pd.pdoc.write(pd.pdoc.Pandoc({ cb }, {}))
+		else
+			ncb = cb:clone()
+		end
+		return ncb
+	end,
+
+	out = function(cb, opts, _)
+		local ncb = cb:clone()
+		local txt = fread(opts.out)
+		ncb.text = txt or "[stitch] stdout - no output"
+		ncb.identifier = cb.identifier and cb.identifier .. "-stitched-out" or nil
+		return ncb
+	end,
+
+	err = function(cb, opts, _)
+		local ncb = cb:clone()
+		local txt = fread(opts.err)
+		ncb.text = txt or "[stitch] stderr - no output"
+		ncb.identifier = cb.identifier and cb.identifier .. "-stitched-err" or nil
+		return ncb
+	end,
+
+	art = function(cb, opts, _)
+		local ncb = cb:clone()
+		local caption = cb.attributes.caption or ""
+		ncb.identifier = cb.identifier and cb.identifier .. "-stitched-art" or nil
+		local img = pd.pdoc.Image(caption, opts.art, ncb.attributes.title, ncb.attr)
+		return img
+	end,
+}
+
 setmetatable(mkres, {
 	__index = function(_, key)
 		return function()
@@ -236,62 +272,14 @@ setmetatable(mkres, {
 	end,
 })
 
-function mkres.cb(cb, opts, opt)
-	local ncb = cb:clone()
-	if "fcb" == opt then
-		ncb.text = pd.pdoc.write(pd.pdoc.Pandoc({ cb }, {}))
-	else
-		ncb = cb:clone()
-	end
-	return ncb
-end
-
 local function result(cb, opts)
 	-- insert pieces as per opts.ins
 	local rv = {} -- collects the output elements
-	local menu = {} -- {{what, how}, ..}
+	-- local menu = {} -- {{what, how}, ..}
 	for k, v in ipairs(split(opts.ins, ",%s")) do
-		menu[k] = split(v, ":")
+		local elm, opt = table.unpack(split(v, ":"))
+		rv[#rv + 1] = mkres[elm](cb, opts, opt)
 	end
-
-	for _, add in pairs(menu) do
-		local ncb = mkfcb(cb, opts) -- scrubbed clone of cb
-		-- local elm, opt = table.unpack(add)
-		-- rv[#rv+1] = mkres[elm](cb, opts, opt)
-
-		if "cb" == add[1] then
-			-- mkres[add[1]](cb, opts, add[2])
-			if "fcb" == add[2] then
-				ncb.text = pd.pdoc.write(pd.pdoc.Pandoc({ cb }, {}))
-			else
-				ncb = cb:clone()
-			end
-			rv[#rv + 1] = ncb
-		elseif "out" == add[1] then
-			-- mkres["out"](cb, opts, add[2])
-			local txt = fread(opts.out)
-			ncb.text = txt or "[stitch] stdout - no output"
-			ncb.identifier = cb.identifier and cb.identifier .. "-stitched-out" or nil
-			rv[#rv + 1] = ncb
-		elseif "err" == add[1] then
-			local txt = fread(opts.err)
-			ncb.text = txt or "[stitch] stderr - no output"
-			ncb.identifier = cb.identifier and cb.identifier .. "-stitched-err" or nil
-			rv[#rv + 1] = ncb
-		elseif "art" == add[1] then
-			-- https://pandoc.org/lua-filters.html#pandoc.Image
-			local caption = cb.attributes.caption or ""
-			ncb.identifier = cb.identifier and cb.identifier .. "-stitched-art" or nil
-			local img = pd.pdoc.Image(caption, opts.art, ncb.attributes.title, ncb.attr)
-			rv[#rv + 1] = img
-		else
-			ncb.text = format("[stitch] error - unknown ins-directive: '%s'", add[1])
-			rv[#rv + 1] = ncb
-		end
-	end
-	-- delme
-	rv[#rv + 1] = (mkres["nou moe"])(nil, nil, nil)
-	-- /delme
 
 	-- TODO: maybe put rv in a para or put all elements in their own para
 	-- with class stitched-{out, err, art}  (cb org is kept as-is, no changes)
