@@ -138,8 +138,6 @@ local function mksha(cb, opts)
 	local fp = {}
 	table.sort(keys) -- eliminate random key order
 	for _, key in ipairs(keys) do
-		print("key,val", key, opts[key])
-		print("dump(opts)", dump(opts))
 		fp[#fp + 1] = pd.stringify(opts[key])
 	end
 	-- ignore whitespace in codeblock (only)
@@ -183,8 +181,6 @@ local function mkcmd(cb, opts)
 
 	-- interpolate & finalize the runnable command
 	local cmd = opts.cmd:gsub("%#(%w+)", opts) -- maybe error check here?
-	print("cmd:", cmd)
-	print("cmd2", cmd:gsub("%#(%w+)", opts))
 	return opts.cmd:gsub("%#(%w+)", opts) -- maybe error check here?
 end
 
@@ -243,25 +239,25 @@ local mkres = {
 	end,
 
 	out = function(cb, opts, _)
-		local ncb = cb:clone()
+		local ncb = mkfcb(cb, opts)
 		local txt = fread(opts.out)
 		ncb.text = txt or "[stitch] stdout - no output"
-		ncb.identifier = cb.identifier and cb.identifier .. "-stitched-out" or nil
+		ncb.identifier = opts.cid .. "-stitched-out" or nil
 		return ncb
 	end,
 
 	err = function(cb, opts, _)
-		local ncb = cb:clone()
+		local ncb = mkfcb(cb, opts)
 		local txt = fread(opts.err)
 		ncb.text = txt or "[stitch] stderr - no output"
-		ncb.identifier = cb.identifier and cb.identifier .. "-stitched-err" or nil
+		ncb.identifier = opts.cid .. "-stitched-err" or nil
 		return ncb
 	end,
 
 	art = function(cb, opts, _)
-		local ncb = cb:clone()
+		local ncb = mkfcb(cb, opts)
 		local caption = cb.attributes.caption or ""
-		ncb.identifier = cb.identifier and cb.identifier .. "-stitched-art" or nil
+		ncb.identifier = opts.cid .. "-stitched-art" or nil
 		local img = pd.pdoc.Image(caption, opts.art, ncb.attributes.title, ncb.attr)
 		return img
 	end,
@@ -310,13 +306,13 @@ function M.options(cb)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
 	-- set cb specific, non-stitch options
-	opts.cid = cb.identifier or "x"
+	opts.cid = cb.identifier or ""
+	opts.cid = #opts.cid > 0 and opts.cid or "x"
 	opts.sha = mksha(cb, opts)
 
 	-- derive the filenames
 	for k, v in pairs(hardfiles) do
 		opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
-		print(k, opts[k], v)
 	end
 
 	return opts

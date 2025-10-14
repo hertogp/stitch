@@ -9,7 +9,7 @@ SCRATCH=.stitch
 # default: test # runs busted
 default: ex01 # working on examples
 
-ex01:
+ex01: clean
 	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) ex01.md -o ex01.html
 
 test:
