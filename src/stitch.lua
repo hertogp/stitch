@@ -1,3 +1,10 @@
+-- S T I T C H
+-- TODO:
+-- * make filepaths platform independent, see package.config[1]
+-- * implement feature where output can be converted before including
+--   e.g. out::markdown, out::json (pandoc.json) or out:tbl:csv (pandoc.Table)
+--   or ... etc
+-- * include as: fcb, img, fig, tbl, more?
 local M = {} -- returned by global Stitch() for testing
 
 local ctx = {} -- holds meta.stitch configuration for current document
@@ -250,10 +257,22 @@ local function mkfcb(cb, opts)
 end
 
 local mkres = {
-	-- function signature (cb, opts, opt)
-	cb = function(cb, _, opt)
+	-- ins: what:how?:from?
+	-- * what in {cb, out, err, art}
+	-- * how in {fcb, img, fig, ..}, default is fcb
+	-- * from in {plain, ..}, default is code (ignored if how is fcb}
+	-- + a tool can produce graphic output on stdout, then cmd uses 1>#art
+	-- + a cb itself is always plain (it's in a text doc)
+	-- + a cb may produce anything on stdout, stderr and/or in outfile #art
+	--   to insert that properly it may need conversion, e.g. from markdown,
+	--   or org, or rtf, or .. etc. Or even using a custom lua-based reader.
+	-- + lpeg is available in a lua-filter (as lpeg)
+	--  See pandoc.readers -> table with {format-x: true/false}
+	--  See `:Open https://pandoc.org/lua-filters.html#pandoc.read`
+	-- function signature (cb, opts, how)
+	cb = function(cb, _, how)
 		local ncb = cb:clone()
-		if "fcb" == opt then
+		if "fcb" == how then
 			ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 		else
 			ncb = cb:clone()
@@ -263,36 +282,25 @@ local mkres = {
 
 	out = function(cb, opts, _)
 		local ncb = mkfcb(cb, opts)
-		local txt = fread(opts.out)
-		ncb.text = txt or "[stitch] stdout - no output"
+		ncb.text = fread(opts.out) or "[stitch] stdout - no output"
 		ncb.identifier = opts.cid .. "-stitched-out" or nil
 		return ncb
 	end,
 
 	err = function(cb, opts, _)
 		local ncb = mkfcb(cb, opts)
-		local txt = fread(opts.err)
-		ncb.text = wrap(txt or "[stitch] stderr - no output")
-
+		ncb.text = wrap(fread(opts.err) or "[stitch] stderr - no output")
 		ncb.identifier = opts.cid .. "-stitched-err" or nil
 		return ncb
 	end,
 
 	art = function(cb, opts, how)
-		-- `:Open https://pandoc.org/lua-filters.html#pandoc.Figure`
-		-- `:Open https://pandoc.org/lua-filters.html#pandoc.Caption`
-		-- `:Open https://pandoc.org/lua-filters.html#pandoc.Para`
-		-- `:Open https://pandoc.org/lua-filters.html#pandoc.mediabag`
 		local ncb = mkfcb(cb, opts)
 		local title = cb.attributes.title or "no-title"
 		local caption = pd.Str(cb.attributes.caption or "no-caption")
 		ncb.identifier = opts.cid .. "-stitched-art" or nil
 		local img = pd.Image({ caption }, opts.art)
 		img = "fig" == how and pd.Figure(img, { caption }, ncb.attr) or img
-		-- if "fig" == how then
-		-- 	img = pd.Figure(img, { caption }, ncb.attr)
-		-- end
-		print("img", img)
 		return img
 	end,
 }
