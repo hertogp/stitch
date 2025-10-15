@@ -1,11 +1,13 @@
 <h1 id="id1-boxes">id1 boxes</h1>
 <p>Inside this para?</p>
-<pre class="stitch" data-cfg="boxes"><code>``` {.stitch cfg=&quot;boxes&quot;}
+<pre id="id1" class="stitch" data-cfg="boxes"
+data-caption="id1-caption"><code>``` {#id1 .stitch cfg=&quot;boxes&quot; caption=&quot;id1-caption&quot;}
 #!/usr/bin/env bash
 cat $0 | boxes -d peek -p h2v1
 ```
 </code></pre>
-<pre id="x-stitched-out" class="stitched"><code>/*       _\|/_
+<pre id="id1-stitched-out" class="stitched"
+data-caption="id1-caption"><code>/*       _\|/_
          (o o)
  +----oOO-{_}-OOo-------------------+
  |                                  |
@@ -15,17 +17,19 @@ cat $0 | boxes -d peek -p h2v1
  |                                  |
  |                                  |
  +---------------------------------*/</code></pre>
-<pre id="x-stitched-err" class="stitched"><code>[stitch] stderr - no output</code></pre>
-<img src=".stitch/x-98bd6c028816611256c545e1f8aed36c16157f36.png"
-id="x-stitched-art" class="stitched" />
-alas, unknown element 'oops'
+<pre id="id1-stitched-err" class="stitched"
+data-caption="id1-caption"><code>[stitch] stderr - no output</code></pre>
+<p><img src=".stitch/id1-42ec41c7b5614c6d6cc2d0c2efb9e58d472c66a2.png"
+alt="id1-caption" /></p>
 <h1 id="id2-defaults">id2 defaults</h1>
-<div class="sourceCode" id="id2" data-nou="moe" data-fmt="stdout"><pre
-class="sourceCode stitch bash"><code class="sourceCode bash"><span id="id2-1"><a href="#id2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">```</span> <span class="ex">{#id2</span> .stitch .bash nou=<span class="st">&quot;moe&quot;</span> fmt=<span class="st">&quot;stdout&quot;</span>}</span>
+<div class="sourceCode" id="id2" data-nou="moe" data-fmt="stdout"
+data-caption="id2-caption"><pre
+class="sourceCode stitch bash"><code class="sourceCode bash"><span id="id2-1"><a href="#id2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">```</span> <span class="ex">{#id2</span> .stitch .bash nou=<span class="st">&quot;moe&quot;</span> fmt=<span class="st">&quot;stdout&quot;</span> caption=<span class="st">&quot;id2-caption&quot;</span>}</span>
 <span id="id2-2"><a href="#id2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
 <span id="id2-3"><a href="#id2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="va">$0</span> <span class="kw">|</span> <span class="ex">boxes</span> <span class="at">-d</span> peek <span class="at">-p</span> h2v1</span>
 <span id="id2-4"><a href="#id2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">```</span></span></code></pre></div>
-<div class="sourceCode" id="id2-stitched-out" data-nou="moe"><pre
+<div class="sourceCode" id="id2-stitched-out" data-nou="moe"
+data-caption="id2-caption"><pre
 class="sourceCode stitched bash"><code class="sourceCode bash"><span id="id2-stitched-out-1"><a href="#id2-stitched-out-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/*</span>       _\|/_</span>
 <span id="id2-stitched-out-2"><a href="#id2-stitched-out-2" aria-hidden="true" tabindex="-1"></a>         <span class="kw">(</span><span class="ex">o</span> o<span class="kw">)</span></span>
 <span id="id2-stitched-out-3"><a href="#id2-stitched-out-3" aria-hidden="true" tabindex="-1"></a> <span class="ex">+----oOO-{_}-OOo-------------------+</span></span>
@@ -34,24 +38,46 @@ class="sourceCode stitched bash"><code class="sourceCode bash"><span id="id2-sti
 <span id="id2-stitched-out-6"><a href="#id2-stitched-out-6" aria-hidden="true" tabindex="-1"></a> <span class="kw">|</span>  <span class="fu">cat</span> <span class="va">$0</span> <span class="kw">|</span> <span class="ex">boxes</span> <span class="at">-d</span> peek <span class="at">-p</span> h2v1  <span class="kw">|</span></span>
 <span id="id2-stitched-out-7"><a href="#id2-stitched-out-7" aria-hidden="true" tabindex="-1"></a> <span class="kw">|</span>                                  <span class="kw">|</span></span>
 <span id="id2-stitched-out-8"><a href="#id2-stitched-out-8" aria-hidden="true" tabindex="-1"></a> <span class="ex">+---------------------------------*/</span></span></code></pre></div>
-<div class="sourceCode" id="id2-stitched-err" data-nou="moe"><pre
+<div class="sourceCode" id="id2-stitched-err" data-nou="moe"
+data-caption="id2-caption"><pre
 class="sourceCode stitched bash"><code class="sourceCode bash"><span id="id2-stitched-err-1"><a href="#id2-stitched-err-1" aria-hidden="true" tabindex="-1"></a><span class="ex">[stitch]</span> stderr <span class="at">-</span> no output</span></code></pre></div>
-<img src=".stitch/id2-f8a658aaf235fd6441b1d38e84257d021e75aa92.stdout"
-id="id2-stitched-art" class="stitched bash" data-nou="moe" />
-alas, unknown element 'oops'
+<p><img
+src=".stitch/id2-a9fe46e2b8b866d87805bbf2b35bfde2a85eaded.stdout"
+alt="id2-caption" /></p>
 <h1 id="indented-codeblock">indented codeblock</h1>
-<pre><code>```{#id3 .stitch}
+<pre><code>```{#id3 .stitch not-shown}
 #!/usr/bin/env bash
 cat $0 | boxes -d peek -p h2v1
 ```</code></pre>
 <h1 id="fenced-codeblock">fenced codeblock</h1>
-<pre><code>```{#id4 .stitch}
+<pre><code>```{#id4 .stitch not-shown}
 #!/usr/bin/env bash
-cat $0 | boxes -d peek -p h2v1</code></pre>
-<p>```</p>
+cat $0 | boxes -d peek -p h2v1
+```</code></pre>
 <h1 id="quoted-codeblock">quoted codeblock</h1>
 <blockquote>
 <div class="sourceCode" id="id5"><pre
-class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-1"><a href="#id5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
-<span id="id5-2"><a href="#id5-2" aria-hidden="true" tabindex="-1"></a><span class="va">cat</span> $<span class="dv">0</span> <span class="op">|</span> <span class="va">boxes</span> <span class="op">-</span><span class="va">d</span> <span class="va">peek</span> <span class="op">-</span><span class="va">p</span> <span class="va">h2v1</span></span></code></pre></div>
+class="sourceCode lua stitch"><code class="sourceCode lua"><span id="id5-1"><a href="#id5-1" aria-hidden="true" tabindex="-1"></a>``` <span class="op">{#</span><span class="va">id5</span> <span class="op">.</span><span class="va">lua</span> <span class="op">.</span><span class="va">stitch</span><span class="op">}</span></span>
+<span id="id5-2"><a href="#id5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id5-3"><a href="#id5-3" aria-hidden="true" tabindex="-1"></a><span class="va">cat</span> $<span class="dv">0</span> <span class="op">|</span> <span class="va">boxes</span> <span class="op">-</span><span class="va">d</span> <span class="va">peek</span> <span class="op">-</span><span class="va">p</span> <span class="va">h2v1</span></span>
+<span id="id5-4"><a href="#id5-4" aria-hidden="true" tabindex="-1"></a>```</span></code></pre></div>
+<div class="sourceCode" id="id5-stitched-out"><pre
+class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-stitched-out-1"><a href="#id5-stitched-out-1" aria-hidden="true" tabindex="-1"></a><span class="op">/*</span>       <span class="cn">_</span>\<span class="op">|/</span><span class="cn">_</span></span>
+<span id="id5-stitched-out-2"><a href="#id5-stitched-out-2" aria-hidden="true" tabindex="-1"></a>         <span class="op">(</span><span class="va">o</span> <span class="va">o</span><span class="op">)</span></span>
+<span id="id5-stitched-out-3"><a href="#id5-stitched-out-3" aria-hidden="true" tabindex="-1"></a> <span class="op">+</span><span class="co">----oOO-{_}-OOo-------------------+</span></span>
+<span id="id5-stitched-out-4"><a href="#id5-stitched-out-4" aria-hidden="true" tabindex="-1"></a> <span class="op">|</span>                                  <span class="op">|</span></span>
+<span id="id5-stitched-out-5"><a href="#id5-stitched-out-5" aria-hidden="true" tabindex="-1"></a> <span class="op">|</span>  <span class="op">#</span>!<span class="op">/</span><span class="va">usr</span><span class="op">/</span><span class="va">bin</span><span class="op">/</span><span class="va">env</span> <span class="va">bash</span>             <span class="op">|</span></span>
+<span id="id5-stitched-out-6"><a href="#id5-stitched-out-6" aria-hidden="true" tabindex="-1"></a> <span class="op">|</span>  <span class="va">cat</span> $<span class="dv">0</span> <span class="op">|</span> <span class="va">boxes</span> <span class="op">-</span><span class="va">d</span> <span class="va">peek</span> <span class="op">-</span><span class="va">p</span> <span class="va">h2v1</span>  <span class="op">|</span></span>
+<span id="id5-stitched-out-7"><a href="#id5-stitched-out-7" aria-hidden="true" tabindex="-1"></a> <span class="op">|</span>                                  <span class="op">|</span></span>
+<span id="id5-stitched-out-8"><a href="#id5-stitched-out-8" aria-hidden="true" tabindex="-1"></a> <span class="op">+</span><span class="co">---------------------------------*/</span></span></code></pre></div>
+<div class="sourceCode" id="id5-stitched-err"><pre
+class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-stitched-err-1"><a href="#id5-stitched-err-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span><span class="va">stitch</span><span class="op">]</span> <span class="va">stderr</span> <span class="op">-</span> <span class="va">no</span> <span class="va">output</span></span></code></pre></div>
+<p><img src=".stitch/id5-7aae51e7a2d370d29664ed745ea11ee23b575258.png"
+alt="no-caption" /></p>
 </blockquote>
+<h1 id="todo">ToDo</h1>
+<p>Test out some of these <a
+href="https://www.linuxlinks.com/excellent-free-plotting-tools/">plotting
+tools</a></p>
+<p><code>:Open https://www.linuxlinks.com/excellent-free-plotting-tools/</code>{#idx
+.stitch not-shown}</p>

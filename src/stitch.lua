@@ -1,9 +1,9 @@
 local M = {} -- returned by global Stitch() for testing
 
-local ctx = {} -- holds meta.stitch configuration
+local ctx = {} -- holds meta.stitch configuration for current document
 
 local hardcoded = {
-	-- codeblock option resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
+	-- last resort for cb option resolution: cb -> meta.<cfg> -> defaults -> hardcoded
 
 	cfg = "", -- this codeblock's config in doc.meta.stitch.<cfg> (if any)
 	prg = "", -- program name to run, "" means cb itself
@@ -11,12 +11,17 @@ local hardcoded = {
 	dir = ".stitch", -- where to store files (abs/rel path to cwd)
 	fmt = "png", -- format for images (if any)
 	log = 0, -- log notification level
-	ins = "cb:fcb out:fcb err:fcb art:img oops", -- "<file>[:type], .." -> ordered list of what to insert
-	cmd = "#prg #arg #art 1>#out 2>#err", -- cmd template string, expanded last
+	ins = "cb:fcb out:fcb err:fcb art:img", -- "<file>[:type], .." -> ordered list of what to insert
+	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
 }
+-- ins:
+-- * {cb, ..}:{fcb, img, fig}, default being img for art, fcb for the rest
+-- - img insert an image
+-- - fcb insert as fenced code block
+-- - fig insert as a figure
 
 local hardfiles = {
-	-- filename templates, TODO: this is not platform independant
+	-- filename templates, TODO: this is not platform independant (pathsep "/")
 	inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
 	out = "#dir/#cid-#sha.stdout", -- capture of stdout
 	err = "#dir/#cid-#sha.stderr", -- capture of stderr
@@ -25,21 +30,18 @@ local hardfiles = {
 
 --Notes:
 --bash -x hash.cb --> shows what happens on stderr
+--
+-- REVIEW: maintain images in mediabag so:
+-- * later `single backtick` constructs can refer to it?
+-- * see `:Open https://pandoc.org/lua-filters.html#pandoc.Code`
+-- * pandoc.Code element is for inline code string
+-- * E.g. to intersperse the cb, out, err, art blocks with other stuff?
 
 --[[ helpers ]]
 
-local dump = require("dump")
+local dump = require("dump") -- tmp, delme
 local format = string.format
-local pd = {
-	stringify = require("pandoc.utils").stringify,
-	type = require("pandoc.utils").type,
-	sha1 = require("pandoc.utils").sha1,
-	path = require("pandoc").path,
-	sys = require("pandoc.system"),
-	read = require("pandoc").read,
-	CodeBlock = require("pandoc").CodeBlock,
-	pdoc = require("pandoc"),
-}
+local pd = require("pandoc")
 
 -- trim string `s`, if nil, return empty string
 ---@param s string|nil string to trim (both leading/trailing whitespace)
@@ -58,18 +60,18 @@ local function split(val, sep)
 	-- [..] and always use "a, b" to specify a list of string values (to be split
 	-- here)
 	local parts = {}
-	local ptype = pd.type(val)
+	local ptype = pd.utils.type(val)
 	sep = string.format("[%s]+%%s*", sep or ",") --> [sep]+%s*
 
 	if ptype == "List" or ptype == "table" then
 		-- keep stringified entries in table or a List of Inlines
 		for _, v in ipairs(val) do
-			parts[#parts + 1] = trim(pd.stringify(v))
+			parts[#parts + 1] = trim(pd.utils.stringify(v))
 		end
 	else
 		-- everything else (incl. a single Inline) gets stringified and split
 		-- for part in stringify(val):gsub(",%s*", ","):gmatch("[^,]+") do
-		for part in pd.stringify(val):gsub(sep, ","):gmatch("[^,]+") do
+		for part in pd.utils.stringify(val):gsub(sep, ","):gmatch("[^,]+") do
 			parts[#parts + 1] = trim(part)
 		end
 	end
@@ -85,7 +87,7 @@ local marshal = {
 }
 setmetatable(marshal, {
 	__index = function()
-		return pd.stringify -- standard conversion
+		return pd.utils.stringify -- standard conversion
 	end,
 })
 
@@ -138,12 +140,12 @@ local function mksha(cb, opts)
 	local fp = {}
 	table.sort(keys) -- eliminate random key order
 	for _, key in ipairs(keys) do
-		fp[#fp + 1] = pd.stringify(opts[key])
+		fp[#fp + 1] = pd.utils.stringify(opts[key])
 	end
 	-- ignore whitespace in codeblock (only)
 	fp[#fp + 1] = cb.text:gsub("%s", "")
 
-	return pd.sha1(pd.stringify(fp))
+	return pd.utils.sha1(pd.utils.stringify(fp))
 end
 
 -- create the command to execute
@@ -180,8 +182,7 @@ local function mkcmd(cb, opts)
 	end
 
 	-- interpolate & finalize the runnable command
-	local cmd = opts.cmd:gsub("%#(%w+)", opts) -- maybe error check here?
-	return opts.cmd:gsub("%#(%w+)", opts) -- maybe error check here?
+	return opts.cmd:gsub("%#(%w+)", opts)
 end
 
 -- returns file contents of file `opts[key]` or nil on empty file
@@ -201,6 +202,28 @@ local function fread(path)
 	return nil
 end
 
+-- wrap lines so they're less than `maxlen` long
+---@param txt string text string whose lines are to be wrapped
+---@param maxlen? number maxlen for a line (defaults to 65)
+---@return string txt the wrapped text
+local function wrap(txt, maxlen)
+	maxlen = maxlen or 65
+	txt = txt or ""
+	if #txt < maxlen + 1 then
+		return txt
+	end
+
+	local lines = { "" }
+	for chunk in txt:gmatch("%s*%S+") do
+		if #lines[#lines] + #chunk < maxlen then
+			lines[#lines] = lines[#lines] .. chunk
+		else
+			lines[#lines] = lines[#lines]
+			lines[#lines + 1] = "  " .. chunk
+		end
+	end
+	return table.concat(lines, "\n")
+end
 -- clones `cb`, removes stitch properties and adds a 'stitched' class
 ---@param cb table CodeBlock instance
 ---@param opts table the cb's stitch options
@@ -227,11 +250,11 @@ local function mkfcb(cb, opts)
 end
 
 local mkres = {
-	-- functin signature (cb, opts, opt)
+	-- function signature (cb, opts, opt)
 	cb = function(cb, _, opt)
 		local ncb = cb:clone()
 		if "fcb" == opt then
-			ncb.text = pd.pdoc.write(pd.pdoc.Pandoc({ cb }, {}))
+			ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 		else
 			ncb = cb:clone()
 		end
@@ -249,16 +272,27 @@ local mkres = {
 	err = function(cb, opts, _)
 		local ncb = mkfcb(cb, opts)
 		local txt = fread(opts.err)
-		ncb.text = txt or "[stitch] stderr - no output"
+		ncb.text = wrap(txt or "[stitch] stderr - no output")
+
 		ncb.identifier = opts.cid .. "-stitched-err" or nil
 		return ncb
 	end,
 
-	art = function(cb, opts, _)
+	art = function(cb, opts, how)
+		-- `:Open https://pandoc.org/lua-filters.html#pandoc.Figure`
+		-- `:Open https://pandoc.org/lua-filters.html#pandoc.Caption`
+		-- `:Open https://pandoc.org/lua-filters.html#pandoc.Para`
+		-- `:Open https://pandoc.org/lua-filters.html#pandoc.mediabag`
 		local ncb = mkfcb(cb, opts)
-		local caption = cb.attributes.caption or ""
+		local title = cb.attributes.title or "no-title"
+		local caption = pd.Str(cb.attributes.caption or "no-caption")
 		ncb.identifier = opts.cid .. "-stitched-art" or nil
-		local img = pd.pdoc.Image(caption, opts.art, ncb.attributes.title, ncb.attr)
+		local img = pd.Image({ caption }, opts.art)
+		img = "fig" == how and pd.Figure(img, { caption }, ncb.attr) or img
+		-- if "fig" == how then
+		-- 	img = pd.Figure(img, { caption }, ncb.attr)
+		-- end
+		print("img", img)
 		return img
 	end,
 }
@@ -266,7 +300,7 @@ local mkres = {
 setmetatable(mkres, {
 	__index = function(_, key)
 		return function()
-			return pd.pdoc.Str(format("alas, unknown element '%s'", key))
+			return pd.Str(format("alas, unknown element '%s'", key))
 		end
 	end,
 })
@@ -275,8 +309,9 @@ local function result(cb, opts)
 	-- insert pieces as per opts.ins
 	local elms = {}
 	for _, v in ipairs(split(opts.ins, ",%s")) do
-		local elm, opt = table.unpack(split(v, ":"))
-		elms[#elms + 1] = mkres[elm](cb, opts, opt)
+		local elm, how = table.unpack(split(v, ":"))
+		print("result insert", elm, how)
+		elms[#elms + 1] = mkres[elm](cb, opts, how)
 	end
 
 	-- TODO: maybe put rv in a para or put all elements in their own para
@@ -355,10 +390,11 @@ end
 --[[ checks ]]
 -- `:Open https://pandoc.org/lua-filters.html#global-variables`
 -- `:Open https://pandoc.org/lua-filters.html#type-version`
--- print("PANDOC_VERSION", PANDOC_VERSION) -- 3.1.3
+print("PANDOC_VERSION", _ENV.PANDOC_VERSION) -- 3.1.3
 
 ---@poram cb pandoc.CodeBlock
 function M.codeblock(cb)
+	print("CodeBlock id", cb.identifier)
 	if not cb.classes:find("stitch") then
 		return nil -- keep cb as-is
 	end
@@ -382,6 +418,8 @@ end
 
 function Pandoc(doc)
 	ctx = M.context(doc)
+	local text = pd.write(pd.Pandoc({}, doc.meta), "json")
+	print("text", text)
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 

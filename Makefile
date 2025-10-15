@@ -3,14 +3,15 @@ BUSTED=busted
 FILTER=src/stitch.lua
 EXAMPLES=examples
 SCRATCH=.stitch
+# how to enable extension: inline_code_attributes
 
-# 'make' w/o a target will build this (first) one
-# cd is executed in its own subshell, to tag on cmd after ';'
-# default: test # runs busted
-default: ex01 # working on examples
+default: gnuplot
 
-ex01: clean
-	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) ex01.md -o ex01.html
+ex01:
+	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes -t native ex01.md -o ex01.native
+
+gnuplot:
+	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) gnuplot.md -o gnuplot.pdf
 
 test:
 	$(BUSTED)

@@ -1,0 +1,135 @@
+[ Header
+    1
+    ( "id1-boxes" , [] , [] )
+    [ Str "id1" , Space , Str "boxes" ]
+, Para
+    [ Str "Inside" , Space , Str "this" , Space , Str "para?" ]
+, Figure
+    ( "id1-stitched-art"
+    , [ "stitched" ]
+    , [ ( "caption" , "id1-caption" ) ]
+    )
+    (Caption Nothing [ Plain [ Str "id1-caption" ] ])
+    [ Plain
+        [ Image
+            ( "" , [] , [] )
+            [ Str "id1-caption" ]
+            ( ".stitch/id1-0962400a5b7d307e31d08e09384dcf02fa317e94.png"
+            , ""
+            )
+        ]
+    ]
+, CodeBlock
+    ( "id1"
+    , [ "stitch" ]
+    , [ ( "cfg" , "boxes" ) , ( "caption" , "id1-caption" ) ]
+    )
+    "``` {#id1 .stitch cfg=\"boxes\" caption=\"id1-caption\"}\n#!/usr/bin/env bash\ncat $0 | boxes -d peek -p h2v1\n```\n"
+, CodeBlock
+    ( "id1-stitched-err"
+    , [ "stitched" ]
+    , [ ( "caption" , "id1-caption" ) ]
+    )
+    "[stitch] stderr - no output"
+, Header
+    1
+    ( "id2-defaults" , [] , [] )
+    [ Str "id2" , Space , Str "defaults" ]
+, Figure
+    ( "id2-stitched-art"
+    , [ "stitched" , "bash" ]
+    , [ ( "nou" , "moe" ) , ( "caption" , "id2-caption" ) ]
+    )
+    (Caption Nothing [ Plain [ Str "id2-caption" ] ])
+    [ Plain
+        [ Image
+            ( "" , [] , [] )
+            [ Str "id2-caption" ]
+            ( ".stitch/id2-4bc760ff4e0442f5b7e1fc23d462d02f4cfb4c1d.stdout"
+            , ""
+            )
+        ]
+    ]
+, CodeBlock
+    ( "id2"
+    , [ "stitch" , "bash" ]
+    , [ ( "nou" , "moe" )
+      , ( "fmt" , "stdout" )
+      , ( "caption" , "id2-caption" )
+      ]
+    )
+    "``` {#id2 .stitch .bash nou=\"moe\" fmt=\"stdout\" caption=\"id2-caption\"}\n#!/usr/bin/env bash\ncat $0 | boxes -d peek -p h2v1\n```\n"
+, CodeBlock
+    ( "id2-stitched-err"
+    , [ "stitched" , "bash" ]
+    , [ ( "nou" , "moe" ) , ( "caption" , "id2-caption" ) ]
+    )
+    "[stitch] stderr - no output"
+, Header
+    1
+    ( "indented-codeblock" , [] , [] )
+    [ Str "indented" , Space , Str "codeblock" ]
+, CodeBlock
+    ( "" , [] , [] )
+    "```{#id3 .stitch not-shown}\n#!/usr/bin/env bash\ncat $0 | boxes -d peek -p h2v1\n```"
+, Header
+    1
+    ( "fenced-codeblock" , [] , [] )
+    [ Str "fenced" , Space , Str "codeblock" ]
+, CodeBlock
+    ( "" , [] , [] )
+    "```{#id4 .stitch not-shown}\n#!/usr/bin/env bash\ncat $0 | boxes -d peek -p h2v1\n```"
+, Header
+    1
+    ( "quoted-codeblock" , [] , [] )
+    [ Str "quoted" , Space , Str "codeblock" ]
+, BlockQuote
+    [ Figure
+        ( "id5-stitched-art" , [ "lua" , "stitched" ] , [] )
+        (Caption Nothing [ Plain [ Str "no-caption" ] ])
+        [ Plain
+            [ Image
+                ( "" , [] , [] )
+                [ Str "no-caption" ]
+                ( ".stitch/id5-70ec7261e073f4aee566819b0e38d3c4be702aae.png"
+                , ""
+                )
+            ]
+        ]
+    , CodeBlock
+        ( "id5" , [ "lua" , "stitch" ] , [] )
+        "``` {#id5 .lua .stitch}\n#!/usr/bin/env bash\ncat $0 | boxes -d peek -p h2v1\n```\n"
+    , CodeBlock
+        ( "id5-stitched-err" , [ "lua" , "stitched" ] , [] )
+        "[stitch] stderr - no output"
+    ]
+, Header 1 ( "todo" , [] , [] ) [ Str "ToDo" ]
+, Para
+    [ Str "Test"
+    , Space
+    , Str "out"
+    , Space
+    , Str "some"
+    , Space
+    , Str "of"
+    , Space
+    , Str "these"
+    , Space
+    , Link
+        ( "" , [] , [] )
+        [ Str "plotting" , Space , Str "tools" ]
+        ( "https://www.linuxlinks.com/excellent-free-plotting-tools/"
+        , ""
+        )
+    ]
+, Para
+    [ Code
+        ( "" , [] , [] )
+        ":Open https://www.linuxlinks.com/excellent-free-plotting-tools/"
+    , Str "{#idx"
+    , Space
+    , Str ".stitch"
+    , Space
+    , Str "not-shown}"
+    ]
+]
