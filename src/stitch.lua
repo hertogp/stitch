@@ -24,6 +24,42 @@ local format = string.format
 local F = string.format
 local pd = require("pandoc")
 
+-- converts (only) doc.meta to list of lines to complement `pandoc.write(doc, "native")`
+---@param elm any doc.meta of one of its elements
+---@param indent? number number of indent spaces, defaults to 0
+---@param acc? table accumulator for lines, defaults to empty list
+---@return table acc the list of lines describing docs.meta
+local function meta2lines(elm, indent, acc)
+	-- maybe do `doc.meta.hardcoded = hardcoded` before calling meta2lines(doc.meta)
+	indent = indent or 0
+	acc = acc or {}
+	if #acc == 0 then
+		elm.hardcoded = hardcoded
+	end
+	local tab = string.rep(" ", indent)
+	local type_ = pd.utils.type(elm)
+
+	if "Meta" == type_ or "table" == type_ then
+		for k, v in pairs(elm) do
+			acc[#acc + 1] = F("%s%s: ", tab, k)
+			meta2lines(v, indent + 2, acc)
+		end
+	elseif "Inlines" == type_ or "List" == type_ then
+		acc[#acc] = acc[#acc] .. "["
+		for _, v in pairs(elm) do
+			meta2lines(v, indent, acc)
+		end
+		acc[#acc] = acc[#acc]:gsub(",?%s*$", " ]")
+	elseif "Inline" == type_ then
+		acc[#acc] = acc[#acc] .. F(" %s, ", elm)
+	elseif "number" == type_ or "string" == type_ or "boolean" == type_ then
+		acc[#acc] = acc[#acc] .. F(" %q ", elm)
+	else
+		acc[#acc + 1] = F("unknown type %s %s", type_, tostring(elm))
+	end
+	return acc
+end
+
 -- trim string `s`, if nil, return empty string
 ---@param s string|nil string to trim (both leading/trailing whitespace)
 ---@return string
@@ -243,7 +279,7 @@ function mkins.art(cb, opts, how)
 end
 
 local function result(cb, opts)
-	-- insert pieces as per opts.ins
+	-- insert document pieces as per opts.ins
 	local elms = {}
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
@@ -363,70 +399,21 @@ function M.codeblock(cb)
 end
 
 function Pandoc(doc)
-	-- parse ins -- works!
-	-- print("doc.meta.ins", pd.utils.stringify(doc.meta.ins))
-	-- local todo = {}
-	-- local metains = pd.utils.stringify(doc.meta.ins)
-	-- local word = "([^!@:]+)"
-	--
-	-- for p in metains:gsub("[,%s]+", " "):gmatch("%S+") do
-	-- 	table.insert(todo, {
-	-- 		what = p:match("^" .. word),
-	-- 		read = p:match("!" .. word),
-	-- 		fltr = p:match("@" .. word),
-	-- 		elem = p:match(":" .. word),
-	-- 	})
-	-- end
-	-- print(dump(todo))
-	-- /parse
-
 	ctx = M.context(doc)
 
-	-- dump meta
+	-- dump
 	local txt = io.open("ex01.md"):read("a")
 	local ast = pd.read(txt, "markdown", { standalone = true })
-	local json = pd.write(ast, "native", { columns = 55, extensions = { "standalone" } })
-	print("json", type(json), json)
-
-	local function meta2lines(elm, indent, acc)
-		indent = indent or 0
-		acc = acc or {}
-		local tab = string.rep(" ", indent)
-		local type_ = pd.utils.type(elm)
-
-		if "Meta" == type_ or "table" == type_ then
-			for k, v in pairs(elm) do
-				acc[#acc + 1] = F("%s%s: ", tab, k)
-				meta2lines(v, indent + 2, acc)
-			end
-		elseif "Inlines" == type_ or "List" == type_ then
-			acc[#acc] = acc[#acc] .. "["
-			for _, v in pairs(elm) do
-				meta2lines(v, indent, acc)
-			end
-			acc[#acc] = acc[#acc]:gsub(",?%s*$", " ]")
-		elseif "Inline" == type_ then
-			acc[#acc] = acc[#acc] .. F(" %s, ", elm)
-		elseif "number" == type_ or "string" == type_ or "boolean" == type_ then
-			acc[#acc] = acc[#acc] .. F(" %q ", elm)
-		else
-			acc[#acc + 1] = F("unknown type %s %s", type_, tostring(elm))
-		end
-		return acc
-	end
+	local native = pd.write(ast, "native", { columns = 55, extensions = { "standalone" } })
+	print("native", type(native), native)
 
 	print("meta2lines")
-	doc.meta.hardcoded = hardcoded
-	local serial = meta2lines(doc.meta, 0, {})
+	-- doc.meta.hardcoded = hardcoded
+	local serial = meta2lines(doc.meta)
 	for _, v in ipairs(serial) do
 		print(v)
 	end
 
-	-- dump AST to plain text -- works!
-	-- local txt = io.open("ex03.csv"):read("a")
-	-- local ast = pd.read(txt, "csv")
-	-- local res = pd.write(ast, "native")
-	-- print("csv", res)
 	-- /dump
 
 	return nil
