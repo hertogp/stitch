@@ -1,10 +1,5 @@
--- S T I T C H
--- TODO:
--- * make filepaths platform independent, see package.config[1]
--- * implement feature where output can be converted before including
---   e.g. out::markdown, out::json (pandoc.json) or out:tbl:csv (pandoc.Table)
---   or ... etc
--- * include as: fcb, img, fig, tbl, more?
+-- stitch turns codeblocks into images, figures, codeblocks and more
+
 local M = {} -- returned by global Stitch() for testing
 
 local ctx = {} -- holds meta.stitch configuration for current document
@@ -21,33 +16,12 @@ local hardcoded = {
 	ins = "cb:fcb out:fcb err:fcb art:img", -- "<file>[:type], .." -> ordered list of what to insert
 	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
 }
--- ins:
--- * {cb, ..}:{fcb, img, fig}, default being img for art, fcb for the rest
--- - img insert an image
--- - fcb insert as fenced code block
--- - fig insert as a figure
-
-local hardfiles = {
-	-- filename templates, TODO: this is not platform independant (pathsep "/")
-	inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
-	out = "#dir/#cid-#sha.stdout", -- capture of stdout
-	err = "#dir/#cid-#sha.stderr", -- capture of stderr
-	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
-}
-
---Notes:
---bash -x hash.cb --> shows what happens on stderr
---
--- REVIEW: maintain images in mediabag so:
--- * later `single backtick` constructs can refer to it?
--- * see `:Open https://pandoc.org/lua-filters.html#pandoc.Code`
--- * pandoc.Code element is for inline code string
--- * E.g. to intersperse the cb, out, err, art blocks with other stuff?
 
 --[[ helpers ]]
 
 local dump = require("dump") -- tmp, delme
 local format = string.format
+local F = string.format
 local pd = require("pandoc")
 
 -- trim string `s`, if nil, return empty string
@@ -100,38 +74,6 @@ setmetatable(marshal, {
 
 --[[ file handling ]]
 
--- -- filepath based on cb hash, options and desired extension
--- ---@param cb table pandoc's CodeBlock
--- ---@param opts table options derived from cb's attrributes, meta & defaults
--- ---@param ext? string|nil desired file extension (if any)
--- ---@return string path for a desired file
--- local function fname(cb, opts, ext)
--- 	ext = #ext > 0 and "." .. ext or ".cb"
--- 	-- use cached hash or created it on first call to fname
--- 	-- opts.sha = opts.sha or mksha(cb, opts)
--- 	-- local base = pd.path.join({ opts.dir, opts.hash })
--- 	local base = pd.path.join({ opts.dir, opts.sha })
--- 	return string.format("%s%s", base, ext)
--- end
---
--- -- checks if a path on the system exists or not
--- ---@param path string directory or file to check
--- ---@return boolean ok true if `path` exists, false otherwise
--- local function exists(path)
--- 	return true == os.rename(path, path) -- returns true or nil, msg
--- end
---
--- -- create working directory for a codeblock, using its options
--- ---@param opts table codeblock options
--- ---@return boolean ok true if succesful, false otherwise
--- local function mkdir(opts)
--- 	if exists(opts.dir) or os.execute("mkdir -p " .. opts.dir) then
--- 		return true
--- 	end
---
--- 	return false
--- end
-
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
 ---@param opts table the codeblocks options
@@ -142,17 +84,17 @@ local function mksha(cb, opts)
 	for key in pairs(hardcoded) do
 		keys[#keys + 1] = key
 	end
+	table.sort(keys) -- sorts inplace
 
 	-- fingerprint is hash on option values + cb.text
 	local fp = {}
-	table.sort(keys) -- eliminate random key order
 	for _, key in ipairs(keys) do
-		fp[#fp + 1] = pd.utils.stringify(opts[key])
+		fp[#fp + 1] = pd.utils.stringify(opts[key]):gsub("%s", "")
 	end
 	-- ignore whitespace in codeblock (only)
 	fp[#fp + 1] = cb.text:gsub("%s", "")
 
-	return pd.utils.sha1(pd.utils.stringify(fp))
+	return pd.utils.sha1(table.concat(fp, ""))
 end
 
 -- create the command to execute
@@ -179,6 +121,7 @@ local function mkcmd(cb, opts)
 
 	-- write out cb.text (i.e the codeblock)
 	if not fh:write(cb.text) then
+		fh:close()
 		return nil, format("[error] could not write to %s", opts.inp)
 	end
 	fh:close()
@@ -222,6 +165,7 @@ local function wrap(txt, maxlen)
 
 	local lines = { "" }
 	for chunk in txt:gmatch("%s*%S+") do
+		-- for chunk in txt:gmatch("[, ]+[^, ]+") do
 		if #lines[#lines] + #chunk < maxlen then
 			lines[#lines] = lines[#lines] .. chunk
 		else
@@ -256,62 +200,47 @@ local function mkfcb(cb, opts)
 	return clone
 end
 
-local mkres = {
-	-- ins: what:how?:from?
-	-- * what in {cb, out, err, art}
-	-- * how in {fcb, img, fig, ..}, default is fcb
-	-- * from in {plain, ..}, default is code (ignored if how is fcb}
-	-- + a tool can produce graphic output on stdout, then cmd uses 1>#art
-	-- + a cb itself is always plain (it's in a text doc)
-	-- + a cb may produce anything on stdout, stderr and/or in outfile #art
-	--   to insert that properly it may need conversion, e.g. from markdown,
-	--   or org, or rtf, or .. etc. Or even using a custom lua-based reader.
-	-- + lpeg is available in a lua-filter (as lpeg)
-	--  See pandoc.readers -> table with {format-x: true/false}
-	--  See `:Open https://pandoc.org/lua-filters.html#pandoc.read`
-	-- function signature (cb, opts, how)
-	cb = function(cb, _, how)
-		local ncb = cb:clone()
-		if "fcb" == how then
-			ncb.text = pd.write(pd.Pandoc({ cb }, {}))
-		else
-			ncb = cb:clone()
-		end
-		return ncb
-	end,
+local mkins = {}
+mkins._mt = {}
+mkins._mt.__index = function(_, key)
+	return function()
+		return pd.Str(format("alas, unknown element '%s'", key))
+	end
+end
+setmetatable(mkins, mkins._mt)
 
-	out = function(cb, opts, _)
-		local ncb = mkfcb(cb, opts)
-		ncb.text = fread(opts.out) or "[stitch] stdout - no output"
-		ncb.identifier = opts.cid .. "-stitched-out" or nil
-		return ncb
-	end,
+function mkins.cb(cb, _, how)
+	-- as fcb or ocb
+	local ncb = cb:clone()
+	if "fcb" == how then
+		ncb.text = pd.write(pd.Pandoc({ cb }, {}))
+	end
+	return ncb
+end
 
-	err = function(cb, opts, _)
-		local ncb = mkfcb(cb, opts)
-		ncb.text = wrap(fread(opts.err) or "[stitch] stderr - no output")
-		ncb.identifier = opts.cid .. "-stitched-err" or nil
-		return ncb
-	end,
+function mkins.out(cb, opts, _)
+	local ncb = mkfcb(cb, opts)
+	ncb.text = fread(opts.out) or "[stitch] stdout - no output"
+	ncb.identifier = opts.cid .. "-stitched-out" or nil
+	return ncb
+end
 
-	art = function(cb, opts, how)
-		local ncb = mkfcb(cb, opts)
-		local title = cb.attributes.title or "no-title"
-		local caption = pd.Str(cb.attributes.caption or "no-caption")
-		ncb.identifier = opts.cid .. "-stitched-art" or nil
-		local img = pd.Image({ caption }, opts.art)
-		img = "fig" == how and pd.Figure(img, { caption }, ncb.attr) or img
-		return img
-	end,
-}
+function mkins.err(cb, opts, _)
+	local ncb = mkfcb(cb, opts)
+	ncb.text = wrap(fread(opts.err) or "[stitch] stderr - no output")
+	ncb.identifier = opts.cid .. "-stitched-err" or nil
+	return ncb
+end
 
-setmetatable(mkres, {
-	__index = function(_, key)
-		return function()
-			return pd.Str(format("alas, unknown element '%s'", key))
-		end
-	end,
-})
+function mkins.art(cb, opts, how)
+	local ncb = mkfcb(cb, opts)
+	local title = cb.attributes.title or "no-title"
+	local caption = pd.Str(cb.attributes.caption or "no-caption")
+	ncb.identifier = opts.cid .. "-stitched-art" or nil
+	local img = pd.Image({ caption }, opts.art)
+	img = "fig" == how and pd.Figure(img, { caption }, ncb.attr) or img
+	return img
+end
 
 local function result(cb, opts)
 	-- insert pieces as per opts.ins
@@ -319,7 +248,7 @@ local function result(cb, opts)
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
 		print("result insert", elm, how)
-		elms[#elms + 1] = mkres[elm](cb, opts, how)
+		elms[#elms + 1] = mkins[elm](cb, opts, how)
 	end
 
 	-- TODO: maybe put rv in a para or put all elements in their own para
@@ -339,6 +268,13 @@ end
 function M.options(cb)
 	local opts = {}
 	local attr = cb.attributes or cb
+	local cbfiles = {
+		-- filename templates, TODO: this is not platform independant (pathsep "/")
+		inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
+		out = "#dir/#cid-#sha.stdout", -- capture of stdout
+		err = "#dir/#cid-#sha.stderr", -- capture of stderr
+		art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
+	}
 
 	-- only known stitch options
 	for k, _ in pairs(hardcoded) do
@@ -348,13 +284,13 @@ function M.options(cb)
 	-- cb opts falls back to ctx[cfg] or defaults (if cfg not present)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
-	-- set cb specific, non-stitch options
+	-- set cb specific, non-hardcoded options (incl. filenames)
 	opts.cid = cb.identifier or ""
 	opts.cid = #opts.cid > 0 and opts.cid or "x"
 	opts.sha = mksha(cb, opts)
 
-	-- derive the filenames
-	for k, v in pairs(hardfiles) do
+	-- add the filenames for this codeblock
+	for k, v in pairs(cbfiles) do
 		opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
 	end
 
@@ -365,36 +301,38 @@ end
 ---@param doc table the doc's AST
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function M.context(doc)
-	-- resolution order: cb -> meta[cb.cfg] -> defaults -> hardcoded
+	-- resolution order: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
+	-- uses hardcoded keys to only extract stitch options
 
 	ctx = {} -- reset
 	for name, attr in pairs(doc.meta.stitch or {}) do
 		ctx[name] = {}
-		-- only known stich options
 		for k, _ in pairs(hardcoded) do
 			ctx[name][k] = attr[k] and marshal[k](attr[k])
 		end
 	end
 
-	-- defaults fallback to hardcoded
+	-- defaults -> hardcoded
 	local defaults = ctx.defaults or {}
 	setmetatable(defaults, { __index = hardcoded })
-
-	-- named ctxpcfg] section falls back to defaults
 	ctx.defaults = nil
+
+	-- sections -> defaults -> hardcoded
 	for _, attr in pairs(ctx) do
 		setmetatable(attr, { __index = defaults })
 	end
 
-	-- missing ctx[cfg] section falls back to defaults
+	-- missing -> defaults -> hardcoded
 	setmetatable(ctx, {
 		__index = function()
+			-- ctx.missing_key -> defaults table
 			return defaults
 		end,
 	})
 
-	return ctx -- make available for testing
+	return ctx -- section|missing -> defaults -> hardcoded
 end
+
 --[[ checks ]]
 -- `:Open https://pandoc.org/lua-filters.html#global-variables`
 -- `:Open https://pandoc.org/lua-filters.html#type-version`
@@ -425,10 +363,74 @@ function M.codeblock(cb)
 end
 
 function Pandoc(doc)
+	-- parse ins -- works!
+	-- print("doc.meta.ins", pd.utils.stringify(doc.meta.ins))
+	-- local todo = {}
+	-- local metains = pd.utils.stringify(doc.meta.ins)
+	-- local word = "([^!@:]+)"
+	--
+	-- for p in metains:gsub("[,%s]+", " "):gmatch("%S+") do
+	-- 	table.insert(todo, {
+	-- 		what = p:match("^" .. word),
+	-- 		read = p:match("!" .. word),
+	-- 		fltr = p:match("@" .. word),
+	-- 		elem = p:match(":" .. word),
+	-- 	})
+	-- end
+	-- print(dump(todo))
+	-- /parse
+
 	ctx = M.context(doc)
-	local text = pd.write(pd.Pandoc({}, doc.meta), "json")
-	print("text", text)
-	return doc:walk({ CodeBlock = M.codeblock })
+
+	-- dump meta
+	local txt = io.open("ex01.md"):read("a")
+	local ast = pd.read(txt, "markdown", { standalone = true })
+	local json = pd.write(ast, "native", { columns = 55, extensions = { "standalone" } })
+	print("json", type(json), json)
+
+	local function meta2lines(elm, indent, acc)
+		indent = indent or 0
+		acc = acc or {}
+		local tab = string.rep(" ", indent)
+		local type_ = pd.utils.type(elm)
+
+		if "Meta" == type_ or "table" == type_ then
+			for k, v in pairs(elm) do
+				acc[#acc + 1] = F("%s%s: ", tab, k)
+				meta2lines(v, indent + 2, acc)
+			end
+		elseif "Inlines" == type_ or "List" == type_ then
+			acc[#acc] = acc[#acc] .. "["
+			for _, v in pairs(elm) do
+				meta2lines(v, indent, acc)
+			end
+			acc[#acc] = acc[#acc]:gsub(",?%s*$", " ]")
+		elseif "Inline" == type_ then
+			acc[#acc] = acc[#acc] .. F(" %s, ", elm)
+		elseif "number" == type_ or "string" == type_ or "boolean" == type_ then
+			acc[#acc] = acc[#acc] .. F(" %q ", elm)
+		else
+			acc[#acc + 1] = F("unknown type %s %s", type_, tostring(elm))
+		end
+		return acc
+	end
+
+	print("meta2lines")
+	doc.meta.hardcoded = hardcoded
+	local serial = meta2lines(doc.meta, 0, {})
+	for _, v in ipairs(serial) do
+		print(v)
+	end
+
+	-- dump AST to plain text -- works!
+	-- local txt = io.open("ex03.csv"):read("a")
+	-- local ast = pd.read(txt, "csv")
+	-- local res = pd.write(ast, "native")
+	-- print("csv", res)
+	-- /dump
+
+	return nil
+	-- return doc:walk({ CodeBlock = M.codeblock })
 end
 
 function Busted()

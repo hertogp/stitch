@@ -5,10 +5,10 @@ EXAMPLES=examples
 SCRATCH=.stitch
 # how to enable extension: inline_code_attributes
 
-default: gnuplot
+default: ex01
 
 ex01:
-	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes -t native ex01.md -o ex01.native
+	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes ex01.md -o ex01.html
 
 gnuplot:
 	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) gnuplot.md -o gnuplot.pdf

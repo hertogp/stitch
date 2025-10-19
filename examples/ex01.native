@@ -14,7 +14,7 @@
         [ Image
             ( "" , [] , [] )
             [ Str "id1-caption" ]
-            ( ".stitch/id1-0962400a5b7d307e31d08e09384dcf02fa317e94.png"
+            ( ".stitch/id1-642b9a723f9d0f55afd9f2191992addcae9f06b8.png"
             , ""
             )
         ]
@@ -45,7 +45,7 @@
         [ Image
             ( "" , [] , [] )
             [ Str "id2-caption" ]
-            ( ".stitch/id2-4bc760ff4e0442f5b7e1fc23d462d02f4cfb4c1d.stdout"
+            ( ".stitch/id2-77aa834f4b1f4c5dc467d0945dec5c126d0e565a.stdout"
             , ""
             )
         ]
@@ -91,7 +91,7 @@
             [ Image
                 ( "" , [] , [] )
                 [ Str "no-caption" ]
-                ( ".stitch/id5-70ec7261e073f4aee566819b0e38d3c4be702aae.png"
+                ( ".stitch/id5-b3b9a54cd7725aaf1a0773609b6d008ebea5eab5.png"
                 , ""
                 )
             ]
