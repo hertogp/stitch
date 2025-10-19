@@ -14,6 +14,7 @@ local hardcoded = {
 	fmt = "png", -- format for images (if any)
 	log = 0, -- log notification level
 	ins = "cb:fcb out:fcb err:fcb art:img", -- "<file>[:type], .." -> ordered list of what to insert
+	inc = "cb:fcb out!markdown@filter err:fcb@meta",
 	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
 }
 
@@ -101,6 +102,21 @@ local marshal = {
 	-- convert options from pandoc AST -> lua values
 	log = tonumber,
 	ins = split,
+	inc = function(val)
+		local str = pd.utils.stringify(val)
+		local todo = {}
+		local word = "([^!@:]+)"
+		for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
+			table.insert(todo, {
+				what = p:match("^" .. word),
+				read = p:match("!" .. word),
+				fltr = p:match("@" .. word),
+				elem = p:match(":" .. word),
+			})
+		end
+		print("inc decode", val, dump(todo))
+		return todo
+	end,
 }
 setmetatable(marshal, {
 	__index = function()
@@ -168,6 +184,9 @@ local function mkcmd(cb, opts)
 	end
 
 	-- interpolate & finalize the runnable command
+	local tmp = opts.cmd:gsub("%#(%w+)", opts)
+	print("cmd org", opts.cmd)
+	print("cmd exp", tmp)
 	return opts.cmd:gsub("%#(%w+)", opts)
 end
 
@@ -281,10 +300,16 @@ end
 local function result(cb, opts)
 	-- insert document pieces as per opts.ins
 	local elms = {}
+	print("dump opts", dump(opts))
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
 		print("result insert", elm, how)
 		elms[#elms + 1] = mkins[elm](cb, opts, how)
+	end
+
+	print("dump opts.inc", dump(opts.inc))
+	for k, v in pairs(opts.inc) do
+		print("#" .. (cb.cid or "nil"), k, dump(v))
 	end
 
 	-- TODO: maybe put rv in a para or put all elements in their own para
@@ -314,21 +339,36 @@ function M.options(cb)
 
 	-- only known stitch options
 	for k, _ in pairs(hardcoded) do
-		opts[k] = attr[k] and marshal[k](attr[k])
+		opts[k] = attr[k] and marshal[k](attr[k]) -- cannot do: or marshal[k](hard)
+		print("options added", k, dump(opts[k]))
 	end
 
 	-- cb opts falls back to ctx[cfg] or defaults (if cfg not present)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
 	-- set cb specific, non-hardcoded options (incl. filenames)
-	opts.cid = cb.identifier or ""
-	opts.cid = #opts.cid > 0 and opts.cid or "x"
+	opts.cid = cb.identifier or "x"
+	-- opts.cid = #opts.cid > 0 and opts.cid or "x"
 	opts.sha = mksha(cb, opts)
 
-	-- add the filenames for this codeblock
+	-- add and expand the filenames for this codeblock
 	for k, v in pairs(cbfiles) do
 		opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
 	end
+
+	-- todo: now opts has attr keys + filename keys, but:
+	-- * cmd needs expanding too
+	-- * hardcoded contains unmarshalled values
+	-- * later on, its unclear whether an option value has been expanded
+	--   or not -> gives rise to errors, e.g. with inc: "string" vs its
+	--   expanded value of a list of table { {what:.., read: .., ..}, .. }
+	-- * to resolve this:
+	--   1.a. copy attr[k] to options
+	--     b. setmetatable to stitch[cfg]
+	--   2. copy cbfiles to options
+	--   3. run through hardcoded and add key, expanded values
+	--   -> that way, options has *all* key, expanded values and no need for
+	--      falling back anymore.  Then you don't need
 
 	return opts
 end
@@ -382,6 +422,7 @@ function M.codeblock(cb)
 	end
 
 	local opts = M.options(cb)
+	print("codeblock opts", dump(opts))
 
 	local cmd, err = mkcmd(cb, opts)
 	if not cmd then
@@ -390,6 +431,7 @@ function M.codeblock(cb)
 	end
 
 	-- execute
+	print("execute", cmd)
 	local ok, code, nr = os.execute(cmd)
 	if not ok then
 		print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
@@ -400,22 +442,7 @@ end
 
 function Pandoc(doc)
 	ctx = M.context(doc)
-
-	-- dump
-	local txt = io.open("ex01.md"):read("a")
-	local ast = pd.read(txt, "markdown", { standalone = true })
-	local native = pd.write(ast, "native", { columns = 55, extensions = { "standalone" } })
-	print("native", type(native), native)
-
-	print("meta2lines")
-	-- doc.meta.hardcoded = hardcoded
-	local serial = meta2lines(doc.meta)
-	for _, v in ipairs(serial) do
-		print(v)
-	end
-
-	-- /dump
-
+	doc:walk({ CodeBlock = M.codeblock })
 	return nil
 	-- return doc:walk({ CodeBlock = M.codeblock })
 end
