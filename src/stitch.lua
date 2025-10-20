@@ -49,7 +49,7 @@ end
 --[[ stitch options ]]
 
 local marshal = {
-	-- convert options from pandoc AST | hardcoded strings -> lua values
+	-- convert option MetaValues or hardcoded string -> lua values
 	log = tonumber,
 	ins = split,
 	inc = function(val)
@@ -86,6 +86,13 @@ local hardcoded = {
 	log = 0, -- log notification level
 	ins = marshal.ins("cb:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
 	inc = marshal.inc("cb:fcb out!markdown@filter err:fcb@meta"),
+	-- expandables
+	-- filename templates
+	inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
+	out = "#dir/#cid-#sha.out", -- capture of stdout (if any)
+	err = "#dir/#cid-#sha.err", -- capture of stderr (if any)
+	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
+	-- expanded last
 	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
 }
 
@@ -156,14 +163,22 @@ end
 ---@return string|nil command system command and arguments to execute
 ---@return string|nil error error description (if any, nil otherwise)
 local function mkcmd(cb, opts)
+	if nil == opts then
+		return nil, F("[error] cb options not available")
+	end
+
+	-- ensure all dirs are available
+	for _, fpath in ipairs({ "inp", "out", "err", "art" }) do
+		-- normalize turns '/' into platform dependent path separator
+		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
+		if not os.execute("mkdir -p " .. dir) then
+			return nil, format("[error] could not create dir %s", dir)
+		end
+	end
+
 	-- cmd gets expanded last since it may use any of the dynamic opts
 	if #opts.prg == 0 then
 		opts.prg = opts.inp -- no prg defined, the cb will be the executable
-	end
-
-	-- make the dir
-	if not os.execute("mkdir -p " .. opts.dir) then
-		return nil, format("[error] could not create dir %s", opts.dir)
 	end
 
 	-- open file for cb.text
@@ -287,7 +302,7 @@ end
 
 function mkins.art(cb, opts, how)
 	local ncb = mkfcb(cb, opts)
-	local title = cb.attributes.title or "no-title"
+	-- local title = cb.attributes.title or "no-title"
 	local caption = pd.Str(cb.attributes.caption or "no-caption")
 	ncb.identifier = opts.cid .. "-stitched-art" or nil
 	local img = pd.Image({ caption }, opts.art)
@@ -316,34 +331,36 @@ end
 -- `:Open https://pandoc.org/MANUAL.html#extension-backtick_code_blocks`
 
 ---@param cb table pandoc codeblock with `.stitch` class
----@return table opts option,value store derived from codeblock `cb`
+---@return table|nil opts the `cb`-specific options, nil on errors
 function M.options(cb)
 	local opts = {}
-	local attr = cb.attributes or cb
-	local cbfiles = {
-		-- filename templates, TODO: this is not platform independant (pathsep "/")
-		inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
-		out = "#dir/#cid-#sha.stdout", -- capture of stdout
-		err = "#dir/#cid-#sha.stderr", -- capture of stderr
-		art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
-	}
+	local expandables = { "inp", "out", "err", "art", "cmd" } -- cmd must be last
 
-	-- only known stitch options
+	-- get the (known) stitch options present in cb.attributes
+	local attr = cb.attributes
 	for k, _ in pairs(hardcoded) do
-		opts[k] = attr[k] and marshal[k](attr[k]) -- only marshal if present
+		-- options not present in cb will fall back to meta[cfg]->defaults->hardcoded
+		opts[k] = attr[k] and marshal[k](attr[k])
+	end
+	setmetatable(opts, { __index = ctx[opts.cfg] }) -- cb->meta[cfg] fall back
+
+	-- options outside cb.attributes
+	opts.cid = #cb.identifier > 0 and cb.identifier or nil -- turn absent ("") into nil
+
+	-- derived settings
+	opts.sha = mksha(cb, opts) -- derived only
+
+	-- expand (possible add) the file and cmd  options
+	for _, k in ipairs(expandables) do
+		opts[k] = opts[k]:gsub("%#(%w+)", opts)
 	end
 
-	-- cb opts falls back to ctx[cfg] or defaults (if cfg not present)
-	setmetatable(opts, { __index = ctx[opts.cfg] })
-
-	-- set cb specific, non-hardcoded options (incl. filenames)
-	-- note: cb.identifier will be string "" if not present in codeblock!
-	opts.cid = #cb.identifier > 0 and cb.identifier or nil
-	opts.sha = mksha(cb, opts)
-
-	-- add and expand the filenames for this codeblock
-	for k, v in pairs(cbfiles) do
-		opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
+	-- check against circular refs
+	for k, _ in pairs(hardcoded) do
+		if "string" == type(opts[k]) and opts[k]:match("#%w+") then
+			print("---->", k, opts[k])
+			return nil
+		end
 	end
 
 	return opts
@@ -407,20 +424,21 @@ function M.codeblock(cb)
 	end
 
 	-- execute
-	-- print("execute", cmd)
-	-- local ok, code, nr = os.execute(cmd)
-	-- if not ok then
-	-- 	print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
-	-- end
+	print("execute", cmd)
+	local ok, code, nr = os.execute(cmd)
+	if not ok then
+		print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
+	end
 
+	local tmp = result(cb, opts)
+	print("cb result", dump(tmp))
 	return result(cb, opts)
 end
 
 function Pandoc(doc)
 	ctx = M.context(doc)
 	doc:walk({ CodeBlock = M.codeblock })
-	return nil
-	-- return doc:walk({ CodeBlock = M.codeblock })
+	return doc:walk({ CodeBlock = M.codeblock })
 end
 
 function Busted()
