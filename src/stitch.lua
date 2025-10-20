@@ -7,7 +7,6 @@ local ctx = {} -- holds meta.stitch configuration for current document
 --[[ helpers ]]
 
 local dump = require("dump") -- tmp, delme
-local format = string.format
 local F = string.format
 local pd = require("pandoc")
 
@@ -29,7 +28,7 @@ local function split(val, sep)
 	-- here)
 	local parts = {}
 	local ptype = pd.utils.type(val)
-	sep = string.format("[%s]+%%s*", sep or ",") --> [sep]+%s*
+	sep = F("[%s]+%%s*", sep or ",") --> [sep]+%s*
 
 	if ptype == "List" or ptype == "table" then
 		-- keep stringified entries in table or a List of Inlines
@@ -57,11 +56,12 @@ local marshal = {
 		local todo = {}
 		local word = "([^!@:]+)"
 		for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
+			-- list of non-nil strings required so mksha is consistent
 			table.insert(todo, {
-				what = p:match("^" .. word),
-				read = p:match("!" .. word),
-				fltr = p:match("@" .. word),
-				elem = p:match(":" .. word),
+				p:match("^" .. word) or "", -- what to include
+				p:match("!" .. word) or "", -- read as type
+				p:match("@" .. word) or "", -- filter
+				p:match(":" .. word) or "", -- element/how
 			})
 		end
 		return todo
@@ -79,21 +79,21 @@ local hardcoded = {
 
 	cid = "x", -- x marks the spot if cb has no identifier
 	cfg = "", -- this codeblock's config in doc.meta.stitch.<cfg> (if any)
-	prg = "", -- program name to run, "" means cb itself
 	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
 	dir = ".stitch", -- where to store files (abs/rel path to cwd)
 	fmt = "png", -- format for images (if any)
 	log = 0, -- log notification level
-	ins = marshal.ins("cb:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
-	inc = marshal.inc("cb:fcb out!markdown@filter err:fcb@meta"),
+	ins = marshal.ins("cbx:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
+	-- ^what:how!read@filter
+	inc = marshal.inc("out:fcb cbx:fcb@debug art!markdown@my-filter err:fcb"),
 	-- expandables
 	-- filename templates
-	inp = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
+	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
 	out = "#dir/#cid-#sha.out", -- capture of stdout (if any)
 	err = "#dir/#cid-#sha.err", -- capture of stderr (if any)
 	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
 	-- expanded last
-	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
+	cmd = "#cbx #art #arg 1>#out 2>#err", -- cmd template string, expanded last
 }
 
 -- converts (only) doc.meta to list of lines to complement `pandoc.write(doc, "native")`
@@ -147,14 +147,14 @@ local function mksha(cb, opts)
 	table.sort(keys) -- sorts inplace
 
 	-- fingerprint is hash on option values + cb.text
-	local fp = {}
+	local vals = {}
 	for _, key in ipairs(keys) do
-		fp[#fp + 1] = pd.utils.stringify(opts[key]):gsub("%s", "")
+		vals[#vals + 1] = pd.utils.stringify(opts[key]):gsub("%s", "")
 	end
-	-- ignore whitespace in codeblock (only)
-	fp[#fp + 1] = cb.text:gsub("%s", "")
+	-- ignore whitespace in codeblock as well
+	vals[#vals + 1] = cb.text:gsub("%s", "")
 
-	return pd.utils.sha1(table.concat(fp, ""))
+	return pd.utils.sha1(table.concat(vals, ""))
 end
 
 -- create the command to execute
@@ -168,35 +168,30 @@ local function mkcmd(cb, opts)
 	end
 
 	-- ensure all dirs are available
-	for _, fpath in ipairs({ "inp", "out", "err", "art" }) do
+	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- normalize turns '/' into platform dependent path separator
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
-			return nil, format("[error] could not create dir %s", dir)
+			return nil, F("[error] could not create dir %s", dir)
 		end
 	end
 
-	-- cmd gets expanded last since it may use any of the dynamic opts
-	if #opts.prg == 0 then
-		opts.prg = opts.inp -- no prg defined, the cb will be the executable
-	end
-
 	-- open file for cb.text
-	local fh = io.open(opts.inp, "w")
+	local fh = io.open(opts.cbx, "w")
 	if not fh then
-		return nil, format("[error] could not open %s for writing", opts.inp)
+		return nil, F("[error] could not open %s for writing", opts.cbx)
 	end
 
 	-- write out cb.text (i.e the codeblock)
 	if not fh:write(cb.text) then
 		fh:close()
-		return nil, format("[error] could not write to %s", opts.inp)
+		return nil, F("[error] could not write to %s", opts.cbx)
 	end
 	fh:close()
 
 	-- make executable
-	if not os.execute("chmod u+x " .. opts.inp) then
-		return nil, format("[error] could not make executable %s", opts.inp)
+	if not os.execute("chmod u+x " .. opts.cbx) then
+		return nil, F("[error] could not make executable %s", opts.cbx)
 	end
 
 	-- interpolate & finalize the runnable command
@@ -204,17 +199,22 @@ local function mkcmd(cb, opts)
 end
 
 -- returns file contents of file `opts[key]` or nil on empty file
----@param path string opts field that denotes file to read
----@return string|nil data file contents or nil if file has no data
-local function fread(path)
+---@param path string path to file to read
+---@param format? string|nil pandoc reader format to interpret file contents (if any)
+---@return string|nil data file contents or nil if file has no data or absent
+local function fread(path, format)
 	local fh = io.open(path, "r")
+	local dta
 
 	if fh then
-		local txt = fh:read("a")
+		dta = fh:read("a")
 		fh:close()
-		if #txt > 0 then
-			return txt
-		end
+	end
+
+	if dta and pd.readers[format] then
+		return pd.read(dta, format)
+	elseif dta then
+		return dta
 	end
 
 	return nil
@@ -272,12 +272,12 @@ local mkins = {}
 mkins._mt = {}
 mkins._mt.__index = function(_, key)
 	return function()
-		return pd.Str(format("alas, unknown element '%s'", key))
+		return pd.Str(F("alas, unknown element '%s'", key))
 	end
 end
 setmetatable(mkins, mkins._mt)
 
-function mkins.cb(cb, _, how)
+function mkins.cbx(cb, _, how)
 	-- as fcb or ocb
 	local ncb = cb:clone()
 	if "fcb" == how then
@@ -318,6 +318,23 @@ local function result(cb, opts)
 		elms[#elms + 1] = mkins[elm](cb, opts, how)
 	end
 
+	-- tmp / inc
+	print("include results for", opts.cmd)
+	print("opts.inc", dump(opts.inc):gsub("\n", ""))
+	for _, elm in ipairs(rawget(opts, "inc") or {}) do
+		-- ignore filter for now
+		local what, format, _, how = table.unpack(elm)
+		local doc = fread(opts[what], format)
+		if doc and #format > 0 then
+			if doc["blocks"][1]["attr"] then
+				doc["blocks"][1].classes = { "stitched" }
+			end
+			elms[#elms + 1] = doc["blocks"][1]
+		end
+	end
+
+	-- /tmp
+
 	-- TODO: maybe put rv in a para or put all elements in their own para
 	-- with class stitched-{out, err, art}  (cb org is kept as-is, no changes)
 	return elms
@@ -325,16 +342,11 @@ end
 
 --[[ option handling ]]
 
--- `:Open https://yaml.org/spec/1.2/spec.html`
--- `:Open https://pandoc.org/lua-filters.html#type-attr`
--- `:Open https://pandoc.org/MANUAL.html#extension-header_attributes`
--- `:Open https://pandoc.org/MANUAL.html#extension-backtick_code_blocks`
-
----@param cb table pandoc codeblock with `.stitch` class
+---@param cb table codeblock with `.stitch` class
 ---@return table|nil opts the `cb`-specific options, nil on errors
 function M.options(cb)
 	local opts = {}
-	local expandables = { "inp", "out", "err", "art", "cmd" } -- cmd must be last
+	local expandables = { "cbx", "out", "err", "art", "cmd" } -- cmd must be last
 
 	-- get the (known) stitch options present in cb.attributes
 	local attr = cb.attributes
@@ -409,29 +421,30 @@ print("PANDOC_VERSION", _ENV.PANDOC_VERSION) -- 3.1.3
 
 ---@poram cb pandoc.CodeBlock
 function M.codeblock(cb)
-	-- print("CodeBlock id", cb.identifier)
+	-- TODO: cannot return error msg, just nil or AST element(s)
+	-- * create warn(msg) to print to stderr & then return nil
+	-- * maybe print to #dir/stitch.err or both?
 	if not cb.classes:find("stitch") then
 		return nil -- keep cb as-is
 	end
 
 	local opts = M.options(cb)
-	-- print("codeblock opts", dump(opts))
+	if not opts then
+		return nil, F("[error] no options available")
+	end
 
 	local cmd, err = mkcmd(cb, opts)
 	if not cmd then
-		print(err)
-		return nil
+		return nil, err
 	end
 
 	-- execute
-	print("execute", cmd)
+	print("exec", cmd)
 	local ok, code, nr = os.execute(cmd)
 	if not ok then
-		print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
+		return nil, F("[error] codeblock failed %s(%s): %s", code, nr, cmd)
 	end
 
-	local tmp = result(cb, opts)
-	print("cb result", dump(tmp))
 	return result(cb, opts)
 end
 
