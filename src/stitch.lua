@@ -4,62 +4,12 @@ local M = {} -- returned by global Stitch() for testing
 
 local ctx = {} -- holds meta.stitch configuration for current document
 
-local hardcoded = {
-	-- last resort for cb option resolution: cb -> meta.<cfg> -> defaults -> hardcoded
-
-	cfg = "", -- this codeblock's config in doc.meta.stitch.<cfg> (if any)
-	prg = "", -- program name to run, "" means cb itself
-	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-	dir = ".stitch", -- where to store files (abs/rel path to cwd)
-	fmt = "png", -- format for images (if any)
-	log = 0, -- log notification level
-	ins = "cb:fcb out:fcb err:fcb art:img", -- "<file>[:type], .." -> ordered list of what to insert
-	inc = "cb:fcb out!markdown@filter err:fcb@meta",
-	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
-}
-
 --[[ helpers ]]
 
 local dump = require("dump") -- tmp, delme
 local format = string.format
 local F = string.format
 local pd = require("pandoc")
-
--- converts (only) doc.meta to list of lines to complement `pandoc.write(doc, "native")`
----@param elm any doc.meta of one of its elements
----@param indent? number number of indent spaces, defaults to 0
----@param acc? table accumulator for lines, defaults to empty list
----@return table acc the list of lines describing docs.meta
-local function meta2lines(elm, indent, acc)
-	-- maybe do `doc.meta.hardcoded = hardcoded` before calling meta2lines(doc.meta)
-	indent = indent or 0
-	acc = acc or {}
-	if #acc == 0 then
-		elm.hardcoded = hardcoded
-	end
-	local tab = string.rep(" ", indent)
-	local type_ = pd.utils.type(elm)
-
-	if "Meta" == type_ or "table" == type_ then
-		for k, v in pairs(elm) do
-			acc[#acc + 1] = F("%s%s: ", tab, k)
-			meta2lines(v, indent + 2, acc)
-		end
-	elseif "Inlines" == type_ or "List" == type_ then
-		acc[#acc] = acc[#acc] .. "["
-		for _, v in pairs(elm) do
-			meta2lines(v, indent, acc)
-		end
-		acc[#acc] = acc[#acc]:gsub(",?%s*$", " ]")
-	elseif "Inline" == type_ then
-		acc[#acc] = acc[#acc] .. F(" %s, ", elm)
-	elseif "number" == type_ or "string" == type_ or "boolean" == type_ then
-		acc[#acc] = acc[#acc] .. F(" %q ", elm)
-	else
-		acc[#acc + 1] = F("unknown type %s %s", type_, tostring(elm))
-	end
-	return acc
-end
 
 -- trim string `s`, if nil, return empty string
 ---@param s string|nil string to trim (both leading/trailing whitespace)
@@ -99,7 +49,7 @@ end
 --[[ stitch options ]]
 
 local marshal = {
-	-- convert options from pandoc AST -> lua values
+	-- convert options from pandoc AST | hardcoded strings -> lua values
 	log = tonumber,
 	ins = split,
 	inc = function(val)
@@ -114,7 +64,6 @@ local marshal = {
 				elem = p:match(":" .. word),
 			})
 		end
-		print("inc decode", val, dump(todo))
 		return todo
 	end,
 }
@@ -124,6 +73,58 @@ setmetatable(marshal, {
 	end,
 })
 
+local hardcoded = {
+	-- last resort for cb option resolution: cb -> meta.<cfg> -> defaults -> hardcoded
+	-- note: values should have final (marshalled) form, otherwise lsp complains
+
+	cid = "x", -- x marks the spot if cb has no identifier
+	cfg = "", -- this codeblock's config in doc.meta.stitch.<cfg> (if any)
+	prg = "", -- program name to run, "" means cb itself
+	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
+	dir = ".stitch", -- where to store files (abs/rel path to cwd)
+	fmt = "png", -- format for images (if any)
+	log = 0, -- log notification level
+	ins = marshal.ins("cb:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
+	inc = marshal.inc("cb:fcb out!markdown@filter err:fcb@meta"),
+	cmd = "#prg #arg 1>#out 2>#err", -- cmd template string, expanded last
+}
+
+-- converts (only) doc.meta to list of lines to complement `pandoc.write(doc, "native")`
+---@param elm any doc.meta of one of its elements
+---@param indent? number number of indent spaces, defaults to 0
+---@param acc? table accumulator for lines, defaults to empty list
+---@return table acc the list of lines describing docs.meta
+local function meta2lines(elm, indent, acc)
+	-- doc.meta is (potentially) part of a cb's options
+	-- simple dump of doc.meta for debugging
+	indent = indent or 0
+	acc = acc or {}
+	if #acc == 0 then
+		elm.hardcoded = hardcoded
+	end
+	local tab = string.rep(" ", indent)
+	local type_ = pd.utils.type(elm)
+
+	if "Meta" == type_ or "table" == type_ then
+		for k, v in pairs(elm) do
+			acc[#acc + 1] = F("%s%s: ", tab, k)
+			meta2lines(v, indent + 2, acc)
+		end
+	elseif "Inlines" == type_ or "List" == type_ then
+		acc[#acc] = acc[#acc] .. "["
+		for _, v in pairs(elm) do
+			meta2lines(v, indent, acc)
+		end
+		acc[#acc] = acc[#acc]:gsub(",?%s*$", " ]")
+	elseif "Inline" == type_ then
+		acc[#acc] = acc[#acc] .. F(" %s, ", elm)
+	elseif "number" == type_ or "string" == type_ or "boolean" == type_ then
+		acc[#acc] = acc[#acc] .. F(" %q ", elm)
+	else
+		acc[#acc + 1] = F("unknown type %s %s", type_, tostring(elm))
+	end
+	return acc
+end
 --[[ file handling ]]
 
 -- sha1 hash of (stitch) option values and codeblock text
@@ -184,9 +185,6 @@ local function mkcmd(cb, opts)
 	end
 
 	-- interpolate & finalize the runnable command
-	local tmp = opts.cmd:gsub("%#(%w+)", opts)
-	print("cmd org", opts.cmd)
-	print("cmd exp", tmp)
 	return opts.cmd:gsub("%#(%w+)", opts)
 end
 
@@ -300,16 +298,9 @@ end
 local function result(cb, opts)
 	-- insert document pieces as per opts.ins
 	local elms = {}
-	print("dump opts", dump(opts))
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
-		print("result insert", elm, how)
 		elms[#elms + 1] = mkins[elm](cb, opts, how)
-	end
-
-	print("dump opts.inc", dump(opts.inc))
-	for k, v in pairs(opts.inc) do
-		print("#" .. (cb.cid or "nil"), k, dump(v))
 	end
 
 	-- TODO: maybe put rv in a para or put all elements in their own para
@@ -339,36 +330,21 @@ function M.options(cb)
 
 	-- only known stitch options
 	for k, _ in pairs(hardcoded) do
-		opts[k] = attr[k] and marshal[k](attr[k]) -- cannot do: or marshal[k](hard)
-		print("options added", k, dump(opts[k]))
+		opts[k] = attr[k] and marshal[k](attr[k]) -- only marshal if present
 	end
 
 	-- cb opts falls back to ctx[cfg] or defaults (if cfg not present)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
 	-- set cb specific, non-hardcoded options (incl. filenames)
-	opts.cid = cb.identifier or "x"
-	-- opts.cid = #opts.cid > 0 and opts.cid or "x"
+	-- note: cb.identifier will be string "" if not present in codeblock!
+	opts.cid = #cb.identifier > 0 and cb.identifier or nil
 	opts.sha = mksha(cb, opts)
 
 	-- add and expand the filenames for this codeblock
 	for k, v in pairs(cbfiles) do
 		opts[k] = v:gsub("%#(%w+)", opts):gsub("^-", "")
 	end
-
-	-- todo: now opts has attr keys + filename keys, but:
-	-- * cmd needs expanding too
-	-- * hardcoded contains unmarshalled values
-	-- * later on, its unclear whether an option value has been expanded
-	--   or not -> gives rise to errors, e.g. with inc: "string" vs its
-	--   expanded value of a list of table { {what:.., read: .., ..}, .. }
-	-- * to resolve this:
-	--   1.a. copy attr[k] to options
-	--     b. setmetatable to stitch[cfg]
-	--   2. copy cbfiles to options
-	--   3. run through hardcoded and add key, expanded values
-	--   -> that way, options has *all* key, expanded values and no need for
-	--      falling back anymore.  Then you don't need
 
 	return opts
 end
@@ -416,13 +392,13 @@ print("PANDOC_VERSION", _ENV.PANDOC_VERSION) -- 3.1.3
 
 ---@poram cb pandoc.CodeBlock
 function M.codeblock(cb)
-	print("CodeBlock id", cb.identifier)
+	-- print("CodeBlock id", cb.identifier)
 	if not cb.classes:find("stitch") then
 		return nil -- keep cb as-is
 	end
 
 	local opts = M.options(cb)
-	print("codeblock opts", dump(opts))
+	-- print("codeblock opts", dump(opts))
 
 	local cmd, err = mkcmd(cb, opts)
 	if not cmd then
@@ -431,11 +407,11 @@ function M.codeblock(cb)
 	end
 
 	-- execute
-	print("execute", cmd)
-	local ok, code, nr = os.execute(cmd)
-	if not ok then
-		print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
-	end
+	-- print("execute", cmd)
+	-- local ok, code, nr = os.execute(cmd)
+	-- if not ok then
+	-- 	print(format("[error] codeblock failed %s(%s): %s", code, nr, cmd))
+	-- end
 
 	return result(cb, opts)
 end
