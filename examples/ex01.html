@@ -38,7 +38,6 @@ wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-sp
 255.255.255.255/32,Limited Broadcast,&quot;[RFC8190]
         [RFC919], Section 7&quot;,1984-10,N/A,False,True,False,False,True
 </code></pre>
-<div id="id0" class="stitched-up">
 <table class="stitched">
 <thead>
 <tr class="header">
@@ -357,7 +356,6 @@ wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-sp
 </tr>
 </tbody>
 </table>
-</div>
 <figure id="args-stitched-art" class="stitched">
 <img src=".stitch/args-7c7b89c3cef61c09627daf494e2998ba56d0b559.png"
 alt="no-caption" />
@@ -373,22 +371,38 @@ echo &quot;1 &quot; $1
 1  .stitch/args-7c7b89c3cef61c09627daf494e2998ba56d0b559.png
 </code></pre>
 <figure id="mark-stitched-art" class="stitched">
-<img src=".stitch/mark-a884725587e71aaf0335864709c46e69bbd9fb9d.png"
+<img src=".stitch/mark-fee9af66af1e5c303bf12c6a239e8d60fb9fbfff.png"
 alt="no-caption" />
 <figcaption aria-hidden="true">no-caption</figcaption>
 </figure>
-<pre id="mark" class="stitch" data-cmd="" data-inc="cbx!markdown"><code>``` {#mark .stitch cmd=&quot;&quot; inc=&quot;cbx!markdown&quot;}
+<pre id="mark" class="stitch" data-cmd="" data-inc="cbx!markdown"><code>```` {#mark .stitch cmd=&quot;&quot; inc=&quot;cbx!markdown&quot;}
 # Not really a codeblock
 but some (generated) markdown instead
 straight in the codeblock
+
+## But rather an included markdown doc
+with multiple headings
+and even an image:
+![test](test.png){#nestid caption=&quot;nested-cappi&quot;}
+
 ```
+{#nested .stitch cmd=&quot;#cbx 1&gt;#out&quot; ins=&quot;out&quot;  caption=&quot;nested-cappucino&quot;}
+#!/usr/bin/env bash
+cat $0 | boxes -d peek -p h2v1
+```
+````
 </code></pre>
 <pre id="mark-stitched-out" class="stitched"><code>[stitch] stdout - no output</code></pre>
-<div id="mark" class="stitched-up">
 <h1 class="stitched" id="not-really-a-codeblock">Not really a
 codeblock</h1>
 <p>but some (generated) markdown instead straight in the codeblock</p>
-</div>
+<h2 id="but-rather-an-included-markdown-doc">But rather an included
+markdown doc</h2>
+<p>with multiple headings and even an image: <img src="test.png"
+id="nestid" data-caption="nested-cappi" alt="test" /></p>
+<pre><code>{#nested .stitch cmd=&quot;#cbx 1&gt;#out&quot; ins=&quot;out&quot;  caption=&quot;nested-cappucino&quot;}
+#!/usr/bin/env bash
+cat $0 | boxes -d peek -p h2v1</code></pre>
 <h1 id="id1-boxes">id1 boxes</h1>
 <p>Inside this para?</p>
 <figure id="id1-stitched-art" class="stitched"
@@ -468,13 +482,13 @@ class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-stitc
 <span id="id5-stitched-out-8"><a href="#id5-stitched-out-8" aria-hidden="true" tabindex="-1"></a> <span class="op">+</span><span class="co">---------------------------------*/</span></span></code></pre></div>
 </blockquote>
 <h1 id="ping-example">ping example</h1>
-<pre id="x-stitched-out" class="stitched"><code>PING google.com (2a00:1450:400e:805::200e) 56 data bytes
-64 bytes from ams16s30-in-x0e.1e100.net (2a00:1450:400e:805::200e): icmp_seq=1 ttl=119 time=5.83 ms
-64 bytes from ams16s30-in-x0e.1e100.net (2a00:1450:400e:805::200e): icmp_seq=2 ttl=119 time=6.49 ms
+<pre id="x-stitched-out" class="stitched"><code>PING google.com (2a00:1450:400e:80f::200e) 56 data bytes
+64 bytes from ams15s44-in-x0e.1e100.net (2a00:1450:400e:80f::200e): icmp_seq=1 ttl=119 time=5.25 ms
+64 bytes from ams15s44-in-x0e.1e100.net (2a00:1450:400e:80f::200e): icmp_seq=2 ttl=119 time=4.51 ms
 
 --- google.com ping statistics ---
 2 packets transmitted, 2 received, 0% packet loss, time 1002ms
-rtt min/avg/max/mdev = 5.825/6.155/6.486/0.330 ms
+rtt min/avg/max/mdev = 4.507/4.877/5.248/0.370 ms
 </code></pre>
 <pre class="stitch" data-cfg="ping" data-arg="google.com"
 data-cid="asdf"><code>``` {.stitch cfg=&quot;ping&quot; arg=&quot;google.com&quot; cid=&quot;asdf&quot;}

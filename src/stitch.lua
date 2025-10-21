@@ -1,4 +1,5 @@
 -- stitch turns codeblocks into images, figures, codeblocks and more
+-- Examples -> `:Open https://pandoc.org/extras.html#lua-filters`
 
 local M = {} -- returned by global Stitch() for testing
 
@@ -99,6 +100,34 @@ local hardcoded = {
 	cmd = "#cbx #art #arg 1>#out 2>#err", -- cmd template string, expanded last
 }
 
+-- Turn doc.meta data into a table of lua values
+---@param elm any doc.meta, one of its elements or a regular lua-table
+---@return table|string regular table holding the metadata w/ lua values
+local function metalua(elm)
+	-- Meta = string indexed collection of MetaValues: (ie. a MetaMap)
+	local ptype = pd.utils.type(elm)
+
+	if "Meta" == ptype or "table" == ptype then
+		local t = {}
+		for k, v in pairs(elm) do
+			t[k] = metalua(v)
+		end
+		return t
+	elseif "List" == ptype or "Blocks" == ptype then
+		local l = {}
+		for _, v in ipairs(elm) do
+			l[#l + 1] = metalua(v)
+		end
+		return l
+	elseif "Inlines" == ptype or "string" == ptype then
+		return pd.utils.stringify(elm)
+	elseif "boolean" == ptype or "number" == ptype then
+		return elm
+	else
+		return F("%s, todo: %s", ptype, pd.utils.stringify(elm))
+	end
+end
+
 -- converts (only) doc.meta to list of lines to complement `pandoc.write(doc, "native")`
 ---@param elm any doc.meta of one of its elements
 ---@param indent? number number of indent spaces, defaults to 0
@@ -135,6 +164,7 @@ local function meta2lines(elm, indent, acc)
 	end
 	return acc
 end
+
 --[[ file handling ]]
 
 -- sha1 hash of (stitch) option values and codeblock text
@@ -317,6 +347,7 @@ end
 
 local function result(cb, opts)
 	-- insert document pieces as per opts.ins
+	-- `:Open https://github.com/pandoc-ext/diagram/blob/985ff8299caf4fe0d11ce94de507765bc6eb1c10/_extensions/diagram/diagram.lua#L627`
 	local elms = {}
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
@@ -324,20 +355,37 @@ local function result(cb, opts)
 	end
 
 	-- tmp / inc
-	print("include results for", opts.cmd)
-	print("opts.inc", dump(opts.inc):gsub("\n", ""))
+	-- print("opts.inc", dump(opts.inc):gsub("\n", ""))
 	for _, elm in ipairs(rawget(opts, "inc") or {}) do
 		-- ignore filter for now
+		-- `:Open https://pandoc.org/lua-filters.html#pandoc.AttributeList`
+		-- `:Open https://pandoc.org/lua-filters.html#type-attributes`
+		-- pandoc.Attr("di", {"class1 ", "class2"}, {one=1, two=2})
 		local what, format, _, how = table.unpack(elm)
 		local doc = fread(opts[what], format)
 		if doc and #format > 0 then
 			if doc["blocks"][1]["attr"] then
 				doc["blocks"][1].classes = { "stitched" }
-				print("length of blocks", #doc["blocks"])
+				-- print("length of blocks", #doc["blocks"])
 			end
-			local div = pd.Div(doc["blocks"], { id = opts.cid, class = "stitched-up" })
+			-- `:Open https://pandoc.org/lua-filters.html#pandoc.utils.run_lua_filter`
+			-- since 3.2.1, we're 3.1.3
+			-- filter
+
+			-- TODO: apply filter (if any) to doc read
+			-- for _, f in ipairs(require("stitch")) do
+			-- 	doc.meta.stitched = ctx
+			-- 	doc = f.Pandoc(doc)
+			-- end
+
+			-- add as div
+			-- local div = pd.Div(doc["blocks"], { id = opts.cid, class = "stitched-up" })
+			for _, b in ipairs(doc.blocks) do
+				elms[#elms + 1] = b
+			end
+
 			-- elms[#elms + 1] = doc["blocks"][1]
-			elms[#elms + 1] = div
+			-- elms[#elms + 1] = div
 		end
 	end
 
@@ -447,7 +495,7 @@ function M.codeblock(cb)
 	end
 
 	-- execute
-	print("exec", cmd)
+	-- print("exec", cmd)
 	local ok, code, nr = os.execute(cmd)
 	if not ok then
 		return nil, F("[error] codeblock failed %s(%s): %s", code, nr, cmd)
@@ -456,15 +504,23 @@ function M.codeblock(cb)
 	return result(cb, opts)
 end
 
-function Pandoc(doc)
+local function pandoc(doc)
+	local t = metalua(doc.meta)
+	print("meta", dump(t))
+	t.log = 42
+	t = metalua(t)
+	print("meta2", dump(t))
 	ctx = M.context(doc)
 	doc:walk({ CodeBlock = M.codeblock })
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 
-function Busted()
-	-- only meant for testing with busted
-	M.hardcoded = hardcoded
-	M.ctx = ctx
-	return M
-end
+-- function Filter.Busted()
+-- 	-- only meant for testing with busted
+-- 	M.hardcoded = hardcoded
+-- 	M.ctx = ctx
+-- 	return M
+-- end
+return {
+	{ Pandoc = pandoc },
+}
