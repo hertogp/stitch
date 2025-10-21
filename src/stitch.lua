@@ -57,6 +57,9 @@ local marshal = {
 		local word = "([^!@:]+)"
 		for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
 			-- list of non-nil strings required so mksha is consistent
+			-- TODO: read should accept extensions as well
+			-- `:Open https://pandoc.org/lua-filters.html#pandoc.read`
+			-- `:Open https://pandoc.org/lua-filters.html#type-doc`
 			table.insert(todo, {
 				p:match("^" .. word) or "", -- what to include
 				p:match("!" .. word) or "", -- read as type
@@ -225,6 +228,8 @@ end
 ---@param maxlen? number maxlen for a line (defaults to 65)
 ---@return string txt the wrapped text
 local function wrap(txt, maxlen)
+	-- may be use `:Open https://pandoc.org/lua-filters.html#pandoc.layout.render`
+	-- instead?
 	maxlen = maxlen or 65
 	txt = txt or ""
 	if #txt < maxlen + 1 then
@@ -328,8 +333,11 @@ local function result(cb, opts)
 		if doc and #format > 0 then
 			if doc["blocks"][1]["attr"] then
 				doc["blocks"][1].classes = { "stitched" }
+				print("length of blocks", #doc["blocks"])
 			end
-			elms[#elms + 1] = doc["blocks"][1]
+			local div = pd.Div(doc["blocks"], { id = opts.cid, class = "stitched-up" })
+			-- elms[#elms + 1] = doc["blocks"][1]
+			elms[#elms + 1] = div
 		end
 	end
 
