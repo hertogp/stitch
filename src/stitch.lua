@@ -2,7 +2,6 @@
 -- Examples -> `:Open https://pandoc.org/extras.html#lua-filters`
 
 local M = {} -- returned by global Stitch() for testing
-
 local ctx = {} -- holds meta.stitch configuration for current document
 
 --[[ helpers ]]
@@ -10,7 +9,11 @@ local ctx = {} -- holds meta.stitch configuration for current document
 local dump = require("dump") -- tmp, delme
 local F = string.format
 local pd = require("pandoc")
-
+local function msg(label, text)
+	text = F("[stitch](%s) %s\n", label, text)
+	io.stderr:write(text)
+	return text
+end
 -- trim string `s`, if nil, return empty string
 ---@param s string|nil string to trim (both leading/trailing whitespace)
 ---@return string
@@ -184,50 +187,47 @@ local function mksha(cb, opts)
 	for _, key in ipairs(keys) do
 		vals[#vals + 1] = pd.utils.stringify(opts[key]):gsub("%s", "")
 	end
-	-- ignore whitespace in codeblock as well
+	-- eliminate whitespace as well for repeatable fingerprints
 	vals[#vals + 1] = cb.text:gsub("%s", "")
 
 	return pd.utils.sha1(table.concat(vals, ""))
 end
 
--- create the command to execute
+-- create the command to execute from `cb`
 ---@param cb table pandoc CodeBlock
 ---@return string|nil command system command and arguments to execute
----@return string|nil error error description (if any, nil otherwise)
+---@return table|nil opts system command and arguments to execute
+---@return string|nil error description of the error encountered
 local function mkcmd(cb)
 	local opts = M.options(cb)
 	if not opts then
-		return nil, F("[error] no options available")
+		return nil, nil, msg("error", "no options available for codeblock")
 	end
-	-- ensure all dirs are available
+
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- normalize turns '/' into platform dependent path separator
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
-			return nil, F("[error] could not create dir %s", dir)
+			return nil, opts, msg("error", "could not create dir" .. dir)
 		end
 	end
 
-	-- open file for cb.text
 	local fh = io.open(opts.cbx, "w")
 	if not fh then
-		return nil, F("[error] could not open %s for writing", opts.cbx)
+		return nil, opts, msg("error", "could not open file %s" .. opts.cbx)
 	end
-
-	-- write out cb.text (i.e the codeblock)
 	if not fh:write(cb.text) then
 		fh:close()
-		return nil, F("[error] could not write to %s", opts.cbx)
+		return nil, opts, F("error", "could not write to %s" .. opts.cbx)
 	end
 	fh:close()
 
-	-- make executable
 	if not os.execute("chmod u+x " .. opts.cbx) then
-		return nil, F("[error] could not make executable %s", opts.cbx)
+		return nil, opts, msg("error", "could not mark executable %s" .. opts.cbx)
 	end
 
-	-- interpolate & finalize the runnable command
-	return opts.cmd:gsub("%#(%w+)", opts)
+	-- expand cmd template string
+	return opts.cmd:gsub("%#(%w+)", opts), opts
 end
 
 -- returns file contents of file `opts[key]` or nil on empty file
@@ -345,7 +345,7 @@ function mkins.art(cb, opts, how)
 end
 
 local function result(cb, opts)
-	-- insert document pieces as per opts.ins
+	-- return AST elements to be included in doc
 	local elms = {}
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
@@ -360,7 +360,6 @@ local function result(cb, opts)
 		if doc and #format > 0 then
 			if doc["blocks"][1]["attr"] then
 				doc["blocks"][1].classes = { "stitched" }
-				-- print("length of blocks", #doc["blocks"])
 			end
 
 			-- TODO: apply filter (if any) to doc read
@@ -387,7 +386,7 @@ end
 ---@param cb table codeblock with `.stitch` class
 ---@return table|nil opts the `cb`-specific options, nil on errors
 function M.options(cb)
-	-- resolution: cb -> meta[cfg] -> defaults -> hardcoded
+	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
 	local opts = {}
 	local expandables = { "cbx", "out", "err", "art", "cmd" } -- cmd must be last
 
@@ -412,7 +411,7 @@ function M.options(cb)
 	-- check against circular refs
 	for k, _ in pairs(hardcoded) do
 		if "string" == type(opts[k]) and opts[k]:match("#%w+") then
-			print("---->", k, opts[k])
+			msg("error", F("option %s not entirely expanded: %s", k, opts[k]))
 			return nil
 		end
 	end
@@ -424,16 +423,7 @@ end
 ---@param doc table the doc's AST
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function M.context(doc)
-	-- resolution order: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-	-- uses hardcoded keys to only extract stitch options
-	-- TODO: use metalua to convert doc.meta & pickup t.stitch
-	-- then marshall stitch values (nested structure)
-	-- stitch:
-	-- * is a string indexed collection of named config sections
-	-- * each config section is k,v-store where v are strings
-	-- * some values need marschal'ing: e.g.
-	--   - ins: "out:fcb, .." -> etc ..
-	--   - log: "0" -> number
+	-- resolution order: cb -> stitch[cb.cfg] -> defaults -> hardcoded
 
 	ctx = {} -- reset
 	for name, attr in pairs(doc.meta.stitch or {}) do
@@ -453,42 +443,32 @@ function M.context(doc)
 		setmetatable(attr, { __index = defaults })
 	end
 
-	-- missing -> defaults -> hardcoded
+	-- missing ctx.keys also fallback to defaults -> hardcoded
 	setmetatable(ctx, {
 		__index = function()
-			-- ctx.missing_key -> defaults table
 			return defaults
 		end,
 	})
 
-	return ctx -- section|missing -> defaults -> hardcoded
+	return ctx
 end
 
 --[[ checks ]]
 -- `:Open https://pandoc.org/lua-filters.html#global-variables`
 -- `:Open https://pandoc.org/lua-filters.html#type-version`
-print("PANDOC_VERSION", _ENV.PANDOC_VERSION) -- 3.1.3
+msg("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
 -- assert(PANDOC_API_VERSION >= {1, 23}, "need at least pandoc x.x.x")
 --
 ---@poram cb pandoc.CodeBlock
 function M.codeblock(cb)
-	-- TODO: cannot return error msg, just nil or AST element(s)
-	-- * create warn(msg) to print to stderr & then return nil
-	-- * maybe print to #dir/stitch.err or both?
 	if not cb.classes:find("stitch") then
-		return nil -- keep cb as-is
+		return nil -- noop
 	end
 
-	local opts = M.options(cb)
-	if not opts then
-		return nil, F("[error] no options available")
+	local cmd, opts, err = mkcmd(cb)
+	if not cmd then
+		return nil, err
 	end
-
-	-- verplaatst naar mkcmd
-	-- local cmd, err = mkcmd(cb, opts)
-	-- if not cmd then
-	-- 	return nil, err
-	-- end
 
 	-- execute
 	-- print("exec", cmd)
@@ -503,6 +483,9 @@ end
 local function pandoc(doc)
 	-- process CodeBlocks, gather context first
 	ctx = M.context(doc)
+	msg("metalua", dump(metalua(doc.meta)))
+	msg("ctx", dump(ctx))
+
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 
