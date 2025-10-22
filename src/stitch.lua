@@ -124,7 +124,7 @@ local function metalua(elm)
 	elseif "boolean" == ptype or "number" == ptype then
 		return elm
 	else
-		return F("%s, todo: %s", ptype, pd.utils.stringify(elm))
+		return F("%s, todo: %s", ptype, tostring(elm))
 	end
 end
 
@@ -192,14 +192,13 @@ end
 
 -- create the command to execute
 ---@param cb table pandoc CodeBlock
----@param opts table cb's options
 ---@return string|nil command system command and arguments to execute
 ---@return string|nil error error description (if any, nil otherwise)
-local function mkcmd(cb, opts)
-	if nil == opts then
-		return nil, F("[error] cb options not available")
+local function mkcmd(cb)
+	local opts = M.options(cb)
+	if not opts then
+		return nil, F("[error] no options available")
 	end
-
 	-- ensure all dirs are available
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- normalize turns '/' into platform dependent path separator
@@ -347,7 +346,6 @@ end
 
 local function result(cb, opts)
 	-- insert document pieces as per opts.ins
-	-- `:Open https://github.com/pandoc-ext/diagram/blob/985ff8299caf4fe0d11ce94de507765bc6eb1c10/_extensions/diagram/diagram.lua#L627`
 	local elms = {}
 	for _, v in ipairs(split(opts.ins, ",%s")) do
 		local elm, how = table.unpack(split(v, ":"))
@@ -355,12 +353,8 @@ local function result(cb, opts)
 	end
 
 	-- tmp / inc
-	-- print("opts.inc", dump(opts.inc):gsub("\n", ""))
 	for _, elm in ipairs(rawget(opts, "inc") or {}) do
-		-- ignore filter for now
-		-- `:Open https://pandoc.org/lua-filters.html#pandoc.AttributeList`
-		-- `:Open https://pandoc.org/lua-filters.html#type-attributes`
-		-- pandoc.Attr("di", {"class1 ", "class2"}, {one=1, two=2})
+		-- filter ignored at the moment
 		local what, format, _, how = table.unpack(elm)
 		local doc = fread(opts[what], format)
 		if doc and #format > 0 then
@@ -368,9 +362,6 @@ local function result(cb, opts)
 				doc["blocks"][1].classes = { "stitched" }
 				-- print("length of blocks", #doc["blocks"])
 			end
-			-- `:Open https://pandoc.org/lua-filters.html#pandoc.utils.run_lua_filter`
-			-- since 3.2.1, we're 3.1.3
-			-- filter
 
 			-- TODO: apply filter (if any) to doc read
 			-- for _, f in ipairs(require("stitch")) do
@@ -378,9 +369,7 @@ local function result(cb, opts)
 			-- 	doc = f.Pandoc(doc)
 			-- end
 
-			-- add as div
-			-- local div = pd.Div(doc["blocks"], { id = opts.cid, class = "stitched-up" })
-			for _, b in ipairs(doc.blocks) do
+			for _, b in ipairs(doc["blocks"]) do
 				elms[#elms + 1] = b
 			end
 
@@ -388,11 +377,8 @@ local function result(cb, opts)
 			-- elms[#elms + 1] = div
 		end
 	end
-
 	-- /tmp
 
-	-- TODO: maybe put rv in a para or put all elements in their own para
-	-- with class stitched-{out, err, art}  (cb org is kept as-is, no changes)
 	return elms
 end
 
@@ -401,24 +387,24 @@ end
 ---@param cb table codeblock with `.stitch` class
 ---@return table|nil opts the `cb`-specific options, nil on errors
 function M.options(cb)
+	-- resolution: cb -> meta[cfg] -> defaults -> hardcoded
 	local opts = {}
 	local expandables = { "cbx", "out", "err", "art", "cmd" } -- cmd must be last
 
 	-- get the (known) stitch options present in cb.attributes
 	local attr = cb.attributes
 	for k, _ in pairs(hardcoded) do
-		-- options not present in cb will fall back to meta[cfg]->defaults->hardcoded
 		opts[k] = attr[k] and marshal[k](attr[k])
 	end
-	setmetatable(opts, { __index = ctx[opts.cfg] }) -- cb->meta[cfg] fall back
+	setmetatable(opts, { __index = ctx[opts.cfg] })
 
-	-- options outside cb.attributes
-	opts.cid = #cb.identifier > 0 and cb.identifier or nil -- turn absent ("") into nil
+	-- options outside cb.attributes ("" is an absent identifier)
+	opts.cid = #cb.identifier > 0 and cb.identifier or nil
 
 	-- derived settings
 	opts.sha = mksha(cb, opts) -- derived only
 
-	-- expand (possible add) the file and cmd  options
+	-- expand cmd and filenames for this codeblock
 	for _, k in ipairs(expandables) do
 		opts[k] = opts[k]:gsub("%#(%w+)", opts)
 	end
@@ -440,6 +426,14 @@ end
 function M.context(doc)
 	-- resolution order: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
 	-- uses hardcoded keys to only extract stitch options
+	-- TODO: use metalua to convert doc.meta & pickup t.stitch
+	-- then marshall stitch values (nested structure)
+	-- stitch:
+	-- * is a string indexed collection of named config sections
+	-- * each config section is k,v-store where v are strings
+	-- * some values need marschal'ing: e.g.
+	--   - ins: "out:fcb, .." -> etc ..
+	--   - log: "0" -> number
 
 	ctx = {} -- reset
 	for name, attr in pairs(doc.meta.stitch or {}) do
@@ -474,7 +468,8 @@ end
 -- `:Open https://pandoc.org/lua-filters.html#global-variables`
 -- `:Open https://pandoc.org/lua-filters.html#type-version`
 print("PANDOC_VERSION", _ENV.PANDOC_VERSION) -- 3.1.3
-
+-- assert(PANDOC_API_VERSION >= {1, 23}, "need at least pandoc x.x.x")
+--
 ---@poram cb pandoc.CodeBlock
 function M.codeblock(cb)
 	-- TODO: cannot return error msg, just nil or AST element(s)
@@ -489,10 +484,11 @@ function M.codeblock(cb)
 		return nil, F("[error] no options available")
 	end
 
-	local cmd, err = mkcmd(cb, opts)
-	if not cmd then
-		return nil, err
-	end
+	-- verplaatst naar mkcmd
+	-- local cmd, err = mkcmd(cb, opts)
+	-- if not cmd then
+	-- 	return nil, err
+	-- end
 
 	-- execute
 	-- print("exec", cmd)
@@ -505,16 +501,16 @@ function M.codeblock(cb)
 end
 
 local function pandoc(doc)
-	local t = metalua(doc.meta)
-	print("meta", dump(t))
-	t.log = 42
-	t = metalua(t)
-	print("meta2", dump(t))
+	-- process CodeBlocks, gather context first
 	ctx = M.context(doc)
-	doc:walk({ CodeBlock = M.codeblock })
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 
+-- Testing
+-- * create stitch = M in table returned here
+-- * busted then can use whatever we put in M
+--
+-- Old method was to create global func at module level
 -- function Filter.Busted()
 -- 	-- only meant for testing with busted
 -- 	M.hardcoded = hardcoded
@@ -522,5 +518,7 @@ end
 -- 	return M
 -- end
 return {
+	-- a filter is a list of filters
+	-- traverse = "topdown" -- could be used to direct order of filters to run
 	{ Pandoc = pandoc },
 }

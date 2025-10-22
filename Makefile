@@ -17,7 +17,7 @@ test:
 	$(BUSTED)
 
 clean:
-	rm $(EXAMPLES)/$(SCRATCH)/*
+	rm -rf $(EXAMPLES)/$(SCRATCH)/*
 	rmdir $(EXAMPLES)/$(SCRATCH)
 
 
