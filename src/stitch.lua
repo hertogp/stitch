@@ -14,40 +14,6 @@ local function msg(label, text)
 	io.stderr:write(text)
 	return text
 end
--- trim string `s`, if nil, return empty string
----@param s string|nil string to trim (both leading/trailing whitespace)
----@return string
-local function trim(s)
-	return s and s:match("^%s*(.-)%s*$") or ""
-end
-
--- Create list of lowercase strings from a table or string in csv-notation
----@param val any a parameter value shaped as a string, Inlines or List (of Inlines)
----@param sep? string|nil separator(s), defaults to ","
----@return table parts list of zero or more strings
-local function split(val, sep)
-	-- NOTE: using [a,b] for a value in a meta section (yaml) -> List of Inlines,
-	-- while in a cb.attr (not yaml!) it yields a string. So better to never use
-	-- [..] and always use "a, b" to specify a list of string values (to be split
-	-- here)
-	local parts = {}
-	local ptype = pd.utils.type(val)
-	sep = F("[%s]+%%s*", sep or ",") --> [sep]+%s*
-
-	if ptype == "List" or ptype == "table" then
-		-- keep stringified entries in table or a List of Inlines
-		for _, v in ipairs(val) do
-			parts[#parts + 1] = trim(pd.utils.stringify(v))
-		end
-	else
-		-- everything else (incl. a single Inline) gets stringified and split
-		-- for part in stringify(val):gsub(",%s*", ","):gmatch("[^,]+") do
-		for part in pd.utils.stringify(val):gsub(sep, ","):gmatch("[^,]+") do
-			parts[#parts + 1] = trim(part)
-		end
-	end
-	return parts
-end
 
 -- parse `opts.inc` into list: {{what, format, filter, how}, ..}
 ---@param str string the opts.inc string with include directives
@@ -69,52 +35,24 @@ end
 
 --[[ stitch options ]]
 
-local marshal = {
-	-- convert option MetaValues or hardcoded string -> lua values
-	log = tonumber,
-	-- ins = split,
-	inx = function(val)
-		local str = pd.utils.stringify(val)
-		local todo = {}
-		local word = "([^!@:]+)"
-		for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
-			table.insert(todo, {
-				p:match("^" .. word) or "", -- what to include
-				p:match("!" .. word) or "", -- read as type
-				p:match("@" .. word) or "", -- filter
-				p:match(":" .. word) or "", -- element/how
-			})
-		end
-		return todo
-	end,
-}
-setmetatable(marshal, {
-	__index = function()
-		return pd.utils.stringify -- standard conversion
-	end,
-})
-
 local hardcoded = {
-	-- last resort for cb option resolution: cb -> meta.<cfg> -> defaults -> hardcoded
-	-- note: values should have final (marshalled) form, otherwise lsp complains
-
+	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded (last resort)
 	cid = "x", -- x marks the spot if cb has no identifier
-	cfg = "", -- this codeblock's config in doc.meta.stitch.<cfg> (if any)
+	cfg = "", -- name of config section in doc.meta.stitch.<cfg> (if any)
 	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-	dir = ".stitch", -- where to store files (abs/rel path to cwd)
+	dir = ".stitch", -- where to store files (abs or rel path to cwd)
 	fmt = "png", -- format for images (if any)
-	log = 0, -- log notification level
-	-- ins = marshal.ins("cbx:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
-	-- ^what:how!read@filter
-	inc = "out:fcb cbx:fcb@debug art!markdown@my-filter err:fcb",
-	-- expandables
-	-- filename templates
+	log = "error", -- debug, info, warn[ing], error
+	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
+	inc = "cbx:fcb out:fcb art:img err:fcb",
+	-- expandable filenames
 	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
 	out = "#dir/#cid-#sha.out", -- capture of stdout (if any)
 	err = "#dir/#cid-#sha.err", -- capture of stderr (if any)
 	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
-	-- expanded last
-	cmd = "#cbx #art #arg 1>#out 2>#err", -- cmd template string, expanded last
+	-- command must be expanded last
+	cmd = "#cbx #arg #art 1>#out 2>#err", -- cmd template string, expanded last
+	-- bash: $@ is list of args, ${@: -1} is last argument
 }
 
 -- Turn doc.meta data into a table of lua values
@@ -145,43 +83,6 @@ local function metalua(elm)
 	else
 		return F("%s, todo: %s", ptype, tostring(elm))
 	end
-end
-
--- converts (only) doc.meta to list of lines to complement `pandoc.write(doc, "native")`
----@param elm any doc.meta of one of its elements
----@param indent? number number of indent spaces, defaults to 0
----@param acc? table accumulator for lines, defaults to empty list
----@return table acc the list of lines describing docs.meta
-local function meta2lines(elm, indent, acc)
-	-- doc.meta is (potentially) part of a cb's options
-	-- simple dump of doc.meta for debugging
-	indent = indent or 0
-	acc = acc or {}
-	if #acc == 0 then
-		elm.hardcoded = hardcoded
-	end
-	local tab = string.rep(" ", indent)
-	local type_ = pd.utils.type(elm)
-
-	if "Meta" == type_ or "table" == type_ then
-		for k, v in pairs(elm) do
-			acc[#acc + 1] = F("%s%s: ", tab, k)
-			meta2lines(v, indent + 2, acc)
-		end
-	elseif "Inlines" == type_ or "List" == type_ then
-		acc[#acc] = acc[#acc] .. "["
-		for _, v in pairs(elm) do
-			meta2lines(v, indent, acc)
-		end
-		acc[#acc] = acc[#acc]:gsub(",?%s*$", " ]")
-	elseif "Inline" == type_ then
-		acc[#acc] = acc[#acc] .. F(" %s, ", elm)
-	elseif "number" == type_ or "string" == type_ or "boolean" == type_ then
-		acc[#acc] = acc[#acc] .. F(" %q ", elm)
-	else
-		acc[#acc + 1] = F("unknown type %s %s", type_, tostring(elm))
-	end
-	return acc
 end
 
 --[[ file handling ]]
@@ -268,7 +169,7 @@ local function fread(name, format)
 		if ok then
 			return dta
 		else
-			msg("error", F("%s", dta))
+			msg("error", F("pandoc reader: %s", dta))
 			return nil
 		end
 	end
@@ -307,7 +208,7 @@ local function fluaf(doc, filter)
 		if f[fun] then
 			ok, tmp = pcall(f[fun], doc)
 			if not ok then
-				msg("warn", F("ignoring results filter %s[%s].%s since it failed", mod, fun))
+				msg("warn", F("ignoring filter '%s[%s].%s' since it failed", mod, n, fun))
 			else
 				doc = tmp
 				count = count + 1
@@ -348,46 +249,13 @@ local function fsave(doc, fname)
 	return true
 end
 
--- TODO
--- local function fsave(doc, name, filter?)
--- filter
-
--- wrap lines so they're less than `maxlen` long
----@param txt string text string whose lines are to be wrapped
----@param maxlen? number maxlen for a line (defaults to 65)
----@return string txt the wrapped text
-local function wrap(txt, maxlen)
-	-- may be use `:Open https://pandoc.org/lua-filters.html#pandoc.layout.render`
-	-- instead?
-	maxlen = maxlen or 65
-	txt = txt or ""
-	if #txt < maxlen + 1 then
-		return txt
-	end
-
-	local lines = { "" }
-	for chunk in txt:gmatch("%s*%S+") do
-		-- for chunk in txt:gmatch("[, ]+[^, ]+") do
-		if #lines[#lines] + #chunk < maxlen then
-			lines[#lines] = lines[#lines] .. chunk
-		else
-			lines[#lines] = lines[#lines]
-			lines[#lines + 1] = "  " .. chunk
-		end
-	end
-	return table.concat(lines, "\n")
-end
--- clones `cb`, removes stitch properties and adds a 'stitched' class
----@param cb table CodeBlock instance
+-- clones `cb`, removes its stitch properties, adds a 'stitched' class
+---@param cb table a CodeBlock instance
 ---@param opts table the cb's stitch options
----@return table clone a new CodeBlock instance with only non-stitch attributes
+---@return table clone a new CodeBlock instance
 local function mkfcb(cb, opts)
-	-- `:Open https://pandoc.org/lua-filters.html#type-codeblock`
-	-- `:Open https://pandoc.org/lua-filters.html#pandoc.CodeBlock`
-
 	local clone = cb:clone()
 
-	-- class stitch := stitched
 	clone.classes = cb.classes:map(function(c)
 		return c:gsub("^stitch$", "stitched")
 	end)
@@ -402,48 +270,6 @@ local function mkfcb(cb, opts)
 	return clone
 end
 
-local mkins = {}
-mkins._mt = {}
-mkins._mt.__index = function(_, key)
-	return function()
-		return pd.Str(F("alas, unknown element '%s'", key))
-	end
-end
-setmetatable(mkins, mkins._mt)
-
-function mkins.cbx(cb, _, how)
-	-- as fcb or ocb
-	local ncb = cb:clone()
-	if "fcb" == how then
-		ncb.text = pd.write(pd.Pandoc({ cb }, {}))
-	end
-	return ncb
-end
-
-function mkins.out(cb, opts, _)
-	local ncb = mkfcb(cb, opts)
-	ncb.text = fread(opts.out) or "[stitch] stdout - no output"
-	ncb.identifier = opts.cid .. "-stitched-out" or nil
-	return ncb
-end
-
-function mkins.err(cb, opts, _)
-	local ncb = mkfcb(cb, opts)
-	ncb.text = wrap(fread(opts.err) or "[stitch] stderr - no output")
-	ncb.identifier = opts.cid .. "-stitched-err" or nil
-	return ncb
-end
-
-function mkins.art(cb, opts, how)
-	local ncb = mkfcb(cb, opts)
-	-- local title = cb.attributes.title or "no-title"
-	local caption = pd.Str(cb.attributes.caption or "no-caption")
-	ncb.identifier = opts.cid .. "-stitched-art" or nil
-	local img = pd.Image({ caption }, opts.art)
-	img = "fig" == how and pd.Figure(img, { caption }, ncb.attr) or img
-	return img
-end
-
 -- create doc elements for codeblock
 ---@param cb table codeblock
 ---@param opts table codeblock options
@@ -451,46 +277,62 @@ end
 local function result(cb, opts)
 	local elms, count = {}, 0
 
-	for _, elm in ipairs(parse_inc(opts.inc)) do
+	for idx, elm in ipairs(parse_inc(opts.inc)) do
 		local what, format, filter, how = table.unpack(elm)
-		local doc = fread(opts[what], format)
-		doc, count = fluaf(doc, filter)
-		if count > 0 or true then
-			-- a filter could post-process an image so save it, if applicable
-			fsave(doc, opts[what])
-		end
-
-		local ncb = mkfcb(cb, opts)
-		ncb.identifier = opts.cid .. "-stitched-" .. what -- TODO make unique
-		if doc and "fcb" == how then
-			if "Pandoc" == pd.utils.type(doc) then
-				ncb.text = pd.write(doc, "native")
-			else
-				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
+		local fname = opts[what]
+		if fname then
+			local doc = fread(opts[what], format)
+			doc, count = fluaf(doc, filter)
+			if count > 0 or true then
+				-- a filter could post-process an image so save it, if applicable
+				fsave(doc, opts[what])
 			end
-			elms[#elms + 1] = ncb
-		elseif "img" == how then
+
+			-- elms[#elsm+1] = mkelm(doc, cb, opts, what, how) -- nil is noop
+			local ncb = mkfcb(cb, opts)
 			local title = ncb.attributes.title or ""
-			elms[#elms + 1] = pd.Image({ ncb.attributes.caption }, opts[what], title, ncb.attr)
-		elseif "fig" == how then
-			local title = ncb.attributes.title or ""
-			local img = pd.Image({ ncb.attributes.caption }, opts[what], title, ncb.attr)
-			elms[#elms + 1] = pd.Figure(img, { ncb.attributes.caption }, ncb.attr)
-		elseif doc and "" == how then
-			if "Pandoc" == pd.utils.type(doc) then
-				for _, block in ipairs(doc.blocks) do
-					elms[#elms + 1] = block
-				end
-			else
-				if "cbx" == what then
-					msg("info", F("cbx has %d bytes", #doc))
-				end
+			local caption = ncb.attributes.caption
+			ncb.identifier = F("%s-%d-%s", opts.cid, idx, what)
+			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
+				-- an AST in a fcb is converted to native first
+				ncb.text = pd.write(doc, "native")
+				elms[#elms + 1] = ncb
+			elseif "fcb" == how and "cbx" == what then
+				-- wrap org codeblock inside a fenced codeblock
+				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
+				elms[#elms + 1] = ncb
+			elseif "fcb" == how then
+				-- everthing else simply goes inside fcb as text
 				ncb.text = doc
 				elms[#elms + 1] = ncb
+			elseif "img" == how then
+				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
+			elseif "fig" == how then
+				local img = pd.Image({ caption }, fname, title, ncb.attr)
+				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
+			elseif doc and "" == how then
+				-- output elements cbx, out, err, art without a how
+				if "Pandoc" == pd.utils.type(doc) then
+					-- an AST by default has its individual blocks inserted
+					if doc.blocks[1].attr then
+						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
+						doc.blocks[1].classes = ncb.classes
+					end
+					for _, block in ipairs(doc.blocks) do
+						elms[#elms + 1] = block
+					end
+				else
+					-- doc is raw data and inserted as a Div
+					msg("info", F("inserting doc for '%s' as a Div", what))
+					elms[#elms + 1] = pd.Div(doc, ncb.attr)
+				end
+			else
+				-- TODO: never reached?
+				msg("error", F("skipped '%s', no output was produced: %s", what, doc))
+				elms[#elms + 1] = pd.Div(F("directive '%s': unknown or no output seen", what), ncb.attr)
 			end
 		else
-			msg("error", F("skipping '%s', no output was produced", what))
-			elms[#elms + 1] = pd.Plain(F("directive '%s' either unknown or no output seen\n", what))
+			msg("error", F("skipping '%s': not a valid codeblock output (in: %s)", what, opts.inc))
 		end
 	end
 
@@ -509,7 +351,7 @@ function M.options(cb)
 	-- get the (known) stitch options present in cb.attributes
 	local attr = cb.attributes
 	for k, _ in pairs(hardcoded) do
-		opts[k] = attr[k] and marshal[k](attr[k])
+		opts[k] = attr[k] and pd.utils.stringify(attr[k]) -- marshal[k](attr[k])
 	end
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
@@ -545,7 +387,7 @@ function M.context(doc)
 	for name, attr in pairs(doc.meta.stitch or {}) do
 		ctx[name] = {}
 		for k, _ in pairs(hardcoded) do
-			ctx[name][k] = attr[k] and marshal[k](attr[k])
+			ctx[name][k] = attr[k] and pd.utils.stringify(attr[k]) -- marshal[k](attr[k])
 		end
 	end
 
