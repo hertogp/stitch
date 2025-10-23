@@ -5,7 +5,10 @@ EXAMPLES=examples
 SCRATCH=.stitch
 # how to enable extension: inline_code_attributes
 
-default: ex01
+default: ex00
+
+ex00:
+	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes ex00.md -o ex00.html
 
 ex01:
 	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes ex01.md -o ex01.html

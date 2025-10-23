@@ -49,21 +49,35 @@ local function split(val, sep)
 	return parts
 end
 
+-- parse `opts.inc` into list: {{what, format, filter, how}, ..}
+---@param str string the opts.inc string with include directives
+---@return table directives list of 4-element lists of strings
+local function parse_inc(str)
+	str = pd.utils.stringify(str)
+	local todo = {}
+	local word = "([^!@:]+)"
+	for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
+		todo[#todo + 1] = {
+			p:match("^" .. word) or "", -- what to include
+			p:match("!" .. word) or "", -- read as type
+			p:match("@" .. word) or "", -- filter
+			p:match(":" .. word) or "", -- element/how
+		}
+	end
+	return todo
+end
+
 --[[ stitch options ]]
 
 local marshal = {
 	-- convert option MetaValues or hardcoded string -> lua values
 	log = tonumber,
-	ins = split,
-	inc = function(val)
+	-- ins = split,
+	inx = function(val)
 		local str = pd.utils.stringify(val)
 		local todo = {}
 		local word = "([^!@:]+)"
 		for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
-			-- list of non-nil strings required so mksha is consistent
-			-- TODO: read should accept extensions as well
-			-- `:Open https://pandoc.org/lua-filters.html#pandoc.read`
-			-- `:Open https://pandoc.org/lua-filters.html#type-doc`
 			table.insert(todo, {
 				p:match("^" .. word) or "", -- what to include
 				p:match("!" .. word) or "", -- read as type
@@ -90,9 +104,9 @@ local hardcoded = {
 	dir = ".stitch", -- where to store files (abs/rel path to cwd)
 	fmt = "png", -- format for images (if any)
 	log = 0, -- log notification level
-	ins = marshal.ins("cbx:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
+	-- ins = marshal.ins("cbx:fcb out:fcb err:fcb art:img"), -- "<file>[:type], .." -> ordered list of what to insert
 	-- ^what:how!read@filter
-	inc = marshal.inc("out:fcb cbx:fcb@debug art!markdown@my-filter err:fcb"),
+	inc = "out:fcb cbx:fcb@debug art!markdown@my-filter err:fcb",
 	-- expandables
 	-- filename templates
 	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
@@ -105,7 +119,7 @@ local hardcoded = {
 
 -- Turn doc.meta data into a table of lua values
 ---@param elm any doc.meta, one of its elements or a regular lua-table
----@return table|string regular table holding the metadata w/ lua values
+---@return table|string|nil regular table holding the metadata w/ lua values
 local function metalua(elm)
 	-- Meta = string indexed collection of MetaValues: (ie. a MetaMap)
 	local ptype = pd.utils.type(elm)
@@ -126,6 +140,8 @@ local function metalua(elm)
 		return pd.utils.stringify(elm)
 	elseif "boolean" == ptype or "number" == ptype then
 		return elm
+	elseif "nil" == ptype then
+		return nil
 	else
 		return F("%s, todo: %s", ptype, tostring(elm))
 	end
@@ -230,27 +246,111 @@ local function mkcmd(cb)
 	return opts.cmd:gsub("%#(%w+)", opts), opts
 end
 
--- returns file contents of file `opts[key]` or nil on empty file
----@param path string path to file to read
----@param format? string|nil pandoc reader format to interpret file contents (if any)
----@return string|nil data file contents or nil if file has no data or absent
-local function fread(path, format)
-	local fh = io.open(path, "r")
-	local dta
+-- read file `name` and, possibly, convert to pandoc AST using `format`
+---@param name string file to read
+---@param format? string convert file data to AST using a pandoc reader ("" to skip)
+---@return string|table? data file data, AST or nil (in case of errors)
+local function fread(name, format)
+	local ok, dta
+	local fh, err = io.open(name, "r")
 
-	if fh then
-		dta = fh:read("a")
-		fh:close()
+	if nil == fh then
+		msg("error", err)
+		return nil
 	end
 
-	if dta and pd.readers[format] then
-		return pd.read(dta, format)
-	elseif dta then
-		return dta
+	dta = fh:read("*a")
+	fh:close()
+	msg("info", F("read %d bytes from: %s", #dta, name))
+
+	if format and #format > 0 then
+		ok, dta = pcall(pd.read, dta, format)
+		if ok then
+			return dta
+		else
+			msg("error", F("%s", dta))
+			return nil
+		end
 	end
 
-	return nil
+	return dta
 end
+
+-- run doc through lua filter(s), count how many were actually applied
+---@param doc any file data, pandoc AST or nil
+---@param filter string name of lua mod.fun to run (if any)
+---@return string|table? doc the, possibly, modified doc
+---@return number count the number of filters actually applied
+local function fluaf(doc, filter)
+	local count = 0
+	local ok, filters, tmp
+	if #filter == 0 then
+		return doc, count
+	end
+
+	local mod, fun = filter:match("(%w+)%.?(%w*)")
+	fun = #fun > 0 and fun or "Pandoc" -- default to mod.Pandoc
+	ok, filters = pcall(require, mod)
+	if not ok then
+		msg("warn", F("skipping @%s: module %s not found", filter, mod))
+		return doc, count
+	elseif filters == true then
+		msg("warn", F("skipping @%s: not a list of filters", filter))
+		return doc, count
+	end
+
+	if doc and "Pandoc" == pd.utils.type(doc) then
+		doc.meta.stitch = pd.MetaMap(ctx)
+	end
+
+	for n, f in ipairs(filters) do
+		if f[fun] then
+			ok, tmp = pcall(f[fun], doc)
+			if not ok then
+				msg("warn", F("ignoring results filter %s[%s].%s since it failed", mod, fun))
+			else
+				doc = tmp
+				count = count + 1
+			end
+		else
+			msg("warn", F("skipping filter %s[%d], function '%s' missing", mod, n, fun))
+		end
+	end
+	return doc, count
+end
+
+-- save `doc` to given `fname`, except when it's an AST
+---@param doc string|table? doc to be saved
+---@param fname string filename to save doc with
+---@return boolean ok success indicator
+local function fsave(doc, fname)
+	-- save doc to fname
+	if "string" ~= type(doc) or #doc == 0 then
+		msg("info", F("not writing doc (%s) to %s", type(doc), fname))
+		return false
+	end
+
+	local fh = io.open(fname, "w")
+	if nil == fh then
+		msg("error", F("could not open %s for writing", fname))
+		return false
+	end
+
+	local ok, err = fh:write(doc)
+	fh:close()
+
+	if not ok then
+		msg("error", F("error writing to %s: %s", fname, err))
+		return false
+	end
+
+	msg("debug", F("wrote %d bytes to %s", #doc, fname))
+	return true
+end
+
+-- TODO
+-- local function fsave(doc, name, filter?)
+-- filter
 
 -- wrap lines so they're less than `maxlen` long
 ---@param txt string text string whose lines are to be wrapped
@@ -344,39 +444,55 @@ function mkins.art(cb, opts, how)
 	return img
 end
 
+-- create doc elements for codeblock
+---@param cb table codeblock
+---@param opts table codeblock options
+---@return table result sequence of pandoc AST elements
 local function result(cb, opts)
-	-- return AST elements to be included in doc
-	local elms = {}
-	for _, v in ipairs(split(opts.ins, ",%s")) do
-		local elm, how = table.unpack(split(v, ":"))
-		elms[#elms + 1] = mkins[elm](cb, opts, how)
-	end
+	local elms, count = {}, 0
 
-	-- tmp / inc
-	for _, elm in ipairs(rawget(opts, "inc") or {}) do
-		-- filter ignored at the moment
-		local what, format, _, how = table.unpack(elm)
+	for _, elm in ipairs(parse_inc(opts.inc)) do
+		local what, format, filter, how = table.unpack(elm)
 		local doc = fread(opts[what], format)
-		if doc and #format > 0 then
-			if doc["blocks"][1]["attr"] then
-				doc["blocks"][1].classes = { "stitched" }
+		doc, count = fluaf(doc, filter)
+		if count > 0 or true then
+			-- a filter could post-process an image so save it, if applicable
+			fsave(doc, opts[what])
+		end
+
+		local ncb = mkfcb(cb, opts)
+		ncb.identifier = opts.cid .. "-stitched-" .. what -- TODO make unique
+		if doc and "fcb" == how then
+			if "Pandoc" == pd.utils.type(doc) then
+				ncb.text = pd.write(doc, "native")
+			else
+				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 			end
-
-			-- TODO: apply filter (if any) to doc read
-			-- for _, f in ipairs(require("stitch")) do
-			-- 	doc.meta.stitched = ctx
-			-- 	doc = f.Pandoc(doc)
-			-- end
-
-			for _, b in ipairs(doc["blocks"]) do
-				elms[#elms + 1] = b
+			elms[#elms + 1] = ncb
+		elseif "img" == how then
+			local title = ncb.attributes.title or ""
+			elms[#elms + 1] = pd.Image({ ncb.attributes.caption }, opts[what], title, ncb.attr)
+		elseif "fig" == how then
+			local title = ncb.attributes.title or ""
+			local img = pd.Image({ ncb.attributes.caption }, opts[what], title, ncb.attr)
+			elms[#elms + 1] = pd.Figure(img, { ncb.attributes.caption }, ncb.attr)
+		elseif doc and "" == how then
+			if "Pandoc" == pd.utils.type(doc) then
+				for _, block in ipairs(doc.blocks) do
+					elms[#elms + 1] = block
+				end
+			else
+				if "cbx" == what then
+					msg("info", F("cbx has %d bytes", #doc))
+				end
+				ncb.text = doc
+				elms[#elms + 1] = ncb
 			end
-
-			-- elms[#elms + 1] = doc["blocks"][1]
-			-- elms[#elms + 1] = div
+		else
+			msg("error", F("skipping '%s', no output was produced", what))
+			elms[#elms + 1] = pd.Plain(F("directive '%s' either unknown or no output seen\n", what))
 		end
 	end
-	-- /tmp
 
 	return elms
 end
@@ -454,52 +570,44 @@ function M.context(doc)
 end
 
 --[[ checks ]]
--- `:Open https://pandoc.org/lua-filters.html#global-variables`
--- `:Open https://pandoc.org/lua-filters.html#type-version`
 msg("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
 -- assert(PANDOC_API_VERSION >= {1, 23}, "need at least pandoc x.x.x")
---
----@poram cb pandoc.CodeBlock
+
+---@poram cb a pandoc.CodeBlock
+---@return any list of nodes in pandoc's AST
+---@return string? err non-empty string in case of errors, or nil
 function M.codeblock(cb)
 	if not cb.classes:find("stitch") then
-		return nil -- noop
+		return nil, nil -- noop
 	end
 
 	local cmd, opts, err = mkcmd(cb)
-	if not cmd then
+	if err then
 		return nil, err
 	end
 
-	-- execute
-	-- print("exec", cmd)
 	local ok, code, nr = os.execute(cmd)
 	if not ok then
-		return nil, F("[error] codeblock failed %s(%s): %s", code, nr, cmd)
+		return nil, msg("error", F("codeblock failed %s(%s): %s", code, nr, cmd))
 	end
 
-	return result(cb, opts)
+	return result(cb, opts or {})
 end
 
 local function pandoc(doc)
 	-- process CodeBlocks, gather context first
 	ctx = M.context(doc)
-	msg("metalua", dump(metalua(doc.meta)))
+	print(metalua(doc.meta.stitch))
+	msg("metalua", dump(metalua(doc.meta.stitch)))
 	msg("ctx", dump(ctx))
 
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 
--- Testing
+-- TODO: for testing
 -- * create stitch = M in table returned here
 -- * busted then can use whatever we put in M
---
--- Old method was to create global func at module level
--- function Filter.Busted()
--- 	-- only meant for testing with busted
--- 	M.hardcoded = hardcoded
--- 	M.ctx = ctx
--- 	return M
--- end
+
 return {
 	-- a filter is a list of filters
 	-- traverse = "topdown" -- could be used to direct order of filters to run
