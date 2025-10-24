@@ -9,11 +9,20 @@ local ctx = {} -- holds meta.stitch configuration for current document
 local dump = require("dump") -- tmp, delme
 local F = string.format
 local pd = require("pandoc")
+
 local function msg(label, text)
 	text = F("[stitch](%s) %s\n", label, text)
 	io.stderr:write(text)
 	return text
 end
+
+local function dbg(level, fmt, ...)
+	local text = F("[stitch](%s) " .. fmt .. "\n", level, ...)
+	io.stderr:write(text)
+	return text
+end
+
+--[[ stitch options ]]
 
 -- parse `opts.inc` into list: {{what, format, filter, how}, ..}
 ---@param str string the opts.inc string with include directives
@@ -32,8 +41,6 @@ local function parse_inc(str)
 	end
 	return todo
 end
-
---[[ stitch options ]]
 
 local hardcoded = {
 	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded (last resort)
@@ -55,14 +62,13 @@ local hardcoded = {
 	-- bash: $@ is list of args, ${@: -1} is last argument
 }
 
--- Turn doc.meta data into a table of lua values
----@param elm any doc.meta, one of its elements or a regular lua-table
----@return table|string|nil regular table holding the metadata w/ lua values
+-- Extract specific data from AST elements into lua table(s)
+---@param elm any either `doc.blocks`, `doc.meta` or a `CodeBlock`
+---@return any regular table holding the metadata as lua values
 local function metalua(elm)
-	-- Meta = string indexed collection of MetaValues: (ie. a MetaMap)
+	-- note: metalua(doc.blocks) -> list of cb tables.
 	local ptype = pd.utils.type(elm)
-
-	if "Meta" == ptype or "table" == ptype then
+	if "Meta" == ptype or "table" == ptype or "AttributeList" == ptype then
 		local t = {}
 		for k, v in pairs(elm) do
 			t[k] = metalua(v)
@@ -80,8 +86,25 @@ local function metalua(elm)
 		return elm
 	elseif "nil" == ptype then
 		return nil
+	elseif "Attr" == ptype then
+		local t = {
+			identifier = elm.identifier,
+			classes = metalua(elm.classes),
+			attributes = {},
+		}
+		for k, v in pairs(elm.attributes) do
+			t.attributes[k] = metalua(v)
+		end
+		return t
+	elseif "CodeBlock" == elm.tag then
+		-- a CodeBlock's type is actually 'Block' (and it's not the only one)
+		return {
+			text = elm.text,
+			attr = metalua(elm.attr),
+		}
 	else
-		return F("%s, todo: %s", ptype, tostring(elm))
+		print("metalua", F("%s, todo: %s", ptype, tostring(elm)))
+		return nil
 	end
 end
 
@@ -292,28 +315,33 @@ local function result(cb, opts)
 			local ncb = mkfcb(cb, opts)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
-			ncb.identifier = F("%s-%d-%s", opts.cid, idx, what)
+			local elmid = F("%s-%d-%s", opts.cid, idx, what)
+			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				-- an AST in a fcb is converted to native first
+				msg("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
-				-- wrap org codeblock inside a fenced codeblock
+				msg("debug", F("%s, '%s:%s': include cb as fenced codeblock", elmid, what, how))
 				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
+				msg("debug", F("%s, '%s:%s': include doc as-is in fcb", elmid, what, how))
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
+				msg("debug", F("%s, '%s:%s': include doc as Image", elmid, what, how))
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
+				msg("debug", F("%s, '%s:%s': include doc as Figure", elmid, what, how))
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
 				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
 			elseif doc and "" == how then
 				-- output elements cbx, out, err, art without a how
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an AST by default has its individual blocks inserted
+					msg("debug", F("%s, '%s:%s': include doc's AST blocks as-is", elmid, what, how))
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -323,12 +351,13 @@ local function result(cb, opts)
 					end
 				else
 					-- doc is raw data and inserted as a Div
-					msg("info", F("inserting doc for '%s' as a Div", what))
+					msg("debug", F("%s, '%s:%s': include doc as Div", elmid, what, how))
+					msg("info", F("include '%s': doc included Div (default)", what))
 					elms[#elms + 1] = pd.Div(doc, ncb.attr)
 				end
 			else
 				-- TODO: never reached?
-				msg("error", F("skipped '%s', no output was produced: %s", what, doc))
+				msg("error", F("%s, '%s:%s', include skipped: doc is %s", elmid, what, how, doc))
 				elms[#elms + 1] = pd.Div(F("directive '%s': unknown or no output seen", what), ncb.attr)
 			end
 		else
@@ -345,23 +374,15 @@ end
 ---@return table|nil opts the `cb`-specific options, nil on errors
 function M.options(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-	local opts = {}
 	local expandables = { "cbx", "out", "err", "art", "cmd" } -- cmd must be last
-
-	-- get the (known) stitch options present in cb.attributes
-	local attr = cb.attributes
-	for k, _ in pairs(hardcoded) do
-		opts[k] = attr[k] and pd.utils.stringify(attr[k]) -- marshal[k](attr[k])
-	end
+	local opts = metalua(cb.attributes)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
-	-- options outside cb.attributes ("" is an absent identifier)
-	opts.cid = #cb.identifier > 0 and cb.identifier or nil
-
-	-- derived settings
+	-- additional options ("" is an absent identifier)
+	opts.cid = #cb.identifier > 0 and cb.identifier or nil -- fallback to hardcoded
 	opts.sha = mksha(cb, opts) -- derived only
 
-	-- expand cmd and filenames for this codeblock
+	-- expand filenames and then cmd for this codeblock
 	for _, k in ipairs(expandables) do
 		opts[k] = opts[k]:gsub("%#(%w+)", opts)
 	end
@@ -382,14 +403,7 @@ end
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function M.context(doc)
 	-- resolution order: cb -> stitch[cb.cfg] -> defaults -> hardcoded
-
-	ctx = {} -- reset
-	for name, attr in pairs(doc.meta.stitch or {}) do
-		ctx[name] = {}
-		for k, _ in pairs(hardcoded) do
-			ctx[name][k] = attr[k] and pd.utils.stringify(attr[k]) -- marshal[k](attr[k])
-		end
-	end
+	ctx = metalua(doc.meta.stitch or {}) or {}
 
 	-- defaults -> hardcoded
 	local defaults = ctx.defaults or {}
@@ -439,16 +453,12 @@ end
 local function pandoc(doc)
 	-- process CodeBlocks, gather context first
 	ctx = M.context(doc)
-	print(metalua(doc.meta.stitch))
-	msg("metalua", dump(metalua(doc.meta.stitch)))
-	msg("ctx", dump(ctx))
-
 	return doc:walk({ CodeBlock = M.codeblock })
 end
 
 -- TODO: for testing
--- * create stitch = M in table returned here
--- * busted then can use whatever we put in M
+-- * create local S = {} w/ all stitch func/data in it
+-- * return { {Pandoc = pandoc}, 0 = S } }
 
 return {
 	-- a filter is a list of filters
