@@ -27,13 +27,18 @@ end
 local function deja_vu()
 	-- if cbx exists with 1 or more ouputs, we were here before
 	local function exists(fname)
-		local f = io.open(fname)
+		local f = io.open(fname, "r")
 		if f then
 			f:close()
 			return true
 		end
 		return false
 	end
+
+	if opts.force then
+		return false
+	end
+
 	if exists(opts.cbx) then
 		if exists(opts.out) or exists(opts.err) or exists(opts.art) then
 			return true
@@ -71,7 +76,7 @@ local hardcoded = {
 	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
 	dir = ".stitch", -- where to store files (abs or rel path to cwd)
 	fmt = "png", -- format for images (if any)
-	log = "error", -- debug, info, warn[ing], error
+	log = "error", -- debug, error, warn, info, silent
 	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
