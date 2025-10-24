@@ -41,6 +41,7 @@ local function parse_inc(str)
 			p:match(":" .. part) or "", -- element/how
 		}
 	end
+	log("debug", "%s inc's in '%s'", #todo, str)
 	return todo
 end
 
@@ -134,17 +135,13 @@ local function mksha(cb)
 	return pd.utils.sha1(table.concat(vals, ""))
 end
 
--- sets opts.cmd for given `cb`
+-- create conditions for codeblock execution and set opts.exe
 ---@param cb table pandoc CodeBlock
 ---@return boolean ok success indicator
-local function mkcmd(cb)
-	-- local opts = M.options(cb)
-	-- if not opts then
-	-- 	return nil, nil, log("error", "no options available for codeblock")
-	-- end
-
+local function mkexe(cb)
+	-- create dirs for cb's possible output files
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
-		-- normalize turns '/' into platform dependent path separator
+		-- `normalize` makes dir platform independent
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
 			log("error", "could not create dir" .. dir)
@@ -152,24 +149,26 @@ local function mkcmd(cb)
 		end
 	end
 
+	-- cb.text becomes executable on disk
 	local fh = io.open(opts.cbx, "w")
 	if not fh then
-		log("error", "could not open file " .. opts.cbx)
+		log("error", "could not open file: " .. opts.cbx)
 		return false
 	end
 	if not fh:write(cb.text) then
 		fh:close()
-		log("error", "could not write to " .. opts.cbx)
+		log("error", "could not write to: " .. opts.cbx)
 		return false
 	end
 	fh:close()
 
+	-- REVIEW: not platform independent
 	if not os.execute("chmod u+x " .. opts.cbx) then
-		log("error", "could not mark executable " .. opts.cbx)
+		log("error", "could not mark executable: " .. opts.cbx)
 		return false
 	end
 
-	-- add exe as cmd to execute by expanding opts.cmd
+	-- REVIEW: check expanse complete, no more #<names> left?
 	opts.exe = opts.cmd:gsub("%#(%w+)", opts)
 	return true
 end
@@ -189,7 +188,7 @@ local function fread(name, format)
 
 	dta = fh:read("*a")
 	fh:close()
-	log("info", F("read %d bytes from: %s", #dta, name))
+	log("info", F("read  %s, %d bytes", name, #dta))
 
 	if format and #format > 0 then
 		ok, dta = pcall(pd.read, dta, format)
@@ -235,13 +234,13 @@ local function fluaf(doc, filter)
 		if f[fun] then
 			ok, tmp = pcall(f[fun], doc)
 			if not ok then
-				log("warn", F("ignoring filter '%s[%s].%s' since it failed", mod, n, fun))
+				log("warn", F("filter '%s[%s].%s', failed, filter ignored", mod, n, fun))
 			else
 				doc = tmp
 				count = count + 1
 			end
 		else
-			log("warn", F("skipping filter %s[%d], function '%s' missing", mod, n, fun))
+			log("warn", F("filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun))
 		end
 	end
 	return doc, count
@@ -252,15 +251,15 @@ end
 ---@param fname string filename to save doc with
 ---@return boolean ok success indicator
 local function fsave(doc, fname)
-	-- save doc to fname
-	if "string" ~= type(doc) or #doc == 0 then
-		log("info", F("not writing doc (%s) to %s", type(doc), fname))
+	if "string" ~= type(doc) then
+		log("info", F("write %s, skip writing data of type '%s'", fname, type(doc)))
 		return false
 	end
 
+	-- save doc to fname (even if doc is 0 bytes)
 	local fh = io.open(fname, "w")
 	if nil == fh then
-		log("error", F("could not open %s for writing", fname))
+		log("error", F("write %s, unable to open for writing", fname))
 		return false
 	end
 
@@ -268,11 +267,11 @@ local function fsave(doc, fname)
 	fh:close()
 
 	if not ok then
-		log("error", F("error writing to %s: %s", fname, err))
+		log("error", F("write %s, error: %s", fname, err))
 		return false
 	end
 
-	log("debug", F("wrote %d bytes to %s", #doc, fname))
+	log("debug", F("write %s, %d bytes", fname, #doc))
 	return true
 end
 
@@ -322,30 +321,30 @@ local function result(cb)
 			local elmid = F("%s-%d-%s", opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				log("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
+				log("debug", "%s, '%s:%s', data as native AST", elmid, what, how)
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
-				log("debug", F("%s, '%s:%s': include cb as fenced codeblock", elmid, what, how))
+				log("debug", "%s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
 				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
-				log("debug", F("%s, '%s:%s': include doc as-is in fcb", elmid, what, how))
+				log("debug", F("%s, inc '%s:%s', data in a fcb", elmid, what, how))
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
-				log("debug", F("%s, '%s:%s': include doc as Image", elmid, what, how))
+				log("debug", "%s, inc '%s:%s', Image %s", elmid, what, how, fname)
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
-				log("debug", F("%s, '%s:%s': include doc as Figure", elmid, what, how))
+				log("debug", "%s, inc '%s:%s', Figure", elmid, what, how, fname)
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
 				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
 			elseif doc and "" == how then
 				-- output elements cbx, out, err, art without a how
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an AST by default has its individual blocks inserted
-					log("debug", F("%s, '%s:%s': include doc's AST blocks as-is", elmid, what, how))
+					log("debug", "%s, inc '%s:%s', AST blocks", elmid, what, how)
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -355,17 +354,16 @@ local function result(cb)
 					end
 				else
 					-- doc is raw data and inserted as a Div
-					log("debug", F("%s, '%s:%s': include doc as Div", elmid, what, how))
-					log("info", F("include '%s': doc included Div (default)", what))
+					log("debug", "%s, inc '%s:%s', data as Div", elmid, what, how)
 					elms[#elms + 1] = pd.Div(doc, ncb.attr)
 				end
 			else
 				-- TODO: never reached?
-				log("error", F("%s, '%s:%s', include skipped: doc is %s", elmid, what, how, doc))
-				elms[#elms + 1] = pd.Div(F("directive '%s': unknown or no output seen", what), ncb.attr)
+				log("error", "%s, inc '%s:%s' skipped, data is '%s'", elmid, what, how, doc)
+				elms[#elms + 1] = pd.Div(F("?? %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
 			end
 		else
-			log("error", F("skipping '%s': not a valid codeblock output (in: %s)", what, opts.inc))
+			log("error", "%s, inc '%s:%s' skipped, not a valid output directive", elmid, what, how)
 		end
 	end
 
@@ -439,7 +437,7 @@ function M.codeblock(cb)
 		return nil, nil -- noop
 	end
 
-	if mkopt(cb) and mkcmd(cb) then
+	if mkopt(cb) and mkexe(cb) then
 		local ok, code, nr = os.execute(opts.exe)
 		if not ok then
 			log("error", F("codeblock failed %s(%s): %s", code, nr, opts.cmd))
