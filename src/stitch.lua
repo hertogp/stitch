@@ -18,9 +18,28 @@ local pd = require("pandoc")
 
 local function log(lvl, fmt, ...)
 	if level[opts.log] >= level[lvl] then
-		local text = F("[stitch %5s] (%s) " .. fmt .. "\n", log, opts.cid or "mod", ...)
+		local text = F("[stitch %5s] (%s) " .. fmt .. "\n", lvl, opts.cid or "mod", ...)
 		io.stderr:write(text)
 	end
+end
+
+local function deja_vu()
+	-- check if results are already there
+	-- if cbx exists with 1 or more ouputs, we were here before
+	local function exists(fname)
+		local f = io.open(fname)
+		if f then
+			f:close()
+			return true
+		end
+		return false
+	end
+	if exists(opts.cbx) then
+		if exists(opts.out) or exists(opts.err) or exists(opts.art) then
+			return true
+		end
+	end
+	return false
 end
 
 --[[ options ]]
@@ -106,7 +125,7 @@ local function metalua(elm)
 			attr = metalua(elm.attr),
 		}
 	else
-		print("metalua", F("%s, todo: %s", ptype, tostring(elm)))
+		log("error", "metalua type %s?, todo is %s", ptype, tostring(elm))
 		return nil
 	end
 end
@@ -163,6 +182,9 @@ local function mkexe(cb)
 	fh:close()
 
 	-- review: not platform independent
+	-- * this fails on Windows where opts.cbx should be a bat file
+	-- * maybe check *.bat and skip?  Or just try & warn if not successful
+	-- package.config:sub(1,1) -> \ for windows, / for others
 	if not os.execute("chmod u+x " .. opts.cbx) then
 		log("error", "could not mark executable: " .. opts.cbx)
 		return false
@@ -188,14 +210,14 @@ local function fread(name, format)
 
 	dta = fh:read("*a")
 	fh:close()
-	log("info", F("read  %s, %d bytes", name, #dta))
+	log("info", "read  %s, %d bytes", name, #dta)
 
 	if format and #format > 0 then
 		ok, dta = pcall(pd.read, dta, format)
 		if ok then
 			return dta
 		else
-			log("error", F("pandoc reader: %s", dta))
+			log("error", "pandoc reader: %s", dta)
 			return nil
 		end
 	end
@@ -209,14 +231,14 @@ end
 ---@return boolean ok success indicator
 local function fsave(doc, fname)
 	if "string" ~= type(doc) then
-		log("info", F("write %s, skip writing data of type '%s'", fname, type(doc)))
+		log("info", "write %s, skip writing data of type '%s'", fname, type(doc))
 		return false
 	end
 
 	-- save doc to fname (even if doc is 0 bytes)
 	local fh = io.open(fname, "w")
 	if nil == fh then
-		log("error", F("write %s, unable to open for writing", fname))
+		log("error", "write %s, unable to open for writing", fname)
 		return false
 	end
 
@@ -224,11 +246,11 @@ local function fsave(doc, fname)
 	fh:close()
 
 	if not ok then
-		log("error", F("write %s, error: %s", fname, err))
+		log("error", "write %s, error: %s", fname, err)
 		return false
 	end
 
-	log("debug", F("write %s, %d bytes", fname, #doc))
+	log("debug", "write %s, %d bytes", fname, #doc)
 	return true
 end
 
@@ -268,10 +290,10 @@ local function xform(doc, filter)
 	fun = #fun > 0 and fun or "pandoc" -- default to mod.pandoc
 	ok, filters = pcall(require, mod)
 	if not ok then
-		log("warn", F("skipping @%s: module %s not found", filter, mod))
+		log("warn", "skipping @%s: module %s not found", filter, mod)
 		return doc, count
 	elseif filters == true then
-		log("warn", F("skipping @%s: not a list of filters", filter))
+		log("warn", "skipping @%s: not a list of filters", filter)
 		return doc, count
 	end
 
@@ -283,13 +305,13 @@ local function xform(doc, filter)
 		if f[fun] then
 			ok, tmp = pcall(f[fun], doc)
 			if not ok then
-				log("warn", F("filter '%s[%s].%s', failed, filter ignored", mod, n, fun))
+				log("warn", "filter '%s[%s].%s', failed, filter ignored", mod, n, fun)
 			else
 				doc = tmp
 				count = count + 1
 			end
 		else
-			log("warn", F("filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun))
+			log("warn", "filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun)
 		end
 	end
 	return doc, count
@@ -330,7 +352,7 @@ local function result(cb)
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
-				log("debug", F("%s, inc '%s:%s', data in a fcb", elmid, what, how))
+				log("debug", "%s, inc '%s:%s', data in a fcb", elmid, what, how)
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
@@ -393,7 +415,7 @@ local function mkopt(cb)
 	-- check against circular refs
 	for k, _ in pairs(hardcoded) do
 		if "string" == type(opts[k]) and opts[k]:match("#%w+") then
-			log("error", F("option %s not entirely expanded: %s", k, opts[k]))
+			log("error", "option %s not entirely expanded: %s", k, opts[k])
 			return false
 		end
 	end
@@ -438,19 +460,27 @@ function M.codeblock(cb)
 	end
 
 	if mkopt(cb) and mkexe(cb) then
-		local ok, code, nr = os.execute(opts.exe)
-		if not ok then
-			log("error", F("codeblock failed %s(%s): %s", code, nr, opts.cmd))
-			return nil
+		if deja_vu() then
+			log("info", "exe %s, skipping (output files already exist)", opts.cbx)
+		else
+			local ok, code, nr = os.execute(opts.exe)
+			if not ok then
+				log("error", "codeblock failed %s(%s): %s", code, nr, opts.cmd)
+				return nil
+			end
 		end
 	end
-
 	return result(cb)
 end
 
 --[[ main ]]
 
-log("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
+log("info", "PANDOC_VERSION %s", _ENV.PANDOC_VERSION) -- 3.1.3
+if package.config:sub(1, 1) == "\\" then
+	log("warn", "OS is Windows")
+else
+	log("info", "OS is unixy")
+end
 -- assert(pandoc_api_version >= {1, 23}, "need at least pandoc x.x.x")
 
 local function pandoc(doc)
