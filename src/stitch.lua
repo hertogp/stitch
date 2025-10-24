@@ -3,12 +3,11 @@
 local M = {} -- returned by global Stitch() for testing
 local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
 local opts = { log = "info" } --> set per cb being processed
-local log = {
+local level = {
 	error = 1,
-	warning = 2,
-	warn = 3,
-	info = 4,
-	debug = 5,
+	warn = 2,
+	info = 3,
+	debug = 4,
 }
 
 --[[ helpers ]]
@@ -17,9 +16,9 @@ local dump = require("dump") -- tmp, delme
 local F = string.format
 local pd = require("pandoc")
 
-local function msg(level, fmt, ...)
-	if log[opts.log] >= log[level] then
-		local text = F("[stitch](%s){%s} " .. fmt .. "\n", level, opts.cid, ...)
+local function log(log, fmt, ...)
+	if level[opts.log] >= level[log] then
+		local text = F("[stitch %5s] (%s) " .. fmt .. "\n", log, opts.cid or "mod", ...)
 		io.stderr:write(text)
 	end
 end
@@ -141,32 +140,32 @@ end
 local function mkcmd(cb)
 	-- local opts = M.options(cb)
 	-- if not opts then
-	-- 	return nil, nil, msg("error", "no options available for codeblock")
+	-- 	return nil, nil, log("error", "no options available for codeblock")
 	-- end
 
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- normalize turns '/' into platform dependent path separator
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
-			msg("error", "could not create dir" .. dir)
+			log("error", "could not create dir" .. dir)
 			return false
 		end
 	end
 
 	local fh = io.open(opts.cbx, "w")
 	if not fh then
-		msg("error", "could not open file " .. opts.cbx)
+		log("error", "could not open file " .. opts.cbx)
 		return false
 	end
 	if not fh:write(cb.text) then
 		fh:close()
-		msg("error", "could not write to " .. opts.cbx)
+		log("error", "could not write to " .. opts.cbx)
 		return false
 	end
 	fh:close()
 
 	if not os.execute("chmod u+x " .. opts.cbx) then
-		msg("error", "could not mark executable " .. opts.cbx)
+		log("error", "could not mark executable " .. opts.cbx)
 		return false
 	end
 
@@ -184,20 +183,20 @@ local function fread(name, format)
 	local fh, err = io.open(name, "r")
 
 	if nil == fh then
-		msg("error", err)
+		log("error", err)
 		return nil
 	end
 
 	dta = fh:read("*a")
 	fh:close()
-	msg("info", F("read %d bytes from: %s", #dta, name))
+	log("info", F("read %d bytes from: %s", #dta, name))
 
 	if format and #format > 0 then
 		ok, dta = pcall(pd.read, dta, format)
 		if ok then
 			return dta
 		else
-			msg("error", F("pandoc reader: %s", dta))
+			log("error", F("pandoc reader: %s", dta))
 			return nil
 		end
 	end
@@ -221,10 +220,10 @@ local function fluaf(doc, filter)
 	fun = #fun > 0 and fun or "Pandoc" -- default to mod.Pandoc
 	ok, filters = pcall(require, mod)
 	if not ok then
-		msg("warn", F("skipping @%s: module %s not found", filter, mod))
+		log("warn", F("skipping @%s: module %s not found", filter, mod))
 		return doc, count
 	elseif filters == true then
-		msg("warn", F("skipping @%s: not a list of filters", filter))
+		log("warn", F("skipping @%s: not a list of filters", filter))
 		return doc, count
 	end
 
@@ -236,13 +235,13 @@ local function fluaf(doc, filter)
 		if f[fun] then
 			ok, tmp = pcall(f[fun], doc)
 			if not ok then
-				msg("warn", F("ignoring filter '%s[%s].%s' since it failed", mod, n, fun))
+				log("warn", F("ignoring filter '%s[%s].%s' since it failed", mod, n, fun))
 			else
 				doc = tmp
 				count = count + 1
 			end
 		else
-			msg("warn", F("skipping filter %s[%d], function '%s' missing", mod, n, fun))
+			log("warn", F("skipping filter %s[%d], function '%s' missing", mod, n, fun))
 		end
 	end
 	return doc, count
@@ -255,13 +254,13 @@ end
 local function fsave(doc, fname)
 	-- save doc to fname
 	if "string" ~= type(doc) or #doc == 0 then
-		msg("info", F("not writing doc (%s) to %s", type(doc), fname))
+		log("info", F("not writing doc (%s) to %s", type(doc), fname))
 		return false
 	end
 
 	local fh = io.open(fname, "w")
 	if nil == fh then
-		msg("error", F("could not open %s for writing", fname))
+		log("error", F("could not open %s for writing", fname))
 		return false
 	end
 
@@ -269,11 +268,11 @@ local function fsave(doc, fname)
 	fh:close()
 
 	if not ok then
-		msg("error", F("error writing to %s: %s", fname, err))
+		log("error", F("error writing to %s: %s", fname, err))
 		return false
 	end
 
-	msg("debug", F("wrote %d bytes to %s", #doc, fname))
+	log("debug", F("wrote %d bytes to %s", #doc, fname))
 	return true
 end
 
@@ -323,30 +322,30 @@ local function result(cb)
 			local elmid = F("%s-%d-%s", opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				msg("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
+				log("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
-				msg("debug", F("%s, '%s:%s': include cb as fenced codeblock", elmid, what, how))
+				log("debug", F("%s, '%s:%s': include cb as fenced codeblock", elmid, what, how))
 				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
-				msg("debug", F("%s, '%s:%s': include doc as-is in fcb", elmid, what, how))
+				log("debug", F("%s, '%s:%s': include doc as-is in fcb", elmid, what, how))
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
-				msg("debug", F("%s, '%s:%s': include doc as Image", elmid, what, how))
+				log("debug", F("%s, '%s:%s': include doc as Image", elmid, what, how))
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
-				msg("debug", F("%s, '%s:%s': include doc as Figure", elmid, what, how))
+				log("debug", F("%s, '%s:%s': include doc as Figure", elmid, what, how))
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
 				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
 			elseif doc and "" == how then
 				-- output elements cbx, out, err, art without a how
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an AST by default has its individual blocks inserted
-					msg("debug", F("%s, '%s:%s': include doc's AST blocks as-is", elmid, what, how))
+					log("debug", F("%s, '%s:%s': include doc's AST blocks as-is", elmid, what, how))
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -356,17 +355,17 @@ local function result(cb)
 					end
 				else
 					-- doc is raw data and inserted as a Div
-					msg("debug", F("%s, '%s:%s': include doc as Div", elmid, what, how))
-					msg("info", F("include '%s': doc included Div (default)", what))
+					log("debug", F("%s, '%s:%s': include doc as Div", elmid, what, how))
+					log("info", F("include '%s': doc included Div (default)", what))
 					elms[#elms + 1] = pd.Div(doc, ncb.attr)
 				end
 			else
 				-- TODO: never reached?
-				msg("error", F("%s, '%s:%s', include skipped: doc is %s", elmid, what, how, doc))
+				log("error", F("%s, '%s:%s', include skipped: doc is %s", elmid, what, how, doc))
 				elms[#elms + 1] = pd.Div(F("directive '%s': unknown or no output seen", what), ncb.attr)
 			end
 		else
-			msg("error", F("skipping '%s': not a valid codeblock output (in: %s)", what, opts.inc))
+			log("error", F("skipping '%s': not a valid codeblock output (in: %s)", what, opts.inc))
 		end
 	end
 
@@ -396,7 +395,7 @@ local function mkopt(cb)
 	-- check against circular refs
 	for k, _ in pairs(hardcoded) do
 		if "string" == type(opts[k]) and opts[k]:match("#%w+") then
-			msg("error", F("option %s not entirely expanded: %s", k, opts[k]))
+			log("error", F("option %s not entirely expanded: %s", k, opts[k]))
 			return false
 		end
 	end
@@ -443,7 +442,7 @@ function M.codeblock(cb)
 	if mkopt(cb) and mkcmd(cb) then
 		local ok, code, nr = os.execute(opts.exe)
 		if not ok then
-			msg("error", F("codeblock failed %s(%s): %s", code, nr, opts.cmd))
+			log("error", F("codeblock failed %s(%s): %s", code, nr, opts.cmd))
 			return nil
 		end
 	end
@@ -453,7 +452,7 @@ end
 
 --[[ main ]]
 
-msg("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
+log("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
 -- assert(PANDOC_API_VERSION >= {1, 23}, "need at least pandoc x.x.x")
 
 local function pandoc(doc)
