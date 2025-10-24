@@ -363,7 +363,7 @@ local function result(cb)
 				elms[#elms + 1] = pd.Div(F("?? %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
 			end
 		else
-			log("error", "%s, inc '%s:%s' skipped, not a valid output directive", elmid, what, how)
+			log("error", "%s, inc '%s:%s', invalid cb file name", opts.cid, what, how)
 		end
 	end
 
