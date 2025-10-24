@@ -4,6 +4,7 @@ local M = {} -- returned by global stitch() for testing
 local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
 local opts = { log = "info" } --> set per cb being processed
 local level = {
+	silent = 0,
 	error = 1,
 	warn = 2,
 	info = 3,
