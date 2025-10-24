@@ -1,8 +1,14 @@
--- stitch turns codeblocks into images, figures, codeblocks and more
--- Examples -> `:Open https://pandoc.org/extras.html#lua-filters`
+--[[ stitch ]]
 
 local M = {} -- returned by global Stitch() for testing
-local ctx = {} -- holds meta.stitch configuration for current document
+local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
+local log = {
+	error = 1,
+	warning = 2,
+	warn = 3,
+	info = 4,
+	debug = 5,
+}
 
 --[[ helpers ]]
 
@@ -22,21 +28,22 @@ local function dbg(level, fmt, ...)
 	return text
 end
 
---[[ stitch options ]]
+--[[ options ]]
 
 -- parse `opts.inc` into list: {{what, format, filter, how}, ..}
 ---@param str string the opts.inc string with include directives
 ---@return table directives list of 4-element lists of strings
 local function parse_inc(str)
-	str = pd.utils.stringify(str)
+	-- what:how!format+extensions@module.function
 	local todo = {}
-	local word = "([^!@:]+)"
+	local part = "([^!@:]+)"
+	str = pd.utils.stringify(str) -- just in case
 	for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
 		todo[#todo + 1] = {
-			p:match("^" .. word) or "", -- what to include
-			p:match("!" .. word) or "", -- read as type
-			p:match("@" .. word) or "", -- filter
-			p:match(":" .. word) or "", -- element/how
+			p:match("^" .. part) or "", -- what to include
+			p:match("!" .. part) or "", -- read as type
+			p:match("@" .. part) or "", -- filter
+			p:match(":" .. part) or "", -- element/how
 		}
 	end
 	return todo
@@ -108,7 +115,7 @@ local function metalua(elm)
 	end
 end
 
---[[ file handling ]]
+--[[ files ]]
 
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
@@ -293,6 +300,8 @@ local function mkfcb(cb, opts)
 	return clone
 end
 
+--[[ AST ]]
+
 -- create doc elements for codeblock
 ---@param cb table codeblock
 ---@param opts table codeblock options
@@ -318,7 +327,7 @@ local function result(cb, opts)
 			local elmid = F("%s-%d-%s", opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				msg("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
+				dbg("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
@@ -368,7 +377,7 @@ local function result(cb, opts)
 	return elms
 end
 
---[[ option handling ]]
+--[[ context & cb ]]
 
 ---@param cb table codeblock with `.stitch` class
 ---@return table|nil opts the `cb`-specific options, nil on errors
@@ -425,10 +434,6 @@ function M.context(doc)
 	return ctx
 end
 
---[[ checks ]]
-msg("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
--- assert(PANDOC_API_VERSION >= {1, 23}, "need at least pandoc x.x.x")
-
 ---@poram cb a pandoc.CodeBlock
 ---@return any list of nodes in pandoc's AST
 ---@return string? err non-empty string in case of errors, or nil
@@ -450,8 +455,12 @@ function M.codeblock(cb)
 	return result(cb, opts or {})
 end
 
+--[[ main ]]
+
+msg("info", F("PANDOC_VERSION %s", _ENV.PANDOC_VERSION)) -- 3.1.3
+-- assert(PANDOC_API_VERSION >= {1, 23}, "need at least pandoc x.x.x")
+
 local function pandoc(doc)
-	-- process CodeBlocks, gather context first
 	ctx = M.context(doc)
 	return doc:walk({ CodeBlock = M.codeblock })
 end
