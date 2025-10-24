@@ -24,7 +24,6 @@ local function log(lvl, fmt, ...)
 end
 
 local function deja_vu()
-	-- check if results are already there
 	-- if cbx exists with 1 or more ouputs, we were here before
 	local function exists(fname)
 		local f = io.open(fname)
@@ -192,6 +191,8 @@ local function mkexe(cb)
 
 	-- review: check expanse complete, no more #<names> left?
 	opts.exe = opts.cmd:gsub("%#(%w+)", opts)
+	log("info", "expand cmd '%s'", opts.cmd)
+	log("info", "  `--> exe '%s'", opts.exe)
 	return true
 end
 
@@ -394,12 +395,11 @@ end
 
 --[[ context & cb ]]
 
----sets module level opts for the current codeblock
+---sets opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
 local function mkopt(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-	local expandables = { "cbx", "out", "err", "art", "cmd" } -- cmd must be last
 	opts = metalua(cb.attributes)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
@@ -407,14 +407,15 @@ local function mkopt(cb)
 	opts.cid = #cb.identifier > 0 and cb.identifier or nil
 	opts.sha = mksha(cb) -- derived only
 
-	-- expand filenames and then cmd for this codeblock
+	-- expand filenames for this codeblock (cmd is expanded as exe later)
+	local expandables = { "cbx", "out", "err", "art" }
 	for _, k in ipairs(expandables) do
 		opts[k] = opts[k]:gsub("%#(%w+)", opts)
 	end
 
 	-- check against circular refs
 	for k, _ in pairs(hardcoded) do
-		if "string" == type(opts[k]) and opts[k]:match("#%w+") then
+		if "cmd" ~= k and "string" == type(opts[k]) and opts[k]:match("#%w+") then
 			log("error", "option %s not entirely expanded: %s", k, opts[k])
 			return false
 		end
