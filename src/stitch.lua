@@ -2,6 +2,7 @@
 
 local M = {} -- returned by global Stitch() for testing
 local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
+local opts = { log = "info" } --> set per cb being processed
 local log = {
 	error = 1,
 	warning = 2,
@@ -16,16 +17,11 @@ local dump = require("dump") -- tmp, delme
 local F = string.format
 local pd = require("pandoc")
 
-local function msg(label, text)
-	text = F("[stitch](%s) %s\n", label, text)
-	io.stderr:write(text)
-	return text
-end
-
-local function dbg(level, fmt, ...)
-	local text = F("[stitch](%s) " .. fmt .. "\n", level, ...)
-	io.stderr:write(text)
-	return text
+local function msg(level, fmt, ...)
+	if log[opts.log] >= log[level] then
+		local text = F("[stitch](%s){%s} " .. fmt .. "\n", level, opts.cid, ...)
+		io.stderr:write(text)
+	end
 end
 
 --[[ options ]]
@@ -119,9 +115,8 @@ end
 
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
----@param opts table the codeblocks options
 ---@return string sha1 hash of option values and codeblock content
-local function mksha(cb, opts)
+local function mksha(cb)
 	-- sorting ensures repeatable fingerprints
 	local keys = {}
 	for key in pairs(hardcoded) do
@@ -140,41 +135,44 @@ local function mksha(cb, opts)
 	return pd.utils.sha1(table.concat(vals, ""))
 end
 
--- create the command to execute from `cb`
+-- sets opts.cmd for given `cb`
 ---@param cb table pandoc CodeBlock
----@return string|nil command system command and arguments to execute
----@return table|nil opts system command and arguments to execute
----@return string|nil error description of the error encountered
+---@return boolean ok success indicator
 local function mkcmd(cb)
-	local opts = M.options(cb)
-	if not opts then
-		return nil, nil, msg("error", "no options available for codeblock")
-	end
+	-- local opts = M.options(cb)
+	-- if not opts then
+	-- 	return nil, nil, msg("error", "no options available for codeblock")
+	-- end
 
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- normalize turns '/' into platform dependent path separator
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
-			return nil, opts, msg("error", "could not create dir" .. dir)
+			msg("error", "could not create dir" .. dir)
+			return false
 		end
 	end
 
 	local fh = io.open(opts.cbx, "w")
 	if not fh then
-		return nil, opts, msg("error", "could not open file %s" .. opts.cbx)
+		msg("error", "could not open file " .. opts.cbx)
+		return false
 	end
 	if not fh:write(cb.text) then
 		fh:close()
-		return nil, opts, F("error", "could not write to %s" .. opts.cbx)
+		msg("error", "could not write to " .. opts.cbx)
+		return false
 	end
 	fh:close()
 
 	if not os.execute("chmod u+x " .. opts.cbx) then
-		return nil, opts, msg("error", "could not mark executable %s" .. opts.cbx)
+		msg("error", "could not mark executable " .. opts.cbx)
+		return false
 	end
 
-	-- expand cmd template string
-	return opts.cmd:gsub("%#(%w+)", opts), opts
+	-- add exe as cmd to execute by expanding opts.cmd
+	opts.exe = opts.cmd:gsub("%#(%w+)", opts)
+	return true
 end
 
 -- read file `name` and, possibly, convert to pandoc AST using `format`
@@ -281,9 +279,8 @@ end
 
 -- clones `cb`, removes its stitch properties, adds a 'stitched' class
 ---@param cb table a CodeBlock instance
----@param opts table the cb's stitch options
 ---@return table clone a new CodeBlock instance
-local function mkfcb(cb, opts)
+local function mkfcb(cb)
 	local clone = cb:clone()
 
 	clone.classes = cb.classes:map(function(c)
@@ -304,9 +301,8 @@ end
 
 -- create doc elements for codeblock
 ---@param cb table codeblock
----@param opts table codeblock options
 ---@return table result sequence of pandoc AST elements
-local function result(cb, opts)
+local function result(cb)
 	local elms, count = {}, 0
 
 	for idx, elm in ipairs(parse_inc(opts.inc)) do
@@ -321,13 +317,13 @@ local function result(cb, opts)
 			end
 
 			-- elms[#elsm+1] = mkelm(doc, cb, opts, what, how) -- nil is noop
-			local ncb = mkfcb(cb, opts)
+			local ncb = mkfcb(cb)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
 			local elmid = F("%s-%d-%s", opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				dbg("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
+				msg("debug", F("%s, '%s:%s': include doc as AST (native)", elmid, what, how))
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
@@ -379,17 +375,18 @@ end
 
 --[[ context & cb ]]
 
----@param cb table codeblock with `.stitch` class
----@return table|nil opts the `cb`-specific options, nil on errors
-function M.options(cb)
+---sets module level opts for the current codeblock
+---@param cb table codeblock with `.stitch` class (or not)
+---@return boolean ok success indicator
+local function mkopt(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
 	local expandables = { "cbx", "out", "err", "art", "cmd" } -- cmd must be last
-	local opts = metalua(cb.attributes)
+	opts = metalua(cb.attributes)
 	setmetatable(opts, { __index = ctx[opts.cfg] })
 
 	-- additional options ("" is an absent identifier)
-	opts.cid = #cb.identifier > 0 and cb.identifier or nil -- fallback to hardcoded
-	opts.sha = mksha(cb, opts) -- derived only
+	opts.cid = #cb.identifier > 0 and cb.identifier or nil
+	opts.sha = mksha(cb) -- derived only
 
 	-- expand filenames and then cmd for this codeblock
 	for _, k in ipairs(expandables) do
@@ -400,18 +397,19 @@ function M.options(cb)
 	for k, _ in pairs(hardcoded) do
 		if "string" == type(opts[k]) and opts[k]:match("#%w+") then
 			msg("error", F("option %s not entirely expanded: %s", k, opts[k]))
-			return nil
+			return false
 		end
 	end
 
-	return opts
+	return true
 end
 
 --- extract `doc.meta.stitch` config from a doc's meta block (if any)
 ---@param doc table the doc's AST
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function M.context(doc)
-	-- resolution order: cb -> stitch[cb.cfg] -> defaults -> hardcoded
+	-- pickup named cfg sections in meta.stitch, resolution order:
+	-- opts (cb) -> ctx (stitch[cb.cfg]) -> defaults -> hardcoded
 	ctx = metalua(doc.meta.stitch or {}) or {}
 
 	-- defaults -> hardcoded
@@ -442,17 +440,15 @@ function M.codeblock(cb)
 		return nil, nil -- noop
 	end
 
-	local cmd, opts, err = mkcmd(cb)
-	if err then
-		return nil, err
+	if mkopt(cb) and mkcmd(cb) then
+		local ok, code, nr = os.execute(opts.exe)
+		if not ok then
+			msg("error", F("codeblock failed %s(%s): %s", code, nr, opts.cmd))
+			return nil
+		end
 	end
 
-	local ok, code, nr = os.execute(cmd)
-	if not ok then
-		return nil, msg("error", F("codeblock failed %s(%s): %s", code, nr, cmd))
-	end
-
-	return result(cb, opts or {})
+	return result(cb)
 end
 
 --[[ main ]]
