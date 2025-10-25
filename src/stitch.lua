@@ -141,7 +141,7 @@ end
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
 ---@return string sha1 hash of option values and codeblock content
-local function mksha(cb)
+function I.mksha(cb)
 	-- sorting ensures repeatable fingerprints
 	local keys = {}
 	for key in pairs(I.hardcoded) do
@@ -442,7 +442,7 @@ local function mkopt(cb)
 
 	-- additional options ("" is an absent identifier)
 	I.opts.cid = #cb.identifier > 0 and cb.identifier or nil
-	I.opts.sha = mksha(cb) -- derived only
+	I.opts.sha = I.mksha(cb) -- derived only
 
 	-- expand filenames for this codeblock (cmd is expanded as exe later)
 	local expandables = { "cbx", "out", "err", "art" }
