@@ -4,10 +4,7 @@
 -- * add old = "keep|purge|move"-flag for previous (old) files named id-<old sha>.*
 -- * -or advise to set path's to .stitch/tmp for files that can be removed
 -- * check utf8 requirements (if any)
--- * Turn M and local funcs into callable Stitch object
---   the __call metamethod could dispatch to e.g. hdl_doc, hdl_cb hdl_xyz
---   through a table
---   return { { Pandoc = Stitch } }
+-- * add all functions to S so they can be tested { {Pandoc=S.Pandoc}, [0] = S}
 -- * add pandoc version check, see (vx.yz) or pd.xx funcs to check
 -- * add hardcoded.cbc = 0, cb count, "cb"..opts.cbc is fallback for opts.cid
 -- * add mediabag to store files related to cb's
@@ -19,8 +16,9 @@
 -- * pd.system.make_directory('dir/subdir', true) (v2.19)
 -- * pd.system.remove_directory('dir) (v2.19)
 
-local S = {} -- returned by global stitch() for testing
-local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
+local I = {} -- implementation for Stitch
+
+I.ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
 local opts = { log = "info" } --> set per cb being processed
 local level = {
 	silent = 0,
@@ -36,7 +34,7 @@ local level = {
 local pd = require("pandoc")
 
 local function log(lvl, action, msg, ...)
-	-- [stitch level] action (cb id) msg ..
+	-- [stitch level] (action cb_id) msg ..
 	if level[opts.log] >= level[lvl] then
 		local logfmt = "[stitch %5s] (%s %7s) " .. tostring(msg) .. "\n"
 		local text = string.format(logfmt, lvl, opts.cid or "mod", action, ...)
@@ -336,7 +334,7 @@ local function xform(doc, filter)
 	end
 
 	if doc and "Pandoc" == pd.utils.type(doc) then
-		doc.meta.stitch = pd.metamap(ctx)
+		doc.meta.stitch = pd.metamap(I.ctx)
 	end
 
 	for n, f in ipairs(filters) do
@@ -439,7 +437,7 @@ end
 local function mkopt(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
 	opts = metalua(cb.attributes)
-	setmetatable(opts, { __index = ctx[opts.cfg] })
+	setmetatable(opts, { __index = I.ctx[opts.cfg] })
 
 	-- additional options ("" is an absent identifier)
 	opts.cid = #cb.identifier > 0 and cb.identifier or nil
@@ -465,34 +463,34 @@ end
 --- extract `doc.meta.stitch` config from a doc's meta block (if any)
 ---@param doc table the doc's ast
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
-local function mkctx(doc)
+function I:mkctx(doc)
 	-- pickup named cfg sections in meta.stitch, resolution order:
-	-- opts (cb) -> ctx (stitch[cb.cfg]) -> defaults -> hardcoded
-	ctx = metalua(doc.meta.stitch or {}) or {}
+	-- opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
+	self.ctx = metalua(doc.meta.stitch or {}) or {}
 
 	-- defaults -> hardcoded
-	local defaults = ctx.defaults or {}
+	local defaults = self.ctx.defaults or {}
 	setmetatable(defaults, { __index = hardcoded })
-	ctx.defaults = nil
+	self.ctx.defaults = nil
 
 	-- sections -> defaults -> hardcoded
-	for _, attr in pairs(ctx) do
+	for _, attr in pairs(self.ctx) do
 		setmetatable(attr, { __index = defaults })
 	end
 
-	-- missing ctx.keys also fallback to defaults -> hardcoded
-	setmetatable(ctx, {
+	-- missing I.ctx.keys also fallback to defaults -> hardcoded
+	setmetatable(self.ctx, {
 		__index = function()
 			return defaults
 		end,
 	})
 
-	return ctx
+	return self.ctx
 end
 
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
-function S.codeblock(cb)
+function I.codeblock(cb)
 	if not cb.classes:find("stitch") then
 		return nil
 	end
@@ -517,30 +515,24 @@ end
 log("info", "check", "PANDOC_VERSION %s", _ENV.PANDOC_VERSION) -- 3.1.3
 log("info", "check", string.format("OS is %s", pd.system.os))
 -- assert(pandoc_api_version >= {1, 23}, "need at least pandoc x.x.x")
+-- pandoc.Figure was introduced in pandoc version 3 (TODO: check)
+print("are we good?", _ENV.PANDOC_VERSION >= { 1, 23 })
 
-local function pandoc(doc)
-	-- tmp
-	local dispatch = { state = 42 }
-	local mt = {
-		__call = function(self, ...)
-			print("state is", self.state)
-			print("dispatch called for", ...)
-		end,
-	}
-	setmetatable(dispatch, mt)
-	dispatch("arg1", "arg2")
+local Stitch = {
+	_ = I, -- make actual implementation available for testing
 
-	-- /tmp
-	ctx = mkctx(doc)
-	return doc:walk({ CodeBlock = S.codeblock })
-end
+	Pandoc = function(doc)
+		I:mkctx(doc)
+		return doc:walk({ CodeBlock = I.codeblock })
+	end,
+}
 
--- todo: for testing
--- * create local s = {} w/ all stitch func/data in it
--- * return { {pandoc = pandoc}, 0 = s } }
+-- Lua filters are tables with element names as keys and values
+-- consisting of functions acting on those elements.
+--
+-- Yet: `return Stitch` doesn't work?  Maybe my pandoc version (3.1.3)
+-- is too old for that.
 
 return {
-	-- a filter is a list of filters
-	-- traverse = "topdown" -- could be used to direct order of filters to run
-	{ Pandoc = pandoc },
+	Stitch,
 }
