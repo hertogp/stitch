@@ -277,14 +277,14 @@ end
 
 -- says whether cb-executable file and 1 or more outputs already exist or not
 ---@return boolean deja_vu true or false
-local function deja_vu()
+function I:deja_vu()
 	-- if cbx exist with 1 or more ouputs, we were here before
 	-- REVIEW: should take I.opts.inc's what into account and check all of them?
 	-- * an output file not included in I.opts.inc is never created(!)
 	-- * you want to catch when 1 or more artifacts were removed somehow
 
-	if freal(I.opts.cbx) then
-		if freal(I.opts.out) or freal(I.opts.err) or freal(I.opts.art) then
+	if freal(self.opts.cbx) then
+		if freal(self.opts.out) or freal(self.opts.err) or freal(self.opts.art) then
 			return true
 		end
 	end
@@ -498,7 +498,7 @@ function I.codeblock(cb)
 
 	-- TODO: check I.opts.exe to decide what to do & return (if anything)
 	if I:mkopt(cb) and I:mkcmd(cb) then
-		if deja_vu() then
+		if I:deja_vu() then
 			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
 		else
 			local ok, code, nr = os.execute(I.opts.cmd)
