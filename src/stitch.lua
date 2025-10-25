@@ -435,25 +435,25 @@ end
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
-local function mkopt(cb)
+function I:mkopt(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-	I.opts = I:metalua(cb.attributes)
-	setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
+	self.opts = self:metalua(cb.attributes)
+	setmetatable(self.opts, { __index = self.ctx[self.opts.cfg] })
 
 	-- additional options ("" is an absent identifier)
-	I.opts.cid = #cb.identifier > 0 and cb.identifier or nil
-	I.opts.sha = I.mksha(cb) -- derived only
+	self.opts.cid = #cb.identifier > 0 and cb.identifier or nil
+	self.opts.sha = self.mksha(cb) -- derived only
 
 	-- expand filenames for this codeblock (cmd is expanded as exe later)
 	local expandables = { "cbx", "out", "err", "art" }
 	for _, k in ipairs(expandables) do
-		I.opts[k] = I.opts[k]:gsub("%#(%w+)", I.opts)
+		self.opts[k] = self.opts[k]:gsub("%#(%w+)", self.opts)
 	end
 
 	-- check against circular refs
-	for k, _ in pairs(I.hardcoded) do
-		if "cmd" ~= k and "string" == type(I.opts[k]) and I.opts[k]:match("#%w+") then
-			I:log("error", "options", "%s not entirely expanded: %s", k, I.opts[k])
+	for k, _ in pairs(self.hardcoded) do
+		if "cmd" ~= k and "string" == type(self.opts[k]) and self.opts[k]:match("#%w+") then
+			self:log("error", "options", "%s not entirely expanded: %s", k, I.opts[k])
 			return false
 		end
 	end
@@ -497,7 +497,7 @@ function I.codeblock(cb)
 	end
 
 	-- TODO: check I.opts.exe to decide what to do & return (if anything)
-	if mkopt(cb) and I.mkcmd(cb) then
+	if I:mkopt(cb) and I.mkcmd(cb) then
 		if deja_vu() then
 			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
 		else
