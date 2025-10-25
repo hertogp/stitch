@@ -28,6 +28,32 @@ I.level = {
 	debug = 4,
 }
 
+I.optvalues = {
+	-- list possible values for some of the options (for error reporting)
+	exe = { "yes", "no", "maybe" },
+}
+
+I.hardcoded = {
+	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded (last resort)
+	cid = "x", -- x marks the spot if cb has no identifier
+	cfg = "", -- name of config section in doc.meta.stitch.<cfg> (if any)
+	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
+	dir = ".stitch", -- where to store files (abs or rel path to cwd)
+	fmt = "png", -- format for images (if any)
+	log = "error", -- debug, error, warn, info, silent
+	exe = "maybe", -- yes, no, maybe
+	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
+	inc = "cbx:fcb out:fcb art:img err:fcb",
+	-- expandable filenames
+	cbx = "#dir/cbx/#cid-#sha.cb", -- the codeblock.text as file on disk
+	out = "#dir/out/#cid-#sha.out", -- capture of stdout (if any)
+	err = "#dir/err/#cid-#sha.err", -- capture of stderr (if any)
+	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
+	-- command must be expanded last
+	cmd = "#cbx #arg #art 1>#out 2>#err", -- cmd template string, expanded last
+	-- bash: $@ is list of args, ${@: -1} is last argument
+}
+
 --[[ helpers ]]
 
 -- local dump = require("dump") -- tmp, delme
@@ -63,31 +89,6 @@ local function parse_inc(str)
 	I:log("debug", "include", "include found %s inc's in '%s'", #todo, str)
 	return todo
 end
-
-local optvalues = {
-	-- list possible values for some of the options (for error reporting)
-	exe = { "yes", "no", "maybe" },
-}
-local hardcoded = {
-	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded (last resort)
-	cid = "x", -- x marks the spot if cb has no identifier
-	cfg = "", -- name of config section in doc.meta.stitch.<cfg> (if any)
-	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-	dir = ".stitch", -- where to store files (abs or rel path to cwd)
-	fmt = "png", -- format for images (if any)
-	log = "error", -- debug, error, warn, info, silent
-	exe = "maybe", -- yes, no, maybe
-	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
-	inc = "cbx:fcb out:fcb art:img err:fcb",
-	-- expandable filenames
-	cbx = "#dir/cbx/#cid-#sha.cb", -- the codeblock.text as file on disk
-	out = "#dir/out/#cid-#sha.out", -- capture of stdout (if any)
-	err = "#dir/err/#cid-#sha.err", -- capture of stderr (if any)
-	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
-	-- command must be expanded last
-	cmd = "#cbx #arg #art 1>#out 2>#err", -- cmd template string, expanded last
-	-- bash: $@ is list of args, ${@: -1} is last argument
-}
 
 -- extract specific data from ast elements into lua table(s)
 ---@param elm any either `doc.blocks`, `doc.meta` or a `CodeBlock`
@@ -143,7 +144,7 @@ end
 local function mksha(cb)
 	-- sorting ensures repeatable fingerprints
 	local keys = {}
-	for key in pairs(hardcoded) do
+	for key in pairs(I.hardcoded) do
 		keys[#keys + 1] = key
 	end
 	table.sort(keys) -- sorts inplace
@@ -450,7 +451,7 @@ local function mkopt(cb)
 	end
 
 	-- check against circular refs
-	for k, _ in pairs(hardcoded) do
+	for k, _ in pairs(I.hardcoded) do
 		if "cmd" ~= k and "string" == type(I.opts[k]) and I.opts[k]:match("#%w+") then
 			I:log("error", "options", "%s not entirely expanded: %s", k, I.opts[k])
 			return false
@@ -470,7 +471,7 @@ function I:mkctx(doc)
 
 	-- defaults -> hardcoded
 	local defaults = self.ctx.defaults or {}
-	setmetatable(defaults, { __index = hardcoded })
+	setmetatable(defaults, { __index = I.hardcoded })
 	self.ctx.defaults = nil
 
 	-- sections -> defaults -> hardcoded
