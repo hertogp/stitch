@@ -93,19 +93,19 @@ end
 -- extract specific data from ast elements into lua table(s)
 ---@param elm any either `doc.blocks`, `doc.meta` or a `CodeBlock`
 ---@return any regular table holding the metadata as lua values
-local function metalua(elm)
+function I:metalua(elm)
 	-- note: metalua(doc.blocks) -> list of cb tables.
 	local ptype = pd.utils.type(elm)
 	if "Meta" == ptype or "table" == ptype or "AttributeList" == ptype then
 		local t = {}
 		for k, v in pairs(elm) do
-			t[k] = metalua(v)
+			t[k] = self:metalua(v)
 		end
 		return t
 	elseif "List" == ptype or "Blocks" == ptype then
 		local l = {}
 		for _, v in ipairs(elm) do
-			l[#l + 1] = metalua(v)
+			l[#l + 1] = self:metalua(v)
 		end
 		return l
 	elseif "Inlines" == ptype or "string" == ptype then
@@ -117,18 +117,18 @@ local function metalua(elm)
 	elseif "attr" == ptype then
 		local t = {
 			identifier = elm.identifier,
-			classes = metalua(elm.classes),
+			classes = self:metalua(elm.classes),
 			attributes = {},
 		}
 		for k, v in pairs(elm.attributes) do
-			t.attributes[k] = metalua(v)
+			t.attributes[k] = self:metalua(v)
 		end
 		return t
 	elseif "CodeBlock" == elm.tag then
 		-- a CodeBlock's type is actually 'Block'
 		return {
 			text = elm.text,
-			attr = metalua(elm.attr),
+			attr = self:metalua(elm.attr),
 		}
 	else
 		I:log("error", "meta", "option unknown type '%s'? for %s", ptype, tostring(elm))
@@ -437,7 +437,7 @@ end
 ---@return boolean ok success indicator
 local function mkopt(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-	I.opts = metalua(cb.attributes)
+	I.opts = I:metalua(cb.attributes)
 	setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
 
 	-- additional options ("" is an absent identifier)
@@ -467,7 +467,7 @@ end
 function I:mkctx(doc)
 	-- pickup named cfg sections in meta.stitch, resolution order:
 	-- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
-	self.ctx = metalua(doc.meta.stitch or {}) or {}
+	self.ctx = I:metalua(doc.meta.stitch or {}) or {}
 
 	-- defaults -> hardcoded
 	local defaults = self.ctx.defaults or {}
