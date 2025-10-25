@@ -294,7 +294,7 @@ end
 -- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
 ---@return table clone a new codeblock instance
-local function mkfcb(cb)
+function I:mkfcb(cb)
 	local clone = cb:clone()
 
 	clone.classes = cb.classes:map(function(class)
@@ -303,7 +303,7 @@ local function mkfcb(cb)
 
 	-- remove attributes present in I.opts
 	for k, _ in pairs(cb.attributes) do
-		if I.opts[k] then
+		if self.opts[k] then
 			clone.attributes[k] = nil
 		end
 	end
@@ -374,7 +374,7 @@ local function result(cb)
 			end
 
 			-- elms[#elsm+1] = mkelm(doc, cb, I.opts, what, how) -- nil is noop
-			local ncb = mkfcb(cb)
+			local ncb = I:mkfcb(cb)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
 			local elmid = string.format("%s-%d-%s", I.opts.cid, idx, what)
