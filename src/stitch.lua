@@ -163,7 +163,7 @@ end
 -- create conditions for codeblock execution and set I.opts.exe
 ---@param cb table pandoc codeblock
 ---@return boolean ok success indicator
-local function mkcmd(cb)
+function I.mkcmd(cb)
 	-- create dirs for cb's possible output files
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- `normalize` (v2.12) makes dir platform independent
@@ -497,7 +497,7 @@ function I.codeblock(cb)
 	end
 
 	-- TODO: check I.opts.exe to decide what to do & return (if anything)
-	if mkopt(cb) and mkcmd(cb) then
+	if mkopt(cb) and I.mkcmd(cb) then
 		if deja_vu() then
 			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
 		else
