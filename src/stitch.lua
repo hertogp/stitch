@@ -220,25 +220,25 @@ end
 ---@param name string file to read
 ---@param format? string convert file data to ast using a pandoc reader ("" to skip)
 ---@return string|table? data file data, ast or nil (in case of errors)
-local function fread(name, format)
+function I:fread(name, format)
 	local ok, dta
 	local fh, err = io.open(name, "r")
 
 	if nil == fh then
-		I:log("error", "read", "%s %s", name, err)
+		self:log("error", "read", "%s %s", name, err)
 		return nil
 	end
 
 	dta = fh:read("*a")
 	fh:close()
-	I:log("info", "read", "%s, %d bytes", name, #dta)
+	self:log("info", "read", "%s, %d bytes", name, #dta)
 
 	if format and #format > 0 then
 		ok, dta = pcall(pd.read, dta, format)
 		if ok then
 			return dta
 		else
-			I:log("error", "read", "pandoc.read as %s failed: %s", format, dta)
+			self:log("error", "read", "pandoc.read as %s failed: %s", format, dta)
 			return nil
 		end
 	end
@@ -366,7 +366,7 @@ local function result(cb)
 		local what, format, filter, how = table.unpack(elm)
 		local fname = I.opts[what]
 		if fname then
-			local doc = fread(I.opts[what], format)
+			local doc = I:fread(I.opts[what], format)
 			doc, count = I:xform(doc, filter)
 			if count > 0 or true then
 				-- a filter could post-process an image so save it, if applicable
