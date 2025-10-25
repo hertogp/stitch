@@ -6,7 +6,7 @@
 -- * check utf8 requirements (if any)
 -- * add all functions to S so they can be tested { {Pandoc=S.Pandoc}, [0] = S}
 -- * add pandoc version check, see (vx.yz) or pd.xx funcs to check
--- * add hardcoded.cbc = 0, cb count, "cb"..opts.cbc is fallback for opts.cid
+-- * add hardcoded.cbc = 0, cb count, "cb"..I.opts.cbc is fallback for I.opts.cid
 -- * add mediabag to store files related to cb's
 -- * add Code handler to insert pieces of a CodeBlock
 --
@@ -19,7 +19,7 @@
 local I = {} -- implementation for Stitch
 
 I.ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
-local opts = { log = "info" } --> set per cb being processed
+I.opts = { log = "info" } --> set per cb being processed
 I.level = {
 	silent = 0,
 	error = 1,
@@ -35,17 +35,17 @@ local pd = require("pandoc")
 
 function I:log(lvl, action, msg, ...)
 	-- [stitch level] (action cb_id) msg ..
-	if self.level[opts.log] >= self.level[lvl] then
+	if self.level[I.opts.log] >= self.level[lvl] then
 		local logfmt = "[stitch %5s] (%s %7s) " .. tostring(msg) .. "\n"
-		local text = string.format(logfmt, lvl, opts.cid or "mod", action, ...)
+		local text = string.format(logfmt, lvl, I.opts.cid or "mod", action, ...)
 		io.stderr:write(text)
 	end
 end
 
 --[[ options ]]
 
--- parse `opts.inc` into list: {{what, format, filter, how}, ..}
----@param str string the opts.inc string with include directives
+-- parse `I.opts.inc` into list: {{what, format, filter, how}, ..}
+---@param str string the I.opts.inc string with include directives
 ---@return table directives list of 4-element lists of strings
 local function parse_inc(str)
 	-- what:how!format+extensions@module.function
@@ -151,7 +151,7 @@ local function mksha(cb)
 	-- fingerprint is hash on option values + cb.text
 	local vals = {}
 	for _, key in ipairs(keys) do
-		vals[#vals + 1] = pd.utils.stringify(opts[key]):gsub("%s", "")
+		vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub("%s", "")
 	end
 	-- eliminate whitespace as well for repeatable fingerprints
 	vals[#vals + 1] = cb.text:gsub("%s", "")
@@ -159,14 +159,14 @@ local function mksha(cb)
 	return pd.utils.sha1(table.concat(vals, ""))
 end
 
--- create conditions for codeblock execution and set opts.exe
+-- create conditions for codeblock execution and set I.opts.exe
 ---@param cb table pandoc codeblock
 ---@return boolean ok success indicator
 local function mkcmd(cb)
 	-- create dirs for cb's possible output files
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- `normalize` (v2.12) makes dir platform independent
-		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
+		local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
 			I:log("error", "cmd", "cbx could not create dir" .. dir)
 			return false
@@ -175,31 +175,31 @@ local function mkcmd(cb)
 
 	-- cb.text becomes executable on disk (TODO:
 	-- if not flive(fname) then .. else I:log(reuse) end
-	local fh = io.open(opts.cbx, "w")
+	local fh = io.open(I.opts.cbx, "w")
 	if not fh then
-		I:log("error", "cmd", "cbx could not open file: " .. opts.cbx)
+		I:log("error", "cmd", "cbx could not open file: " .. I.opts.cbx)
 		return false
 	end
 	if not fh:write(cb.text) then
 		fh:close()
-		I:log("error", "cmd", "cbx could not write to: " .. opts.cbx)
+		I:log("error", "cmd", "cbx could not write to: " .. I.opts.cbx)
 		return false
 	end
 	fh:close()
 
 	-- review: not platform independent
-	-- * this fails on Windows where opts.cbx should be a bat file
+	-- * this fails on Windows where I.opts.cbx should be a bat file
 	-- * maybe check *.bat and skip?  Or just try & warn if not successful
 	-- package.config:sub(1,1) -> \ for windows, / for others
-	if not os.execute("chmod u+x " .. opts.cbx) then
-		I:log("error", "cmd", "cbx could not mark executable: " .. opts.cbx)
+	if not os.execute("chmod u+x " .. I.opts.cbx) then
+		I:log("error", "cmd", "cbx could not mark executable: " .. I.opts.cbx)
 		return false
 	end
 
 	-- review: check expanse complete, no more #<names> left?
-	I:log("info", "cmd", "expanding '%s'", opts.cmd)
-	opts.cmd = opts.cmd:gsub("%#(%w+)", opts)
-	I:log("info", "cmd", "expanded as '%s'", opts.cmd)
+	I:log("info", "cmd", "expanding '%s'", I.opts.cmd)
+	I.opts.cmd = I.opts.cmd:gsub("%#(%w+)", I.opts)
+	I:log("info", "cmd", "expanded as '%s'", I.opts.cmd)
 	return true
 end
 
@@ -278,12 +278,12 @@ end
 ---@return boolean deja_vu true or false
 local function deja_vu()
 	-- if cbx exist with 1 or more ouputs, we were here before
-	-- REVIEW: should take opts.inc's what into account and check all of them?
-	-- * an output file not included in opts.inc is never created(!)
+	-- REVIEW: should take I.opts.inc's what into account and check all of them?
+	-- * an output file not included in I.opts.inc is never created(!)
 	-- * you want to catch when 1 or more artifacts were removed somehow
 
-	if freal(opts.cbx) then
-		if freal(opts.out) or freal(opts.err) or freal(opts.art) then
+	if freal(I.opts.cbx) then
+		if freal(I.opts.out) or freal(I.opts.err) or freal(I.opts.art) then
 			return true
 		end
 	end
@@ -300,9 +300,9 @@ local function mkfcb(cb)
 		return class:gsub("^stitch$", "stitched")
 	end)
 
-	-- remove attributes present in opts
+	-- remove attributes present in I.opts
 	for k, _ in pairs(cb.attributes) do
-		if opts[k] then
+		if I.opts[k] then
 			clone.attributes[k] = nil
 		end
 	end
@@ -361,22 +361,22 @@ end
 local function result(cb)
 	local elms, count = {}, 0
 
-	for idx, elm in ipairs(parse_inc(opts.inc)) do
+	for idx, elm in ipairs(parse_inc(I.opts.inc)) do
 		local what, format, filter, how = table.unpack(elm)
-		local fname = opts[what]
+		local fname = I.opts[what]
 		if fname then
-			local doc = fread(opts[what], format)
+			local doc = fread(I.opts[what], format)
 			doc, count = xform(doc, filter)
 			if count > 0 or true then
 				-- a filter could post-process an image so save it, if applicable
-				fsave(doc, opts[what])
+				fsave(doc, I.opts[what])
 			end
 
-			-- elms[#elsm+1] = mkelm(doc, cb, opts, what, how) -- nil is noop
+			-- elms[#elsm+1] = mkelm(doc, cb, I.opts, what, how) -- nil is noop
 			local ncb = mkfcb(cb)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
-			local elmid = string.format("%s-%d-%s", opts.cid, idx, what)
+			local elmid = string.format("%s-%d-%s", I.opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
 				I:log("debug", "include", "include %s, '%s:%s', data as native ast", elmid, what, how)
@@ -422,7 +422,7 @@ local function result(cb)
 					pd.Div(string.format("<stitch> %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
 			end
 		else
-			I:log("error", "include", "skip %s, invalid directive inc '%s:%s'", opts.cid, what, how)
+			I:log("error", "include", "skip %s, invalid directive inc '%s:%s'", I.opts.cid, what, how)
 		end
 	end
 
@@ -431,28 +431,28 @@ end
 
 --[[ context & cb ]]
 
----sets opts for the current codeblock
+---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
 local function mkopt(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-	opts = metalua(cb.attributes)
-	setmetatable(opts, { __index = I.ctx[opts.cfg] })
+	I.opts = metalua(cb.attributes)
+	setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
 
 	-- additional options ("" is an absent identifier)
-	opts.cid = #cb.identifier > 0 and cb.identifier or nil
-	opts.sha = mksha(cb) -- derived only
+	I.opts.cid = #cb.identifier > 0 and cb.identifier or nil
+	I.opts.sha = mksha(cb) -- derived only
 
 	-- expand filenames for this codeblock (cmd is expanded as exe later)
 	local expandables = { "cbx", "out", "err", "art" }
 	for _, k in ipairs(expandables) do
-		opts[k] = opts[k]:gsub("%#(%w+)", opts)
+		I.opts[k] = I.opts[k]:gsub("%#(%w+)", I.opts)
 	end
 
 	-- check against circular refs
 	for k, _ in pairs(hardcoded) do
-		if "cmd" ~= k and "string" == type(opts[k]) and opts[k]:match("#%w+") then
-			I:log("error", "options", "%s not entirely expanded: %s", k, opts[k])
+		if "cmd" ~= k and "string" == type(I.opts[k]) and I.opts[k]:match("#%w+") then
+			I:log("error", "options", "%s not entirely expanded: %s", k, I.opts[k])
 			return false
 		end
 	end
@@ -465,7 +465,7 @@ end
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function I:mkctx(doc)
 	-- pickup named cfg sections in meta.stitch, resolution order:
-	-- opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
+	-- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
 	self.ctx = metalua(doc.meta.stitch or {}) or {}
 
 	-- defaults -> hardcoded
@@ -495,14 +495,14 @@ function I.codeblock(cb)
 		return nil
 	end
 
-	-- TODO: check opts.exe to decide what to do & return (if anything)
+	-- TODO: check I.opts.exe to decide what to do & return (if anything)
 	if mkopt(cb) and mkcmd(cb) then
 		if deja_vu() then
-			I:log("info", "result", "%s, re-using existing files", opts.cid)
+			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
 		else
-			local ok, code, nr = os.execute(opts.cmd)
+			local ok, code, nr = os.execute(I.opts.cmd)
 			if not ok then
-				I:log("error", "result", "fail %s, execute failed with %s(%s): %s", opts.cid, code, nr, opts.cmd)
+				I:log("error", "result", "fail %s, execute failed with %s(%s): %s", I.opts.cid, code, nr, I.opts.cmd)
 				return nil
 			end
 		end
