@@ -207,7 +207,7 @@ end
 -- says whether given `filename` is real on disk or not
 ---@param filename string path to a file
 ---@return boolean exists true or false
-local function freal(filename)
+function I:freal(filename)
 	local f = io.open(filename, "r")
 	if f then
 		f:close()
@@ -283,8 +283,8 @@ function I:deja_vu()
 	-- * an output file not included in I.opts.inc is never created(!)
 	-- * you want to catch when 1 or more artifacts were removed somehow
 
-	if freal(self.opts.cbx) then
-		if freal(self.opts.out) or freal(self.opts.err) or freal(self.opts.art) then
+	if self:freal(self.opts.cbx) then
+		if self:freal(self.opts.out) or self:freal(self.opts.err) or self:freal(self.opts.art) then
 			return true
 		end
 	end
