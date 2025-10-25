@@ -1,4 +1,14 @@
 --[[ stitch ]]
+-- TODO:
+-- * add option value checker for reporting errors in stitch option values
+-- * do log(level, operation, message) for consistent, readable logs
+-- * add old = "keep|purge|move"-flag for previous (old) files named id-<old sha>-xx.*
+-- * -or advise to set path's to .stitch/tmp for files that can be removed
+-- * check utf8 requirements (if any)
+-- * Turn M and local funcs into callable Stitch object
+--   the __call metamethod could dispatch to e.g. hdl_doc, hdl_cb hdl_xyz
+--   through a table
+--   return { { Pandoc = Stitch } }
 
 local M = {} -- returned by global stitch() for testing
 local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
@@ -13,38 +23,14 @@ local level = {
 
 --[[ helpers ]]
 
-local dump = require("dump") -- tmp, delme
-local F = string.format
+-- local dump = require("dump") -- tmp, delme
 local pd = require("pandoc")
 
 local function log(lvl, fmt, ...)
 	if level[opts.log] >= level[lvl] then
-		local text = F("[stitch %5s] (%s) " .. fmt .. "\n", lvl, opts.cid or "mod", ...)
+		local text = string.format("[stitch %5s] (%s) " .. fmt .. "\n", lvl, opts.cid or "mod", ...)
 		io.stderr:write(text)
 	end
-end
-
-local function deja_vu()
-	-- if cbx exists with 1 or more ouputs, we were here before
-	local function exists(fname)
-		local f = io.open(fname, "r")
-		if f then
-			f:close()
-			return true
-		end
-		return false
-	end
-
-	if "true" == opts.exe or "yes" == opts.exe then
-		return false
-	end
-
-	if exists(opts.cbx) then
-		if exists(opts.out) or exists(opts.err) or exists(opts.art) then
-			return true
-		end
-	end
-	return false
 end
 
 --[[ options ]]
@@ -69,6 +55,10 @@ local function parse_inc(str)
 	return todo
 end
 
+local optvalues = {
+	-- list possible values for some of the options (for error reporting)
+	exe = { "yes", "no", "maybe" },
+}
 local hardcoded = {
 	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded (last resort)
 	cid = "x", -- x marks the spot if cb has no identifier
@@ -77,6 +67,7 @@ local hardcoded = {
 	dir = ".stitch", -- where to store files (abs or rel path to cwd)
 	fmt = "png", -- format for images (if any)
 	log = "error", -- debug, error, warn, info, silent
+	exe = "maybe", -- yes, no, maybe
 	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
@@ -173,7 +164,8 @@ local function mkcmd(cb)
 		end
 	end
 
-	-- cb.text becomes executable on disk
+	-- cb.text becomes executable on disk (TODO:
+	-- if not flive(fname) then .. else log(reuse) end
 	local fh = io.open(opts.cbx, "w")
 	if not fh then
 		log("error", "cbx could not open file: " .. opts.cbx)
@@ -200,6 +192,18 @@ local function mkcmd(cb)
 	opts.cmd = opts.cmd:gsub("%#(%w+)", opts)
 	log("info", "expand got cmd '%s'", opts.cmd)
 	return true
+end
+
+-- says whether given `filename` is real on disk or not
+---@param filename string path to a file
+---@return boolean exists true or false
+local function freal(filename)
+	local f = io.open(filename, "r")
+	if f then
+		f:close()
+		return true
+	end
+	return false
 end
 
 -- read file `name` and, possibly, convert to pandoc ast using `format`
@@ -259,6 +263,19 @@ local function fsave(doc, fname)
 
 	log("debug", "write %s, %d bytes", fname, #doc)
 	return true
+end
+
+-- says whether cb-executable file and 1 or more outputs already exist or not
+---@return boolean deja_vu true or false
+local function deja_vu()
+	-- if cbx exist with 1 or more ouputs, we were here before
+
+	if freal(opts.cbx) then
+		if freal(opts.out) or freal(opts.err) or freal(opts.art) then
+			return true
+		end
+	end
+	return false
 end
 
 -- clones `cb`, removes its stitch properties, adds a 'stitched' class
@@ -347,7 +364,7 @@ local function result(cb)
 			local ncb = mkfcb(cb)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
-			local elmid = F("%s-%d-%s", opts.cid, idx, what)
+			local elmid = string.format("%s-%d-%s", opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
 				log("debug", "include %s, '%s:%s', data as native ast", elmid, what, how)
@@ -389,7 +406,8 @@ local function result(cb)
 			else
 				-- todo: never reached?
 				log("error", "skip %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
-				elms[#elms + 1] = pd.Div(F("<stitch> %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
+				elms[#elms + 1] =
+					pd.Div(string.format("<stitch> %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
 			end
 		else
 			log("error", "skip %s, invalid directive inc '%s:%s'", opts.cid, what, how)
@@ -460,12 +478,12 @@ end
 
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
----@return string? err non-empty string in case of errors, or nil
 function M.codeblock(cb)
 	if not cb.classes:find("stitch") then
-		return nil, nil -- noop
+		return nil
 	end
 
+	-- TODO: check opts.exe to decide what to do & return (if anything)
 	if mkopt(cb) and mkcmd(cb) then
 		if deja_vu() then
 			log("info", "skip %s, re-using existing files", opts.cid)
