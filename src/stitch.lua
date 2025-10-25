@@ -141,10 +141,10 @@ end
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
 ---@return string sha1 hash of option values and codeblock content
-function I.mksha(cb)
+function I:mksha(cb)
 	-- sorting ensures repeatable fingerprints
 	local keys = {}
-	for key in pairs(I.hardcoded) do
+	for key in pairs(self.hardcoded) do
 		keys[#keys + 1] = key
 	end
 	table.sort(keys) -- sorts inplace
@@ -152,7 +152,7 @@ function I.mksha(cb)
 	-- fingerprint is hash on option values + cb.text
 	local vals = {}
 	for _, key in ipairs(keys) do
-		vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub("%s", "")
+		vals[#vals + 1] = pd.utils.stringify(self.opts[key]):gsub("%s", "")
 	end
 	-- eliminate whitespace as well for repeatable fingerprints
 	vals[#vals + 1] = cb.text:gsub("%s", "")
@@ -442,7 +442,7 @@ function I:mkopt(cb)
 
 	-- additional options ("" is an absent identifier)
 	self.opts.cid = #cb.identifier > 0 and cb.identifier or nil
-	self.opts.sha = self.mksha(cb) -- derived only
+	self.opts.sha = self:mksha(cb) -- derived only
 
 	-- expand filenames for this codeblock (cmd is expanded as exe later)
 	local expandables = { "cbx", "out", "err", "art" }
