@@ -9,6 +9,12 @@
 --   the __call metamethod could dispatch to e.g. hdl_doc, hdl_cb hdl_xyz
 --   through a table
 --   return { { Pandoc = Stitch } }
+-- * add pandoc version check, see (vx.yz) or pd.xx funcs to check
+-- NOTES:
+-- * pd.system.os () -> for checking OS type
+-- * pd.system.list_directory('dir') (v2.19)
+-- * pd.system.make_directory('dir') (v2.19)
+-- * pd.system.remove_directory('dir) (v2.19)
 
 local M = {} -- returned by global stitch() for testing
 local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
@@ -156,7 +162,7 @@ end
 local function mkcmd(cb)
 	-- create dirs for cb's possible output files
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
-		-- `normalize` makes dir platform independent
+		-- `normalize` (v2.12) makes dir platform independent
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
 			log("error", "cbx could not create dir" .. dir)
