@@ -16,9 +16,9 @@
 -- * pd.system.make_directory('dir/subdir', true) (v2.19)
 -- * pd.system.remove_directory('dir) (v2.19)
 
-local I = {} -- implementation for Stitch
+local I = {} -- Stitch's Implementation
 
-I.ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
+I.ctx = {} -- this doc's context (= meta.stitch)
 I.opts = { log = "info" } --> set per cb being processed
 I.level = {
 	silent = 0,
@@ -29,12 +29,12 @@ I.level = {
 }
 
 I.optvalues = {
-	-- list possible values for some of the options (for error reporting)
+	-- valid option values
 	exe = { "yes", "no", "maybe" },
 }
 
 I.hardcoded = {
-	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded (last resort)
+	-- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
 	cid = "x", -- x marks the spot if cb has no identifier
 	cfg = "", -- name of config section in doc.meta.stitch.<cfg> (if any)
 	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
@@ -200,7 +200,7 @@ function I:mkcmd(cb)
 	-- review: check expanse complete, no more #<names> left?
 	self:log("info", "cmd", "expanding '%s'", self.opts.cmd)
 	self.opts.cmd = I.opts.cmd:gsub("%#(%w+)", self.opts)
-	self:log("info", "cmd", "expanded as '%s'", self.opts.cmd)
+	self:log("info", "cmd", "expanded to '%s'", self.opts.cmd)
 	return true
 end
 
@@ -291,6 +291,8 @@ function I:deja_vu()
 	return false
 end
 
+--[[ AST elements ]]
+
 -- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
 ---@return table clone a new codeblock instance
@@ -353,8 +355,6 @@ function I:xform(doc, filter)
 	end
 	return doc, count
 end
-
---[[ ast ]]
 
 -- create doc elements for codeblock
 ---@param cb table codeblock
@@ -514,13 +514,13 @@ end
 --[[ filter ]]
 
 I:log("info", "check", "PANDOC_VERSION %s", _ENV.PANDOC_VERSION) -- 3.1.3
-I:log("info", "check", string.format("OS is %s", pd.system.os))
+I:log("info", "check", string.format("running on %s", pd.system.os))
 -- assert(pandoc_api_version >= {1, 23}, "need at least pandoc x.x.x")
 -- pandoc.Figure was introduced in pandoc version 3 (TODO: check)
 print("are we good?", _ENV.PANDOC_VERSION >= { 1, 23 })
 
 local Stitch = {
-	_ = I, -- make actual implementation available for testing
+	_ = I, -- for testing
 
 	Pandoc = function(doc)
 		I:mkctx(doc)
