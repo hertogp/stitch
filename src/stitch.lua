@@ -316,7 +316,7 @@ end
 ---@param filter string name of lua mod.fun to run (if any)
 ---@return string|table? doc the, possibly, modified doc
 ---@return number count the number of filters actually applied
-local function xform(doc, filter)
+function I:xform(doc, filter)
 	local count = 0
 	local ok, filters, tmp
 	if #filter == 0 then
@@ -327,10 +327,10 @@ local function xform(doc, filter)
 	fun = #fun > 0 and fun or "pandoc" -- default to mod.pandoc
 	ok, filters = pcall(require, mod)
 	if not ok then
-		I:log("warn", "xform", "skip @%s: module %s not found", filter, mod)
+		self:log("warn", "xform", "skip @%s: module %s not found", filter, mod)
 		return doc, count
 	elseif filters == true then
-		I:log("warn", "xform", "skip @%s: not a list of filters", filter)
+		self:log("warn", "xform", "skip @%s: not a list of filters", filter)
 		return doc, count
 	end
 
@@ -342,13 +342,13 @@ local function xform(doc, filter)
 		if f[fun] then
 			ok, tmp = pcall(f[fun], doc)
 			if not ok then
-				I:log("warn", "xform", "filter '%s[%s].%s', failed, filter ignored", mod, n, fun)
+				self:log("warn", "xform", "filter '%s[%s].%s', failed, filter ignored", mod, n, fun)
 			else
 				doc = tmp
 				count = count + 1
 			end
 		else
-			I:log("warn", "xform", "filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun)
+			self:log("warn", "xform", "filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun)
 		end
 	end
 	return doc, count
@@ -367,7 +367,7 @@ local function result(cb)
 		local fname = I.opts[what]
 		if fname then
 			local doc = fread(I.opts[what], format)
-			doc, count = xform(doc, filter)
+			doc, count = I:xform(doc, filter)
 			if count > 0 or true then
 				-- a filter could post-process an image so save it, if applicable
 				fsave(doc, I.opts[what])
