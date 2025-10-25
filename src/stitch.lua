@@ -250,16 +250,16 @@ end
 ---@param doc string|table? doc to be saved
 ---@param fname string filename to save doc with
 ---@return boolean ok success indicator
-local function fsave(doc, fname)
+function I:fsave(doc, fname)
 	if "string" ~= type(doc) then
-		I:log("info", "write", "%s, skip writing data of type '%s'", fname, type(doc))
+		self:log("info", "write", "%s, skip writing data of type '%s'", fname, type(doc))
 		return false
 	end
 
 	-- save doc to fname (even if doc is 0 bytes)
 	local fh = io.open(fname, "w")
 	if nil == fh then
-		I:log("error", "write", "%s, unable to open for writing", fname)
+		self:log("error", "write", "%s, unable to open for writing", fname)
 		return false
 	end
 
@@ -267,11 +267,11 @@ local function fsave(doc, fname)
 	fh:close()
 
 	if not ok then
-		I:log("error", "write", "%s, error: %s", fname, err)
+		self:log("error", "write", "%s, error: %s", fname, err)
 		return false
 	end
 
-	I:log("debug", "write", "%s, %d bytes", fname, #doc)
+	self:log("debug", "write", "%s, %d bytes", fname, #doc)
 	return true
 end
 
@@ -370,7 +370,7 @@ local function result(cb)
 			doc, count = I:xform(doc, filter)
 			if count > 0 or true then
 				-- a filter could post-process an image so save it, if applicable
-				fsave(doc, I.opts[what])
+				I:fsave(doc, I.opts[what])
 			end
 
 			-- elms[#elsm+1] = mkelm(doc, cb, I.opts, what, how) -- nil is noop
