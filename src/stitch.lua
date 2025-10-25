@@ -359,7 +359,7 @@ end
 -- create doc elements for codeblock
 ---@param cb table codeblock
 ---@return table result sequence of pandoc ast elements
-local function result(cb)
+function I:result(cb)
 	local elms, count = {}, 0
 
 	for idx, elm in ipairs(I:parse_inc(I.opts.inc)) do
@@ -508,7 +508,7 @@ function I.codeblock(cb)
 			end
 		end
 	end
-	return result(cb)
+	return I:result(cb)
 end
 
 --[[ filter ]]
