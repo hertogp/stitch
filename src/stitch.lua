@@ -131,7 +131,7 @@ function I:metalua(elm)
 			attr = self:metalua(elm.attr),
 		}
 	else
-		I:log("error", "meta", "option unknown type '%s'? for %s", ptype, tostring(elm))
+		self:log("error", "meta", "option unknown type '%s'? for %s", ptype, tostring(elm))
 		return nil
 	end
 end
@@ -362,48 +362,48 @@ end
 function I:result(cb)
 	local elms, count = {}, 0
 
-	for idx, elm in ipairs(I:parse_inc(I.opts.inc)) do
+	for idx, elm in ipairs(self:parse_inc(self.opts.inc)) do
 		local what, format, filter, how = table.unpack(elm)
-		local fname = I.opts[what]
+		local fname = self.opts[what]
 		if fname then
-			local doc = I:fread(I.opts[what], format)
-			doc, count = I:xform(doc, filter)
+			local doc = self:fread(self.opts[what], format)
+			doc, count = self:xform(doc, filter)
 			if count > 0 or true then
 				-- a filter could post-process an image so save it, if applicable
-				I:fsave(doc, I.opts[what])
+				self:fsave(doc, self.opts[what])
 			end
 
 			-- elms[#elsm+1] = mkelm(doc, cb, I.opts, what, how) -- nil is noop
-			local ncb = I:mkfcb(cb)
+			local ncb = self:mkfcb(cb)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
-			local elmid = string.format("%s-%d-%s", I.opts.cid, idx, what)
+			local elmid = string.format("%s-%d-%s", self.opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				I:log("debug", "include", "include %s, '%s:%s', data as native ast", elmid, what, how)
+				self:log("debug", "include", "include %s, '%s:%s', data as native ast", elmid, what, how)
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
-				I:log("debug", "include", "include %s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
+				self:log("debug", "include", "include %s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
 				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
-				I:log("debug", "include", "include %s, inc '%s:%s', data in a fcb", elmid, what, how)
+				self:log("debug", "include", "include %s, inc '%s:%s', data in a fcb", elmid, what, how)
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
-				I:log("debug", "include", "include %s, inc '%s:%s', image %s", elmid, what, how, fname)
+				self:log("debug", "include", "include %s, inc '%s:%s', image %s", elmid, what, how, fname)
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
-				I:log("debug", "include", "include %s, inc '%s:%s', figure", elmid, what, how, fname)
+				self:log("debug", "include", "include %s, inc '%s:%s', figure", elmid, what, how, fname)
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
 				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
 			elseif doc and "" == how then
 				-- output elements cbx, out, err, art without a how
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an ast by default has its individual blocks inserted
-					I:log("debug", "include", "include %s, inc '%s:%s', ast blocks", elmid, what, how)
+					self:log("debug", "include", "include %s, inc '%s:%s', ast blocks", elmid, what, how)
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -413,17 +413,17 @@ function I:result(cb)
 					end
 				else
 					-- doc is raw data and inserted as a div
-					I:log("debug", "include", "include %s, inc '%s:%s', data as div", elmid, what, how)
+					self:log("debug", "include", "include %s, inc '%s:%s', data as div", elmid, what, how)
 					elms[#elms + 1] = pd.Div(doc, ncb.attr)
 				end
 			else
 				-- todo: never reached?
-				I:log("error", "include", "skip %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
+				self:log("error", "include", "skip %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
 				elms[#elms + 1] =
 					pd.Div(string.format("<stitch> %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
 			end
 		else
-			I:log("error", "include", "skip %s, invalid directive inc '%s:%s'", I.opts.cid, what, how)
+			self:log("error", "include", "skip %s, invalid directive inc '%s:%s'", self.opts.cid, what, how)
 		end
 	end
 
@@ -467,7 +467,7 @@ end
 function I:mkctx(doc)
 	-- pickup named cfg sections in meta.stitch, resolution order:
 	-- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
-	self.ctx = I:metalua(doc.meta.stitch or {}) or {}
+	self.ctx = self:metalua(doc.meta.stitch or {}) or {}
 
 	-- defaults -> hardcoded
 	local defaults = self.ctx.defaults or {}
