@@ -511,7 +511,7 @@ function I.codeblock(cb)
 	return result(cb)
 end
 
---[[ main ]]
+--[[ filter ]]
 
 I:log("info", "check", "PANDOC_VERSION %s", _ENV.PANDOC_VERSION) -- 3.1.3
 I:log("info", "check", string.format("OS is %s", pd.system.os))
