@@ -1,8 +1,7 @@
 --[[ stitch ]]
 -- TODO:
 -- * add option value checker for reporting errors in stitch option values
--- * do log(level, operation, message) for consistent, readable logs
--- * add old = "keep|purge|move"-flag for previous (old) files named id-<old sha>-xx.*
+-- * add old = "keep|purge|move"-flag for previous (old) files named id-<old sha>.*
 -- * -or advise to set path's to .stitch/tmp for files that can be removed
 -- * check utf8 requirements (if any)
 -- * Turn M and local funcs into callable Stitch object
@@ -10,13 +9,17 @@
 --   through a table
 --   return { { Pandoc = Stitch } }
 -- * add pandoc version check, see (vx.yz) or pd.xx funcs to check
+-- * add hardcoded.cbc = 0, cb count, "cb"..opts.cbc is fallback for opts.cid
+-- * add mediabag to store files related to cb's
+-- * add Code handler to insert pieces of a CodeBlock
+--
 -- NOTES:
 -- * pd.system.os () -> for checking OS type
 -- * pd.system.list_directory('dir') (v2.19)
--- * pd.system.make_directory('dir') (v2.19)
+-- * pd.system.make_directory('dir/subdir', true) (v2.19)
 -- * pd.system.remove_directory('dir) (v2.19)
 
-local M = {} -- returned by global stitch() for testing
+local S = {} -- returned by global stitch() for testing
 local ctx = {} --> set per doc, holds meta.stitch (i.e. per doc)
 local opts = { log = "info" } --> set per cb being processed
 local level = {
@@ -79,9 +82,9 @@ local hardcoded = {
 	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
-	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
-	out = "#dir/#cid-#sha.out", -- capture of stdout (if any)
-	err = "#dir/#cid-#sha.err", -- capture of stderr (if any)
+	cbx = "#dir/cbx/#cid-#sha.cb", -- the codeblock.text as file on disk
+	out = "#dir/out/#cid-#sha.out", -- capture of stdout (if any)
+	err = "#dir/err/#cid-#sha.err", -- capture of stderr (if any)
 	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
 	-- command must be expanded last
 	cmd = "#cbx #arg #art 1>#out 2>#err", -- cmd template string, expanded last
@@ -277,6 +280,9 @@ end
 ---@return boolean deja_vu true or false
 local function deja_vu()
 	-- if cbx exist with 1 or more ouputs, we were here before
+	-- REVIEW: should take opts.inc's what into account and check all of them?
+	-- * an output file not included in opts.inc is never created(!)
+	-- * you want to catch when 1 or more artifacts were removed somehow
 
 	if freal(opts.cbx) then
 		if freal(opts.out) or freal(opts.err) or freal(opts.art) then
@@ -486,7 +492,7 @@ end
 
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
-function M.codeblock(cb)
+function S.codeblock(cb)
 	if not cb.classes:find("stitch") then
 		return nil
 	end
@@ -513,8 +519,20 @@ log("info", "check", string.format("OS is %s", pd.system.os))
 -- assert(pandoc_api_version >= {1, 23}, "need at least pandoc x.x.x")
 
 local function pandoc(doc)
+	-- tmp
+	local dispatch = { state = 42 }
+	local mt = {
+		__call = function(self, ...)
+			print("state is", self.state)
+			print("dispatch called for", ...)
+		end,
+	}
+	setmetatable(dispatch, mt)
+	dispatch("arg1", "arg2")
+
+	-- /tmp
 	ctx = mkctx(doc)
-	return doc:walk({ CodeBlock = M.codeblock })
+	return doc:walk({ CodeBlock = S.codeblock })
 end
 
 -- todo: for testing
