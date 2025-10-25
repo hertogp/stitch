@@ -35,7 +35,7 @@ local function deja_vu()
 		return false
 	end
 
-	if opts.force then
+	if "true" == opts.exe or "yes" == opts.exe then
 		return false
 	end
 
@@ -65,7 +65,7 @@ local function parse_inc(str)
 			p:match(":" .. part) or "", -- element/how
 		}
 	end
-	log("debug", "%s inc's in '%s'", #todo, str)
+	log("debug", "include found %s inc's in '%s'", #todo, str)
 	return todo
 end
 
@@ -130,7 +130,7 @@ local function metalua(elm)
 			attr = metalua(elm.attr),
 		}
 	else
-		log("error", "metalua type %s?, todo is %s", ptype, tostring(elm))
+		log("error", "option unknown type '%s'? for %s", ptype, tostring(elm))
 		return nil
 	end
 end
@@ -162,13 +162,13 @@ end
 -- create conditions for codeblock execution and set opts.exe
 ---@param cb table pandoc codeblock
 ---@return boolean ok success indicator
-local function mkexe(cb)
+local function mkcmd(cb)
 	-- create dirs for cb's possible output files
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- `normalize` makes dir platform independent
 		local dir = pd.path.normalize(pd.path.directory(opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
-			log("error", "could not create dir" .. dir)
+			log("error", "cbx could not create dir" .. dir)
 			return false
 		end
 	end
@@ -176,12 +176,12 @@ local function mkexe(cb)
 	-- cb.text becomes executable on disk
 	local fh = io.open(opts.cbx, "w")
 	if not fh then
-		log("error", "could not open file: " .. opts.cbx)
+		log("error", "cbx could not open file: " .. opts.cbx)
 		return false
 	end
 	if not fh:write(cb.text) then
 		fh:close()
-		log("error", "could not write to: " .. opts.cbx)
+		log("error", "cbx could not write to: " .. opts.cbx)
 		return false
 	end
 	fh:close()
@@ -191,14 +191,14 @@ local function mkexe(cb)
 	-- * maybe check *.bat and skip?  Or just try & warn if not successful
 	-- package.config:sub(1,1) -> \ for windows, / for others
 	if not os.execute("chmod u+x " .. opts.cbx) then
-		log("error", "could not mark executable: " .. opts.cbx)
+		log("error", "cbx could not mark executable: " .. opts.cbx)
 		return false
 	end
 
 	-- review: check expanse complete, no more #<names> left?
-	opts.exe = opts.cmd:gsub("%#(%w+)", opts)
-	log("info", "expand cmd '%s'", opts.cmd)
-	log("info", "  `--> exe '%s'", opts.exe)
+	log("info", "expand for cmd '%s'", opts.cmd)
+	opts.cmd = opts.cmd:gsub("%#(%w+)", opts)
+	log("info", "expand got cmd '%s'", opts.cmd)
 	return true
 end
 
@@ -211,7 +211,7 @@ local function fread(name, format)
 	local fh, err = io.open(name, "r")
 
 	if nil == fh then
-		log("error", err)
+		log("error", "read %s", err)
 		return nil
 	end
 
@@ -224,7 +224,7 @@ local function fread(name, format)
 		if ok then
 			return dta
 		else
-			log("error", "pandoc reader: %s", dta)
+			log("error", "read pandoc.read as %s failed: %s", format, dta)
 			return nil
 		end
 	end
@@ -297,10 +297,10 @@ local function xform(doc, filter)
 	fun = #fun > 0 and fun or "pandoc" -- default to mod.pandoc
 	ok, filters = pcall(require, mod)
 	if not ok then
-		log("warn", "skipping @%s: module %s not found", filter, mod)
+		log("warn", "skip @%s: module %s not found", filter, mod)
 		return doc, count
 	elseif filters == true then
-		log("warn", "skipping @%s: not a list of filters", filter)
+		log("warn", "skip @%s: not a list of filters", filter)
 		return doc, count
 	end
 
@@ -350,30 +350,30 @@ local function result(cb)
 			local elmid = F("%s-%d-%s", opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				log("debug", "%s, '%s:%s', data as native ast", elmid, what, how)
+				log("debug", "include %s, '%s:%s', data as native ast", elmid, what, how)
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
-				log("debug", "%s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
+				log("debug", "include %s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
 				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
-				log("debug", "%s, inc '%s:%s', data in a fcb", elmid, what, how)
+				log("debug", "include %s, inc '%s:%s', data in a fcb", elmid, what, how)
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
-				log("debug", "%s, inc '%s:%s', image %s", elmid, what, how, fname)
+				log("debug", "include %s, inc '%s:%s', image %s", elmid, what, how, fname)
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
-				log("debug", "%s, inc '%s:%s', figure", elmid, what, how, fname)
+				log("debug", "include %s, inc '%s:%s', figure", elmid, what, how, fname)
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
 				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
 			elseif doc and "" == how then
 				-- output elements cbx, out, err, art without a how
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an ast by default has its individual blocks inserted
-					log("debug", "%s, inc '%s:%s', ast blocks", elmid, what, how)
+					log("debug", "include %s, inc '%s:%s', ast blocks", elmid, what, how)
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -383,16 +383,16 @@ local function result(cb)
 					end
 				else
 					-- doc is raw data and inserted as a div
-					log("debug", "%s, inc '%s:%s', data as div", elmid, what, how)
+					log("debug", "include %s, inc '%s:%s', data as div", elmid, what, how)
 					elms[#elms + 1] = pd.Div(doc, ncb.attr)
 				end
 			else
 				-- todo: never reached?
-				log("error", "%s, inc '%s:%s' skipped, data is '%s'", elmid, what, how, doc)
-				elms[#elms + 1] = pd.Div(F("?? %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
+				log("error", "skip %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
+				elms[#elms + 1] = pd.Div(F("<stitch> %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
 			end
 		else
-			log("error", "%s, inc '%s:%s', invalid cb file name", opts.cid, what, how)
+			log("error", "skip %s, invalid directive inc '%s:%s'", opts.cid, what, how)
 		end
 	end
 
@@ -422,7 +422,7 @@ local function mkopt(cb)
 	-- check against circular refs
 	for k, _ in pairs(hardcoded) do
 		if "cmd" ~= k and "string" == type(opts[k]) and opts[k]:match("#%w+") then
-			log("error", "option %s not entirely expanded: %s", k, opts[k])
+			log("error", "expand option %s not entirely expanded: %s", k, opts[k])
 			return false
 		end
 	end
@@ -466,13 +466,13 @@ function M.codeblock(cb)
 		return nil, nil -- noop
 	end
 
-	if mkopt(cb) and mkexe(cb) then
+	if mkopt(cb) and mkcmd(cb) then
 		if deja_vu() then
-			log("info", "exe %s, skipping (output files already exist)", opts.cbx)
+			log("info", "skip %s, re-using existing files", opts.cid)
 		else
-			local ok, code, nr = os.execute(opts.exe)
+			local ok, code, nr = os.execute(opts.cmd)
 			if not ok then
-				log("error", "codeblock failed %s(%s): %s", code, nr, opts.cmd)
+				log("error", "fail %s, execute failed with %s(%s): %s", opts.cid, code, nr, opts.cmd)
 				return nil
 			end
 		end
