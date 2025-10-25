@@ -73,7 +73,7 @@ end
 -- parse `I.opts.inc` into list: {{what, format, filter, how}, ..}
 ---@param str string the I.opts.inc string with include directives
 ---@return table directives list of 4-element lists of strings
-local function parse_inc(str)
+function I.parse_inc(str)
 	-- what:how!format+extensions@module.function
 	local todo = {}
 	local part = "([^!@:]+)"
@@ -362,7 +362,7 @@ end
 local function result(cb)
 	local elms, count = {}, 0
 
-	for idx, elm in ipairs(parse_inc(I.opts.inc)) do
+	for idx, elm in ipairs(I.parse_inc(I.opts.inc)) do
 		local what, format, filter, how = table.unpack(elm)
 		local fname = I.opts[what]
 		if fname then
