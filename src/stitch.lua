@@ -163,27 +163,27 @@ end
 -- create conditions for codeblock execution and set I.opts.exe
 ---@param cb table pandoc codeblock
 ---@return boolean ok success indicator
-function I.mkcmd(cb)
+function I:mkcmd(cb)
 	-- create dirs for cb's possible output files
 	for _, fpath in ipairs({ "cbx", "out", "err", "art" }) do
 		-- `normalize` (v2.12) makes dir platform independent
-		local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
+		local dir = pd.path.normalize(pd.path.directory(self.opts[fpath]))
 		if not os.execute("mkdir -p " .. dir) then
-			I:log("error", "cmd", "cbx could not create dir" .. dir)
+			self:log("error", "cmd", "cbx could not create dir" .. dir)
 			return false
 		end
 	end
 
 	-- cb.text becomes executable on disk (TODO:
 	-- if not flive(fname) then .. else I:log(reuse) end
-	local fh = io.open(I.opts.cbx, "w")
+	local fh = io.open(self.opts.cbx, "w")
 	if not fh then
-		I:log("error", "cmd", "cbx could not open file: " .. I.opts.cbx)
+		self:log("error", "cmd", "cbx could not open file: " .. self.opts.cbx)
 		return false
 	end
 	if not fh:write(cb.text) then
 		fh:close()
-		I:log("error", "cmd", "cbx could not write to: " .. I.opts.cbx)
+		self:log("error", "cmd", "cbx could not write to: " .. self.opts.cbx)
 		return false
 	end
 	fh:close()
@@ -192,15 +192,15 @@ function I.mkcmd(cb)
 	-- * this fails on Windows where I.opts.cbx should be a bat file
 	-- * maybe check *.bat and skip?  Or just try & warn if not successful
 	-- package.config:sub(1,1) -> \ for windows, / for others
-	if not os.execute("chmod u+x " .. I.opts.cbx) then
-		I:log("error", "cmd", "cbx could not mark executable: " .. I.opts.cbx)
+	if not os.execute("chmod u+x " .. self.opts.cbx) then
+		self:log("error", "cmd", "cbx could not mark executable: " .. self.opts.cbx)
 		return false
 	end
 
 	-- review: check expanse complete, no more #<names> left?
-	I:log("info", "cmd", "expanding '%s'", I.opts.cmd)
-	I.opts.cmd = I.opts.cmd:gsub("%#(%w+)", I.opts)
-	I:log("info", "cmd", "expanded as '%s'", I.opts.cmd)
+	self:log("info", "cmd", "expanding '%s'", self.opts.cmd)
+	self.opts.cmd = I.opts.cmd:gsub("%#(%w+)", self.opts)
+	self:log("info", "cmd", "expanded as '%s'", self.opts.cmd)
 	return true
 end
 
@@ -497,7 +497,7 @@ function I.codeblock(cb)
 	end
 
 	-- TODO: check I.opts.exe to decide what to do & return (if anything)
-	if I:mkopt(cb) and I.mkcmd(cb) then
+	if I:mkopt(cb) and I:mkcmd(cb) then
 		if deja_vu() then
 			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
 		else
