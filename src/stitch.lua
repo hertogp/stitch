@@ -124,7 +124,7 @@ local function metalua(elm)
 		end
 		return t
 	elseif "CodeBlock" == elm.tag then
-		-- a codeblock's type is actually 'block' (and it's not the only one)
+		-- a CodeBlock's type is actually 'Block'
 		return {
 			text = elm.text,
 			attr = metalua(elm.attr),
@@ -290,14 +290,14 @@ local function deja_vu()
 	return false
 end
 
--- clones `cb`, removes its stitch properties, adds a 'stitched' class
+-- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
 ---@return table clone a new codeblock instance
 local function mkfcb(cb)
 	local clone = cb:clone()
 
-	clone.classes = cb.classes:map(function(c)
-		return c:gsub("^stitch$", "stitched")
+	clone.classes = cb.classes:map(function(class)
+		return class:gsub("^stitch$", "stitched")
 	end)
 
 	-- remove attributes present in opts
