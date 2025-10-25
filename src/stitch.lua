@@ -40,7 +40,7 @@ I.hardcoded = {
 	arg = "", -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
 	dir = ".stitch", -- where to store files (abs or rel path to cwd)
 	fmt = "png", -- format for images (if any)
-	log = "error", -- debug, error, warn, info, silent
+	log = "info", -- debug, error, warn, info, silent
 	exe = "maybe", -- yes, no, maybe
 	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
 	inc = "cbx:fcb out:fcb art:img err:fcb",
@@ -496,7 +496,7 @@ function I.codeblock(cb)
 		return nil
 	end
 
-	-- TODO: check I.opts.exe to decide what to do & return (if anything)
+	-- TODO: also check self.opts.exe
 	if I:mkopt(cb) and I:mkcmd(cb) then
 		if I:deja_vu() then
 			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
