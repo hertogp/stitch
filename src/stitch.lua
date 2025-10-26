@@ -320,7 +320,7 @@ function I:mkfcb(cb)
 
 	-- remove attributes present in I.opts
 	for k, _ in pairs(cb.attributes) do
-		if self.opts[k] then
+		if self.hardcoded[k] then
 			clone.attributes[k] = nil
 		end
 	end
@@ -381,11 +381,11 @@ function I:result(cb)
 		local what, format, filter, how = table.unpack(elm)
 		local fname = self.opts[what]
 		if fname then
-			local doc = self:fread(self.opts[what], format)
+			local doc = self:fread(fname, format) -- format maybe "" (just reads fname)
 			doc, count = self:xform(doc, filter)
 			if count > 0 or true then
 				-- a filter could post-process an image so save it, if applicable
-				self:fsave(doc, self.opts[what])
+				self:fsave(doc, fname)
 			end
 
 			-- NOTE:
@@ -393,12 +393,20 @@ function I:result(cb)
 			--   to insert numbered sections in AST using options to control numbering?
 			-- * pandoc.structure.table_of_contents (?)
 			local ncb = self:mkfcb(cb)
+			print("cb", print(cb))
+			print("ncb", print(ncb))
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
 			local elmid = string.format("%s-%d-%s", self.opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
 				self:log("info", "include", "id %s, '%s:%s', data as native ast", elmid, what, how)
+				if doc and doc.blocks[1].attr then
+					doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
+					doc.blocks[1].classes = ncb.classes
+					doc.blocks[1].attributes = ncb.attributes
+					print(ncb, caption)
+				end
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
@@ -423,6 +431,8 @@ function I:result(cb)
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an ast by default has its individual blocks inserted
 					self:log("info", "include", "id %s, inc '%s:%s', ast blocks", elmid, what, how)
+					print("blocks[1] type", self.opts.cid, pd.utils.type(doc.blocks[1]))
+					print("blocks[1] tag", self.opts.cid, doc.blocks[1].tag)
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -494,8 +504,6 @@ function I:options(cb)
 			return false
 		end
 	end
-
-	print("cb.log", self.opts.log)
 
 	return true
 end
