@@ -557,12 +557,14 @@ end
 
 --[[ filter ]]
 
--- pandoc.Figure was introduced in pandoc version 3 (TODO: check)
 -- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
 --  + Pandoc 3.0 introduces pandoc.Figure element
-I:log("info", "check", "PANDOC_VERSION %s", _ENV.PANDOC_VERSION) -- 3.1.3
 I:log("info", "check", string.format("running on %s", pd.system.os))
-print("are we good?", _ENV.PANDOC_VERSION >= { 3, 0 })
+if _ENV.PANDOC_VERSION >= { 3, 0 } then
+	I:log("info", "check", "ok, pandoc version %s", _ENV.PANDOC_VERSION)
+else
+	I:log("error", "check", "pandoc version is %s, need 3.0 or later")
+end
 
 local Stitch = {
 	_ = I, -- Stitch's implementation: for testing only
