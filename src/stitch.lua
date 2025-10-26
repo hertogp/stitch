@@ -15,6 +15,12 @@
 -- * pd.system.list_directory('dir') (v2.19)
 -- * pd.system.make_directory('dir/subdir', true) (v2.19)
 -- * pd.system.remove_directory('dir) (v2.19)
+-- * Pandoc 3.5 2024-10-04
+-- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-35-2024-10-04`
+--  + pandoc 3.5 allows for single filter (table) to be returned
+--  + return { Pandoc = my_func(doc) }
+--  + returned filter should not contain numeric indices or it might still be
+--    treated as a list of filters.
 
 local I = {} -- Stitch's Implementation
 
@@ -528,12 +534,7 @@ local Stitch = {
 	end,
 }
 
--- Lua filters are tables with element names as keys and values
--- consisting of functions acting on those elements.
---
--- Yet: `return Stitch` doesn't work?  Maybe my pandoc version (3.1.3)
--- is too old for that.
-
+-- return Stitch -- requires pandoc 3.5
 return {
 	Stitch,
 }
