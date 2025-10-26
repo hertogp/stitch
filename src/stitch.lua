@@ -31,6 +31,7 @@
 --  * `:Open https://github.com/pandoc/lua-filters` (older repo)
 
 local I = {} -- Stitch's Implementation; for testing
+I.input_idx = 0
 
 I.ctx = {} -- this doc's context (= meta.stitch)
 I.opts = { log = "info" } --> set per cb being processed
@@ -626,11 +627,9 @@ local Stitch = {
 	Pandoc = function(doc)
 		-- alt: if Pandoc" == pd.utils.type(doc) then return .. else return I end
 		-- tmp
-		local dump = require("dump")
-		print("cli", dump(_ENV.PANDOC_STATE))
-		for k, v in pairs(_ENV.PANDOC_STATE) do
-			print(k, v)
-		end
+		local inputs = _ENV.PANDOC_STATE.input_files
+		I.input_idx = I.input_idx + 1
+		I:log("info", "filter", "processing %s", inputs[I.input_idx])
 		-- /tmp
 		I:setup(doc)
 		return doc:walk({ CodeBlock = I.codeblock })
