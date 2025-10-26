@@ -48,7 +48,7 @@ show:
 	@echo $(TARGETS) | tr " " "\n"
 	@echo
 	@echo "- Usage --------"
-	@echo "make ex<..> (no extension .md)"
-	@echo "targets $(TARGETS)"
+	@echo "make ex<..> (see Available)"
+	@echo
 
 

@@ -45,6 +45,7 @@ I.level = {
 I.optvalues = {
 	-- valid option values
 	exe = { "yes", "no", "maybe" },
+	log = { "silent", "error", "warn", "info", "debug" },
 }
 
 I.hardcoded = {
@@ -74,9 +75,10 @@ I.hardcoded = {
 local pd = require("pandoc")
 
 function I:log(lvl, action, msg, ...)
-	-- [stitch level] (action cb_id) msg ..
-	if self.level[I.opts.log] >= self.level[lvl] then
-		local logfmt = "[stitch %5s] (%s %7s) " .. tostring(msg) .. "\n"
+	-- [stitch level] (action cb_id) msg .. (need to validate opts.log value)
+
+	if self.level[I.opts.log] or 1 >= self.level[lvl] then
+		local logfmt = "[stitch %5s] %s %-7s| " .. tostring(msg) .. "\n"
 		local text = string.format(logfmt, lvl, I.opts.cid or "mod", action, ...)
 		io.stderr:write(text)
 	end
@@ -450,12 +452,28 @@ end
 
 --[[ context & cb ]]
 
+-- check values for given `opts`, removes those that are illegal
+---@param opts table single k,v store of options
+---@return table opts same table with illegal options removed
+function I:validate(section, opts)
+	for k, valid in pairs(self.optvalues) do
+		local v = opts[k]
+		if v and #v > 0 and not pd.List.includes(valid, v, 1) then
+			local need = table.concat(valid, ", ")
+			opts[k] = nil
+			self:log("error", "meta", "%s.%s='%s' ignored, need one of: %s", section, k, v, need)
+		end
+	end
+	return opts
+end
+
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
-function I:mkopt(cb)
+function I:options(cb)
 	-- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
 	self.opts = self:metalua(cb.attributes)
+	self.opts = self:validate("cb.attr", self.opts)
 	setmetatable(self.opts, { __index = self.ctx[self.opts.cfg] })
 
 	-- additional options ("" is an absent identifier)
@@ -482,10 +500,10 @@ end
 --- extract `doc.meta.stitch` config from a doc's meta block (if any)
 ---@param doc table the doc's ast
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
-function I:mkctx(doc)
+function I:setup(doc)
 	-- pickup named cfg sections in meta.stitch, resolution order:
 	-- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
-	self.ctx = self:metalua(doc.meta.stitch or {}) or {}
+	self.ctx = self:metalua(doc.meta.stitch or {}) or {} -- REVIEW: last or {} needed?
 
 	-- defaults -> hardcoded
 	local defaults = self.ctx.defaults or {}
@@ -504,6 +522,11 @@ function I:mkctx(doc)
 		end,
 	})
 
+	defaults = self:validate("defaults", defaults)
+	for section, map in pairs(self.ctx) do
+		self.ctx[section] = self:validate(section, map)
+	end
+
 	return self.ctx
 end
 
@@ -515,7 +538,7 @@ function I.codeblock(cb)
 	end
 
 	-- TODO: also check self.opts.exe
-	if I:mkopt(cb) and I:mkcmd(cb) then
+	if I:options(cb) and I:mkcmd(cb) then
 		if I:deja_vu() then
 			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
 		else
@@ -541,42 +564,14 @@ print("are we good?", _ENV.PANDOC_VERSION >= { 3, 0 })
 local Stitch = {
 	_ = I, -- Stitch's implementation: for testing only
 
-	_codeblock = function(cb)
-		if not cb.classes:find("stitch") then
-			return nil
-		end
-
-		-- TODO: also check self.opts.exe
-		if I:mkopt(cb) and I:mkcmd(cb) then
-			if I:deja_vu() then
-				I:log("info", "result", "%s, re-using existing files", I.opts.cid)
-			else
-				local ok, code, nr = os.execute(I.opts.cmd)
-				if not ok then
-					I:log(
-						"error",
-						"result",
-						"fail %s, execute failed with %s(%s): %s",
-						I.opts.cid,
-						code,
-						nr,
-						I.opts.cmd
-					)
-					return nil
-				end
-			end
-		end
-		return I:result(cb)
-	end,
-
 	Pandoc = function(doc)
 		-- alt: if Pandoc" == pd.utils.type(doc) then return .. else return I end
-		I:mkctx(doc)
+		I:setup(doc)
 		return doc:walk({ CodeBlock = I.codeblock })
 	end,
 }
 
--- return Stitch -- requires pandoc 3.5
+-- return Stitch --<-- requires pandoc 3.5
 return {
 	Stitch,
 }

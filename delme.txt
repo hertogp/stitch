@@ -1,0 +1,32 @@
+cd examples; pandoc --lua-filter stitch.lua --from markdown+inline_code_attributes ex00.md -o ex00.html
+are we good?	true
+_G	table: 0x3e2a72a0
+PANDOC_VERSION	3.1.3
+pandoc	table: 0x3e2b4450
+PANDOC_API_VERSION	1.23.1
+getmetatable	function: 0x75df52999ec0
+debug	table: 0x3e2ad0c0
+next	function: 0x75df52999090
+xpcall	function: 0x75df529a1420
+os	table: 0x3e2af230
+FORMAT	html
+tostring	function: 0x75df5299af00
+load	function: 0x75df529a1260
+setmetatable	function: 0x75df52999f30
+_G	table: 0x3e2a72a0
+rawset	function: 0x75df5299fa90
+loadfile	function: 0x75df529a11e0
+require	function: 0x3e2adce0
+error	function: 0x75df52998d40
+ipairs	function: 0x75df5299dea0
+rawget	function: 0x75df52999fe0
+warn	function: 0x75df5299f020
+lpeg	table: 0x3e2e7ea0
+_VERSION	Lua 5.4
+table	table: 0x3e2add50
+math	table: 0x3e2afaf0
+rawequal	function: 0x75df52997560
+pcall	function: 0x75df529a1380
+pairs	function: 0x75df5299de00
+assert	function: 0x75df5299a220
+PANDOC_READER_OPTIONS
