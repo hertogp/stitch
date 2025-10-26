@@ -78,8 +78,8 @@ function I:log(lvl, action, msg, ...)
 	-- [stitch level] (action cb_id) msg .. (need to validate opts.log value)
 
 	if self.level[I.opts.log] or 1 >= self.level[lvl] then
-		local logfmt = "[stitch %5s] %s %-7s| " .. tostring(msg) .. "\n"
-		local text = string.format(logfmt, lvl, I.opts.cid or "mod", action, ...)
+		local fmt = "[stitch %5s] %s %-7s| " .. tostring(msg) .. "\n"
+		local text = string.format(fmt, lvl, I.opts.cid or "mod", action, ...)
 		io.stderr:write(text)
 	end
 end
@@ -399,31 +399,31 @@ function I:result(cb)
 			local elmid = string.format("%s-%d-%s", self.opts.cid, idx, what)
 			ncb.identifier = elmid
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				self:log("debug", "include", "include %s, '%s:%s', data as native ast", elmid, what, how)
+				self:log("debug", "include", "id %s, '%s:%s', data as native ast", elmid, what, how)
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how and "cbx" == what then
-				self:log("debug", "include", "include %s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
+				self:log("debug", "include", "id %s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
 				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
 				elms[#elms + 1] = ncb
 			elseif "fcb" == how then
 				-- everthing else simply goes inside fcb as text
-				self:log("debug", "include", "include %s, inc '%s:%s', data in a fcb", elmid, what, how)
+				self:log("debug", "include", "id %s, inc '%s:%s', data in a fcb", elmid, what, how)
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
 				-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L365`
-				self:log("debug", "include", "include %s, inc '%s:%s', image %s", elmid, what, how, fname)
+				self:log("debug", "include", "id %s, inc '%s:%s', image %s", elmid, what, how, fname)
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
-				self:log("debug", "include", "include %s, inc '%s:%s', figure", elmid, what, how, fname)
+				self:log("debug", "include", "id %s, inc '%s:%s', figure", elmid, what, how, fname)
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
 				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
 			elseif doc and "" == how then
 				-- output elements cbx, out, err, art without a how
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an ast by default has its individual blocks inserted
-					self:log("debug", "include", "include %s, inc '%s:%s', ast blocks", elmid, what, how)
+					self:log("debug", "include", "id %s, inc '%s:%s', ast blocks", elmid, what, how)
 					if doc.blocks[1].attr then
 						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
 						doc.blocks[1].classes = ncb.classes
@@ -433,17 +433,19 @@ function I:result(cb)
 					end
 				else
 					-- doc is raw data and inserted as a div
-					self:log("debug", "include", "include %s, inc '%s:%s', data as div", elmid, what, how)
+					self:log("debug", "include", "id %s, inc '%s:%s', data as div", elmid, what, how)
 					elms[#elms + 1] = pd.Div(doc, ncb.attr)
 				end
 			else
 				-- todo: never reached?
-				self:log("error", "include", "skip %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
-				elms[#elms + 1] =
-					pd.Div(string.format("<stitch> %s, %s:%s: unknown or no output seen", elmid, what, how), ncb.attr)
+				self:log("error", "include", "skip id %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
+				elms[#elms + 1] = pd.Div(
+					string.format("<stitch> id %s, %s:%s: unknown or no output seen", elmid, what, how),
+					ncb.attr
+				)
 			end
 		else
-			self:log("error", "include", "skip %s, invalid directive inc '%s:%s'", self.opts.cid, what, how)
+			self:log("error", "include", "skip id %s, invalid directive inc '%s:%s'", self.opts.cid, what, how)
 		end
 	end
 
