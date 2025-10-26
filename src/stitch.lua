@@ -1,10 +1,7 @@
 --[[ stitch ]]
 -- TODO:
--- * add old = "keep|purge"-flag for previous (old) files named id-<old sha>.*
--- * -or advise to set path's to .stitch/tmp for files that can be removed
 -- * check utf8 requirements (if any)
--- * add all functions to S so they can be tested { {Pandoc=S.Pandoc}, [0] = S}
--- * add pandoc version check, see (vx.yz) or pd.xx funcs to check
+-- * opts.cid doesn't show originating file
 -- * add hardcoded.cbc = 0, cb count, "cb"..I.opts.cbc is fallback for I.opts.cid
 -- * add mediabag to store files related to cb's
 -- * add Code handler to insert pieces of a CodeBlock
@@ -535,6 +532,52 @@ function I:setup(doc)
 	return self.ctx
 end
 
+-- remove old files from past runs of give codeblock `cb`
+---@param cb table pandoc.CodeBlock
+---@return number count number of files removed
+function I:fkill(cb)
+	local count = 0
+	if "purge" ~= self.opts.old then
+		self:log("info", "files", "not purging old files: cb.old='%s'", I.opts.old)
+		return count
+	end
+
+	I:log("info", "files", "removing old files (if any)")
+	-- fkill -- remove old file(s)
+	for _, what in ipairs({ "cbx", "out", "err", "art" }) do
+		local fnew = I.opts[what]
+		local pat, cnt = fnew, 0
+		local dir = pd.path.directory(pat)
+		-- nomagic chars
+		local magic = "^$()%.[]*+-?"
+		for i = 1, #magic do
+			local char = "%" .. magic:sub(i, i)
+			pat = pat:gsub(char, "%" .. char)
+		end
+
+		pat, cnt = pat:gsub(I.opts.sha, "(%%w+)")
+		-- usage of #sha in filename templates is not mandatory, so check pattern
+		if cnt == 1 then
+			for _, fold in ipairs(pd.system.list_directory(dir)) do
+				fold = pd.path.join({ dir, fold })
+				if fold ~= fnew and fold:match(pat) then
+					local ok, err = os.remove(fold)
+					if not ok then
+						self:log("error", "files", "unable to remove: %s (%s)", fold, err)
+					else
+						count = count + 1
+						self:log("debug", "files", "- removed %s", fold)
+					end
+				end
+			end
+		else
+			I:log("warn", "files", "%s not usable for old file detection", pat)
+		end
+	end
+
+	return count
+end
+
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
 function I.codeblock(cb)
@@ -556,41 +599,9 @@ function I.codeblock(cb)
 				return nil
 			end
 			I:log("info", "execute", "%s, codeblock ran successfully", I.opts.cid)
-
 			-- only purge when execute was successful
-			if "purge" == I.opts.old then
-				I:log("info", "files", "removing old files (if any)")
-				-- fkill -- remove old file(s)
-				for _, what in ipairs({ "cbx", "out", "err", "art" }) do
-					local fnew = I.opts[what]
-					local pat, cnt = fnew, 0
-					local dir = pd.path.directory(pat)
-					-- nomagic chars
-					local magic = "^$()%.[]*+-?"
-					for i = 1, #magic do
-						local char = "%" .. magic:sub(i, i)
-						pat = pat:gsub(char, "%" .. char)
-					end
-					-- pat = pd.path.filename(pat)
-					pat, cnt = pat:gsub(I.opts.sha, "(%%w+)")
-
-					if 1 == cnt then
-						for _, fold in ipairs(pd.system.list_directory(dir)) do
-							fold = pd.path.join({ dir, fold })
-							if fold ~= fnew and fold:match(pat) then
-								ok, code = os.remove(fold)
-								if not ok then
-									I:log("error", "files", "unable to remove: %s (%s)", fold, code)
-								else
-									I:log("info", "files", "- removed %s", fold)
-								end
-							end
-						end
-					end
-				end
-			else
-				I:log("info", "files", "not purging old files: cb.old='%s'", I.opts.old)
-			end
+			local count = I:fkill(cb)
+			I:log("info", "files", "%d old files removed", count)
 		end
 	end
 	return I:result(cb)
