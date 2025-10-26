@@ -387,7 +387,10 @@ function I:result(cb)
 				self:fsave(doc, self.opts[what])
 			end
 
-			-- elms[#elsm+1] = mkelm(doc, cb, I.opts, what, how) -- nil is noop
+			-- NOTE:
+			-- * when result is Blocks, maybe use pandoc.structure.make_sections(blocks)
+			--   to insert numbered sections in AST using options to control numbering?
+			-- * pandoc.structure.table_of_contents (?)
 			local ncb = self:mkfcb(cb)
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
@@ -407,6 +410,7 @@ function I:result(cb)
 				ncb.text = doc
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
+				-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L365`
 				self:log("debug", "include", "include %s, inc '%s:%s', image %s", elmid, what, how, fname)
 				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
 			elseif "fig" == how then
@@ -536,6 +540,34 @@ print("are we good?", _ENV.PANDOC_VERSION >= { 3, 0 })
 
 local Stitch = {
 	_ = I, -- Stitch's implementation: for testing only
+
+	_codeblock = function(cb)
+		if not cb.classes:find("stitch") then
+			return nil
+		end
+
+		-- TODO: also check self.opts.exe
+		if I:mkopt(cb) and I:mkcmd(cb) then
+			if I:deja_vu() then
+				I:log("info", "result", "%s, re-using existing files", I.opts.cid)
+			else
+				local ok, code, nr = os.execute(I.opts.cmd)
+				if not ok then
+					I:log(
+						"error",
+						"result",
+						"fail %s, execute failed with %s(%s): %s",
+						I.opts.cid,
+						code,
+						nr,
+						I.opts.cmd
+					)
+					return nil
+				end
+			end
+		end
+		return I:result(cb)
+	end,
 
 	Pandoc = function(doc)
 		-- alt: if Pandoc" == pd.utils.type(doc) then return .. else return I end

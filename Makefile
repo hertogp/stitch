@@ -1,27 +1,54 @@
-PANDOC=pandoc
-BUSTED=busted
-FILTER=src/stitch.lua
-EXAMPLES=examples
-SCRATCH=.stitch
-# how to enable extension: inline_code_attributes
+PANDOC   = pandoc
+BUSTED   = busted
+FILTER   = --lua-filter stitch.lua
+EX_DIR   = examples
+ST_DIR   = .stitch
+FROM     = markdown
+EXTS     = inline_code_attributes
 
-default: ex00
+EXAMPLES = $(sort $(wildcard $(EX_DIR)/ex*.md))
+TARGETS  = $(EXAMPLES:examples/%.md=%)
 
-ex00:
-	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes ex00.md -o ex00.html
+# make any ex(ample) converting markdown -> html
+default: show
 
-ex01:
-	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) --from markdown+inline_code_attributes ex01.md -o ex01.html
+ex%:
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
 
-gnuplot:
-	cd $(EXAMPLES); $(PANDOC) --lua-filter ../$(FILTER) gnuplot.md -o gnuplot.pdf
+all: $(TARGETS)
 
-test:
-	$(BUSTED)
+# gnuplot:
+# 	cd $(EXAMPLES); $(PANDOC) --lua-filter $(FILTER) gnuplot.md -o gnuplot.pdf
+
+# TODO:
+# test:
+# 	$(BUSTED)
 
 clean:
-	rm -rf $(EXAMPLES)/$(SCRATCH)/*
-	rmdir $(EXAMPLES)/$(SCRATCH)
+	rm -rf $(EX_DIR)/$(ST_DIR)/*
+	rmdir $(EX_DIR)/$(ST_DIR)
 
+
+help: show
+
+show:
+	@echo ""
+	@echo "- VARS ----------"
+	@echo "PANDOC          = $(PANDOC)"
+	@echo "FILTER          = $(FILTER)"
+	@echo "FROM            = $(FROM)"
+	@echo "EXTS            = $(EXTS)"
+	@echo "BUSTED          = $(BUSTED)"
+	@echo "EX_DIR          = $(EX_DIR)"
+	@echo ""
+	@echo "- CMD -----------"
+	@echo "cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html"
+	@echo ""
+	@echo "- Available -----"
+	@echo $(TARGETS) | tr " " "\n"
+	@echo
+	@echo "- Usage --------"
+	@echo "make ex<..> (no extension .md)"
+	@echo "targets $(TARGETS)"
 
 
