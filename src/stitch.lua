@@ -1,7 +1,6 @@
 --[[ stitch ]]
 -- TODO:
--- * add option value checker for reporting errors in stitch option values
--- * add old = "keep|purge|move"-flag for previous (old) files named id-<old sha>.*
+-- * add old = "keep|purge"-flag for previous (old) files named id-<old sha>.*
 -- * -or advise to set path's to .stitch/tmp for files that can be removed
 -- * check utf8 requirements (if any)
 -- * add all functions to S so they can be tested { {Pandoc=S.Pandoc}, [0] = S}
@@ -11,6 +10,7 @@
 -- * add Code handler to insert pieces of a CodeBlock
 --
 -- NOTES:
+-- * pandoc.Caption needs >= 3.6.1
 -- * pandoc -v -> ~/.local/share/pandoc = pandoc user data directory
 --   + filters placed here will be found by pandoc (TODO: test)
 --   + at moment ~/.local/share/pandoc/filters/ is being used
@@ -18,14 +18,14 @@
 -- * pd.system.list_directory('dir') (v2.19)
 -- * pd.system.make_directory('dir/subdir', true) (v2.19)
 -- * pd.system.remove_directory('dir) (v2.19)
--- * Pandoc 3.5 2024-10-04
+-- * return SingleFilter -> Pandoc 3.5 2024-10-04
 -- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-35-2024-10-04`
 --  + pandoc 3.5 allows for single filter (table) to be returned
 --  + return { Pandoc = my_func(doc) }
 --  + returned filter should not contain numeric indices or it might still be
 --    treated as a list of filters.
 --
---  OTHER PROJECTS
+--  OTHER PROJECTS:
 --  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
 --  * `:Open https://github.com/LaurentRDC/pandoc-plot/tree/master`
 --  * `:Open https://github.com/pandoc/lua-filters` (older repo)
@@ -46,6 +46,7 @@ I.optvalues = {
 	-- valid option values
 	exe = { "yes", "no", "maybe" },
 	log = { "silent", "error", "warn", "info", "debug" },
+	old = { "keep", "purge" },
 }
 
 I.hardcoded = {
@@ -57,6 +58,7 @@ I.hardcoded = {
 	fmt = "png", -- format for images (if any)
 	log = "info", -- debug, error, warn, info, silent
 	exe = "maybe", -- yes, no, maybe
+	old = "purge", -- keep, purge
 	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
@@ -213,9 +215,9 @@ function I:mkcmd(cb)
 	end
 
 	-- review: check expanse complete, no more #<names> left?
-	self:log("info", "cmd", "expanding '%s'", self.opts.cmd)
+	self:log("info", "expand", "cmd template '%s'", self.opts.cmd)
 	self.opts.cmd = I.opts.cmd:gsub("%#(%w+)", self.opts)
-	self:log("info", "cmd", "expanded to '%s'", self.opts.cmd)
+	self:log("info", "expand", "%s", self.opts.cmd)
 	return true
 end
 
@@ -393,8 +395,6 @@ function I:result(cb)
 			--   to insert numbered sections in AST using options to control numbering?
 			-- * pandoc.structure.table_of_contents (?)
 			local ncb = self:mkfcb(cb)
-			print("cb", print(cb))
-			print("ncb", print(ncb))
 			local title = ncb.attributes.title or ""
 			local caption = ncb.attributes.caption
 			local elmid = string.format("%s-%d-%s", self.opts.cid, idx, what)
@@ -402,10 +402,7 @@ function I:result(cb)
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
 				self:log("info", "include", "id %s, '%s:%s', data as native ast", elmid, what, how)
 				if doc and doc.blocks[1].attr then
-					doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
-					doc.blocks[1].classes = ncb.classes
-					doc.blocks[1].attributes = ncb.attributes
-					print(ncb, caption)
+					doc.blocks[1].attr = ncb.attr
 				end
 				ncb.text = pd.write(doc, "native")
 				elms[#elms + 1] = ncb
@@ -431,11 +428,8 @@ function I:result(cb)
 				if "Pandoc" == pd.utils.type(doc) then
 					-- an ast by default has its individual blocks inserted
 					self:log("info", "include", "id %s, inc '%s:%s', ast blocks", elmid, what, how)
-					print("blocks[1] type", self.opts.cid, pd.utils.type(doc.blocks[1]))
-					print("blocks[1] tag", self.opts.cid, doc.blocks[1].tag)
 					if doc.blocks[1].attr then
-						doc.blocks[1].identifier = ncb.identifier -- or blocks[1].attr = ncb.attr
-						doc.blocks[1].classes = ncb.classes
+						doc.blocks[1].attr = ncb.attr
 					end
 					for _, block in ipairs(doc.blocks) do
 						elms[#elms + 1] = block
@@ -548,15 +542,54 @@ function I.codeblock(cb)
 		return nil
 	end
 
-	-- TODO: also check self.opts.exe
+	-- TODO: also check self.opts.exe and self.opts.old (keep/purge)
 	if I:options(cb) and I:mkcmd(cb) then
-		if I:deja_vu() then
-			I:log("info", "result", "%s, re-using existing files", I.opts.cid)
+		if "no" == I.opts.exe then
+			I:log("info", "execute", "skipped (exe='%s')", I.opts.exe)
+		elseif I:deja_vu() and "maybe" == I.opts.exe then
+			I:log("info", "execute", "skipped, output files exist (exe='%s')", I.opts.exe)
 		else
+			I:log("info", "execute", "running codeblock (exe='%s')", I.opts.exe)
 			local ok, code, nr = os.execute(I.opts.cmd)
 			if not ok then
-				I:log("error", "result", "fail %s, execute failed with %s(%s): %s", I.opts.cid, code, nr, I.opts.cmd)
+				I:log("error", "execute", "codeblock failed with %s(%s)", code, nr)
 				return nil
+			end
+			I:log("info", "execute", "%s, codeblock ran successfully", I.opts.cid)
+
+			-- only purge when execute was successful
+			if "purge" == I.opts.old then
+				I:log("info", "files", "removing old files (if any)")
+				-- fkill -- remove old file(s)
+				for _, what in ipairs({ "cbx", "out", "err", "art" }) do
+					local fnew = I.opts[what]
+					local pat, cnt = fnew, 0
+					local dir = pd.path.directory(pat)
+					-- nomagic chars
+					local magic = "^$()%.[]*+-?"
+					for i = 1, #magic do
+						local char = "%" .. magic:sub(i, i)
+						pat = pat:gsub(char, "%" .. char)
+					end
+					-- pat = pd.path.filename(pat)
+					pat, cnt = pat:gsub(I.opts.sha, "(%%w+)")
+
+					if 1 == cnt then
+						for _, fold in ipairs(pd.system.list_directory(dir)) do
+							fold = pd.path.join({ dir, fold })
+							if fold ~= fnew and fold:match(pat) then
+								ok, code = os.remove(fold)
+								if not ok then
+									I:log("error", "files", "unable to remove: %s (%s)", fold, code)
+								else
+									I:log("info", "files", "- removed %s", fold)
+								end
+							end
+						end
+					end
+				end
+			else
+				I:log("info", "files", "not purging old files: cb.old='%s'", I.opts.old)
 			end
 		end
 	end
