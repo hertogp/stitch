@@ -11,6 +11,9 @@
 -- * add Code handler to insert pieces of a CodeBlock
 --
 -- NOTES:
+-- * pandoc -v -> ~/.local/share/pandoc = pandoc user data directory
+--   + filters placed here will be found by pandoc (TODO: test)
+--   + at moment ~/.local/share/pandoc/filters/ is being used
 -- * pd.system.os () -> for checking OS type
 -- * pd.system.list_directory('dir') (v2.19)
 -- * pd.system.make_directory('dir/subdir', true) (v2.19)
@@ -21,8 +24,13 @@
 --  + return { Pandoc = my_func(doc) }
 --  + returned filter should not contain numeric indices or it might still be
 --    treated as a list of filters.
+--
+--  OTHER PROJECTS
+--  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
+--  * `:Open https://github.com/LaurentRDC/pandoc-plot/tree/master`
+--  * `:Open https://github.com/pandoc/lua-filters` (older repo)
 
-local I = {} -- Stitch's Implementation
+local I = {} -- Stitch's Implementation; a table nables testing
 
 I.ctx = {} -- this doc's context (= meta.stitch)
 I.opts = { log = "info" } --> set per cb being processed
@@ -519,16 +527,18 @@ end
 
 --[[ filter ]]
 
+-- pandoc.Figure was introduced in pandoc version 3 (TODO: check)
+-- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
+--  + Pandoc 3.0 introduces pandoc.Figure element
 I:log("info", "check", "PANDOC_VERSION %s", _ENV.PANDOC_VERSION) -- 3.1.3
 I:log("info", "check", string.format("running on %s", pd.system.os))
--- assert(pandoc_api_version >= {1, 23}, "need at least pandoc x.x.x")
--- pandoc.Figure was introduced in pandoc version 3 (TODO: check)
-print("are we good?", _ENV.PANDOC_VERSION >= { 1, 23 })
+print("are we good?", _ENV.PANDOC_VERSION >= { 3, 0 })
 
 local Stitch = {
-	_ = I, -- for testing
+	_ = I, -- Stitch's implementation: for testing only
 
 	Pandoc = function(doc)
+		-- alt: if Pandoc" == pd.utils.type(doc) then return .. else return I end
 		I:mkctx(doc)
 		return doc:walk({ CodeBlock = I.codeblock })
 	end,
