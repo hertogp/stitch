@@ -9,21 +9,36 @@
 -- * add mediabag to store files related to cb's
 -- * add Code handler to insert pieces of a CodeBlock
 --
--- NOTES:
--- * pandoc.Caption needs >= 3.6.1
--- * pandoc -v -> ~/.local/share/pandoc = pandoc user data directory
---   + filters placed here will be found by pandoc (TODO: test)
---   + at moment ~/.local/share/pandoc/filters/ is being used
--- * pd.system.os () -> for checking OS type
--- * pd.system.list_directory('dir') (v2.19)
--- * pd.system.make_directory('dir/subdir', true) (v2.19)
--- * pd.system.remove_directory('dir) (v2.19)
--- * return SingleFilter -> Pandoc 3.5 2024-10-04
--- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-35-2024-10-04`
---  + pandoc 3.5 allows for single filter (table) to be returned
---  + return { Pandoc = my_func(doc) }
---  + returned filter should not contain numeric indices or it might still be
---    treated as a list of filters.
+-- TODO's
+-- [c] pandoc.Caption needs >= 3.6.1
+-- [c] pandoc -v -> ~/.local/share/pandoc = pandoc user data directory
+--     + at moment ~/.local/share/pandoc/filters/ is being used (on LUA_PATH)
+-- [x] pd.system.os () -> for checking OS type
+-- [x] pd.system.list_directory('dir') (v2.19)
+-- [o] pd.system.make_directory('dir/subdir', true) (v2.19)
+-- [o] pd.system.remove_directory('dir) (v2.19)
+-- [c] return SingleFilter -> Pandoc 3.5 2024-10-04
+--     `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-35-2024-10-04`
+--     + pandoc 3.5 allows for single filter (table) to be returned, e.g.
+--       return Stitch -> easier for testing
+--     + in that case, returned filter should not contain numeric indices or it
+--       might still be treated as a list of filters.
+-- [o] add file id for file being processes
+--   - `_ENV.PANDOC_STATE.input_file` lists all input files mentioned on the cli
+--   - however, pandoc calls Stitch.Pandoc only once since it strings all input
+--     together into 1 document AST
+--   - hence the best one can do is to set meta.stitch.defaults.fid="xyz"
+--     + cid = fid-cbid-sha.{out, err, cbx, art}
+--   - meta.stitch.defaults.dir = doc_name
+--     + this helps and, for single doc conversion, all you need
+--   - for multi-doc converstion (nx inputs on cli), use:
+--     + meta.stitch.defaults.dir = .stitch/project_name (or any path)
+--     + meta.stitch.defaults.fid = file_id (per file)
+--     * dir-path is relative to working dir for the running pandoc, or any
+--       absolute path you desire (e.g ~/tmp/ or /tmp)
+-- [o] shorten filenames in logs: full sha := abcd..pqrs.ext
+--     * not for logging file removal (?)
+--     * fssha, fcurt, fpoor, ...
 --
 --  OTHER PROJECTS:
 --  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
@@ -63,9 +78,9 @@ I.hardcoded = {
 	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
-	cbx = "#dir/cbx/#cid-#sha.cb", -- the codeblock.text as file on disk
-	out = "#dir/out/#cid-#sha.out", -- capture of stdout (if any)
-	err = "#dir/err/#cid-#sha.err", -- capture of stderr (if any)
+	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
+	out = "#dir/#cid-#sha.out", -- capture of stdout (if any)
+	err = "#dir/#cid-#sha.err", -- capture of stderr (if any)
 	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
 	-- command must be expanded last
 	cmd = "#cbx #arg #art 1>#out 2>#err", -- cmd template string, expanded last
@@ -160,20 +175,20 @@ end
 ---@param cb table a pandoc codeblock
 ---@return string sha1 hash of option values and codeblock content
 function I:mksha(cb)
-	-- sorting ensures repeatable fingerprints
-	local keys = {}
+	-- sorting for repeatable fingerprints
+	local hardcoded_keys = {}
 	for key in pairs(self.hardcoded) do
-		keys[#keys + 1] = key
+		hardcoded_keys[#hardcoded_keys + 1] = key
 	end
-	table.sort(keys) -- sorts inplace
+	table.sort(hardcoded_keys) -- sorts inplace
 
 	-- fingerprint is hash on option values + cb.text
+	-- for repeatable fingerprints, eliminate whitespace
 	local vals = {}
-	for _, key in ipairs(keys) do
+	for _, key in ipairs(hardcoded_keys) do
 		vals[#vals + 1] = pd.utils.stringify(self.opts[key]):gsub("%s", "")
 	end
-	-- eliminate whitespace as well for repeatable fingerprints
-	vals[#vals + 1] = cb.text:gsub("%s", "")
+	vals[#vals + 1] = cb.text:gsub("%s", "") -- also no wspace
 
 	return pd.utils.sha1(table.concat(vals, ""))
 end
@@ -305,7 +320,7 @@ function I:fkill()
 
 	for _, what in ipairs({ "cbx", "out", "err", "art" }) do
 		local fnew = I.opts[what]
-		local pat, cnt = fnew, 0
+		local pat, cnt = fnew, 0 -- since filenames are expanded, pat includes full path
 		local dir = pd.path.directory(pat)
 		-- nomagic chars
 		local magic = "^$()%.[]*+-?"
@@ -314,12 +329,13 @@ function I:fkill()
 			pat = pat:gsub(char, "%" .. char)
 		end
 
-		pat, cnt = pat:gsub(I.opts.sha, "(%%w+)")
+		-- this only works is file template is <other text>-#sha.<ext>
+		pat, cnt = pat:gsub(I.opts.sha, "(%%w+)") -- swap sha of un-magic'd fnew with capture pattern
 		-- usage of #sha in filename templates is not mandatory, so check pattern
 		if cnt == 1 then
 			for _, fold in ipairs(pd.system.list_directory(dir)) do
 				fold = pd.path.join({ dir, fold })
-				if fold ~= fnew and fold:match(pat) then
+				if fold:match(pat) and fold ~= fnew then
 					local ok, err = os.remove(fold)
 					if not ok then
 						self:log("error", "files", "unable to remove: %s (%s)", fold, err)
@@ -330,7 +346,7 @@ function I:fkill()
 				end
 			end
 		else
-			I:log("warn", "files", "%s not usable for old file detection", pat)
+			I:log("warn", "files", "filename template used without sha1 (%s), unable to detect old files", I.opts.sha)
 		end
 	end
 
@@ -604,8 +620,15 @@ function I.codeblock(cb)
 		end
 	end
 
-	local count = I:fkill()
-	I:log("info", "files", "%d old files removed", count)
+	-- do not remove old files if exe=no (if that was added, the cb changed and
+	-- so did the cb's sha fingerprint(!) thus files generated last would be
+	-- removed: not what you'd want or expect.
+	if "no" == I.opts.exe then
+		I:log("info", "files", "not removing any old files (exe=%s)", I.opts.exe)
+	else
+		local count = I:fkill()
+		I:log("info", "files", "%d old files removed", count)
+	end
 
 	return I:result(cb)
 end
@@ -630,6 +653,7 @@ local Stitch = {
 		local inputs = _ENV.PANDOC_STATE.input_files
 		I.input_idx = I.input_idx + 1
 		I:log("info", "filter", "processing %s", inputs[I.input_idx])
+		print("---->", inputs)
 		-- /tmp
 		I:setup(doc)
 		return doc:walk({ CodeBlock = I.codeblock })

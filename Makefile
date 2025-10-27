@@ -6,7 +6,7 @@ ST_DIR   = .stitch
 FROM     = markdown
 EXTS     = inline_code_attributes
 
-EXAMPLES = $(sort $(wildcard $(EX_DIR)/ex*.md))
+EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
 
 # make any ex(ample) converting markdown -> html
@@ -14,6 +14,9 @@ default: show
 
 ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
+
+%.pdf:
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.pdf
 
 all: $(TARGETS)
 
