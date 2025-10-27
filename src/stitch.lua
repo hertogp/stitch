@@ -460,6 +460,12 @@ function I:result(cb)
 			local caption = ncb.attributes.caption
 			local elmid = string.format("%s-%d-%s", self.opts.cid, idx, what)
 			ncb.identifier = elmid
+			-- TODO:
+			-- * use goto to (the end of for-loop) to eliminate the if name then .<large block>... else ... end
+			-- * reduce cognitive load by doing if fcb==how then if Pandoc==..elseif cbx==what then .. etc..
+			-- * of perhaps use table element[how](what, cb) and split use-cases
+			-- inside table's entries, where element.fcb(what,cb) is a function (like
+			-- before with mkelm[..](..)
 			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
 				self:log("info", "include", "id %s, '%s:%s', data as native ast", elmid, what, how)
 				if doc and doc.blocks[1].attr then
@@ -478,8 +484,11 @@ function I:result(cb)
 				elms[#elms + 1] = ncb
 			elseif "img" == how then
 				-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L365`
+				-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
+				--  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
+				--  nb: Image is an Inline, need to wrap it in a Para (a Block, like a CodeBlock)
 				self:log("info", "include", "id %s, inc '%s:%s', image %s", elmid, what, how, fname)
-				elms[#elms + 1] = pd.Image({ caption }, fname, title, ncb.attr)
+				elms[#elms + 1] = pd.Para(pd.Image({ caption }, fname, title, ncb.attr))
 			elseif "fig" == how then
 				self:log("info", "include", "id %s, inc '%s:%s', figure", elmid, what, how, fname)
 				local img = pd.Image({ caption }, fname, title, ncb.attr)
@@ -504,7 +513,7 @@ function I:result(cb)
 				-- todo: never reached?
 				self:log("error", "include", "skip id %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
 				elms[#elms + 1] = pd.Div(
-					string.format("<stitch> id %s, %s:%s: unknown or no output seen", elmid, what, how),
+					string.format("[stitch](error) id %s, %s:%s: unknown or no output seen", elmid, what, how),
 					ncb.attr
 				)
 			end
