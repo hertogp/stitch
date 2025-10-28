@@ -371,6 +371,61 @@ end
 
 --[[ AST elements ]]
 
+I.mkelm = {
+	fcb = function(fcb, cb, doc, what)
+		-- create a fenced code block, doc goes into fcb.text
+
+		if "Pandoc" == pd.utils.type(doc) then
+			-- doc converted to pandoc native form, attr copied if possible
+			if doc and doc.blocks[1].attr then
+				doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
+			end
+			fcb.text = pd.write(doc, "native")
+		elseif "cbx" == what then
+			-- doc discarded, org cb included (in markdown format)
+			fcb.text = pd.write(pd.Pandoc({ cb }, {}), "markdown")
+		else
+			-- doc used as-is
+			fcb.text = doc
+		end
+		I:log("info", "include", "%s, id %s, pandoc.CodeBlock", what, fcb.attr.identifier)
+
+		return fcb
+	end,
+
+	img = function(fcb, _, _, what)
+		-- doc is discarded and output file linked to as Image
+		-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
+		--  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
+		--  nb: Image is an Inline, need to wrap it in a Para (a Block, like a CodeBlock)
+		local title = fcb.attributes.title or ""
+		local caption = fcb.attributes.caption
+		I:log("info", "include", "%s, id %s, pandoc.Image", what, fcb.attr.identifier)
+		return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
+	end,
+
+	fig = function(fcb, cb, doc, what)
+		-- doc is discarded and output file linked to as Figure
+		local para = I.mkelm.img(fcb, cb, doc, what) -- pd.Image({ caption }, I.opts[what], title, fcb.attr)
+		local img = para.content[1]
+		img.attr.identifier = img.attr.identifier .. "-img"
+		img.attributes.caption = nil
+		I:log("info", "include", "%s, is %s, pandoc.Figure", what, fcb.attr.identifier)
+		return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
+	end,
+
+	[""] = function(idx, cb, doc, what)
+		-- no `how` (type of element) specified, do default per `what`
+		if "art" == what then
+			return I.mkelm.fig(idx, cb, doc, what)
+		else
+			return I.mkelm.fcb(idx, cb, doc, what) -- for cbx, out or err
+		end
+	end,
+}
+
+-- setmetatable(mkelm, mkelm_mt)
+
 -- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
 ---@return table clone a new codeblock instance
@@ -403,8 +458,8 @@ function I:xform(doc, filter)
 		return doc, count
 	end
 
-	local mod, fun = filter:match("(%w+)%.?(%w*)")
-	fun = #fun > 0 and fun or "pandoc" -- default to mod.pandoc
+	local mod, fun = filter:match("(%w+)%.?(%w*)") -- module.function
+	fun = #fun > 0 and fun or "Pandoc" -- function default is Pandoc
 	ok, filters = pcall(require, mod)
 	if not ok then
 		self:log("warn", "xform", "skip @%s: module %s not found", filter, mod)
@@ -415,7 +470,8 @@ function I:xform(doc, filter)
 	end
 
 	if doc and "Pandoc" == pd.utils.type(doc) then
-		doc.meta.stitch = pd.metamap(I.ctx)
+		-- add stitch context to a Pandoc doc
+		doc.meta.stitch = pd.MetaMap(I.ctx)
 	end
 
 	for n, f in ipairs(filters) do
@@ -434,91 +490,29 @@ function I:xform(doc, filter)
 	return doc, count
 end
 
--- create doc elements for codeblock
+-- create doc element(s) per codeblock's inc-attribute
 ---@param cb table codeblock
 ---@return table result sequence of pandoc ast elements
 function I:result(cb)
-	local elms, count = {}, 0
+	local elms = {}
+	local fcb = I:mkfcb(cb)
 
 	for idx, elm in ipairs(self:parse_inc(self.opts.inc)) do
-		local what, format, filter, how = table.unpack(elm)
+		local what, format, filter, type_ = table.unpack(elm)
 		local fname = self.opts[what]
 		if fname then
+			local count = 0 -- num of filters actually applied
 			local doc = self:fread(fname, format) -- format maybe "" (just reads fname)
 			doc, count = self:xform(doc, filter)
-			if count > 0 or true then
-				-- a filter could post-process an image so save it, if applicable
+			if count > 0 then
+				-- a filter was actually applied, so save altered doc
 				self:fsave(doc, fname)
 			end
 
-			-- NOTE:
-			-- * when result is Blocks, maybe use pandoc.structure.make_sections(blocks)
-			--   to insert numbered sections in AST using options to control numbering?
-			-- * pandoc.structure.table_of_contents (?)
-			local ncb = self:mkfcb(cb)
-			local title = ncb.attributes.title or ""
-			local caption = ncb.attributes.caption
-			local elmid = string.format("%s-%d-%s", self.opts.cid, idx, what)
-			ncb.identifier = elmid
-			-- TODO:
-			-- * use goto to (the end of for-loop) to eliminate the if name then .<large block>... else ... end
-			-- * reduce cognitive load by doing if fcb==how then if Pandoc==..elseif cbx==what then .. etc..
-			-- * of perhaps use table element[how](what, cb) and split use-cases
-			-- inside table's entries, where element.fcb(what,cb) is a function (like
-			-- before with mkelm[..](..)
-			if "fcb" == how and "Pandoc" == pd.utils.type(doc) then
-				self:log("info", "include", "id %s, '%s:%s', data as native ast", elmid, what, how)
-				if doc and doc.blocks[1].attr then
-					doc.blocks[1].attr = ncb.attr
-				end
-				ncb.text = pd.write(doc, "native")
-				elms[#elms + 1] = ncb
-			elseif "fcb" == how and "cbx" == what then
-				self:log("info", "include", "id %s, '%s:%s', cb in a fenced codeblock", elmid, what, how)
-				ncb.text = pd.write(pd.Pandoc({ cb }, {}))
-				elms[#elms + 1] = ncb
-			elseif "fcb" == how then
-				-- everthing else simply goes inside fcb as text
-				self:log("info", "include", "id %s, inc '%s:%s', data in a fcb", elmid, what, how)
-				ncb.text = doc
-				elms[#elms + 1] = ncb
-			elseif "img" == how then
-				-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L365`
-				-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
-				--  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
-				--  nb: Image is an Inline, need to wrap it in a Para (a Block, like a CodeBlock)
-				self:log("info", "include", "id %s, inc '%s:%s', image %s", elmid, what, how, fname)
-				elms[#elms + 1] = pd.Para(pd.Image({ caption }, fname, title, ncb.attr))
-			elseif "fig" == how then
-				self:log("info", "include", "id %s, inc '%s:%s', figure", elmid, what, how, fname)
-				local img = pd.Image({ caption }, fname, title, ncb.attr)
-				elms[#elms + 1] = pd.Figure(img, { caption }, ncb.attr)
-			elseif doc and "" == how then
-				-- output elements cbx, out, err, art without a how
-				if "Pandoc" == pd.utils.type(doc) then
-					-- an ast by default has its individual blocks inserted
-					self:log("info", "include", "id %s, inc '%s:%s', ast blocks", elmid, what, how)
-					if doc.blocks[1].attr then
-						doc.blocks[1].attr = ncb.attr
-					end
-					for _, block in ipairs(doc.blocks) do
-						elms[#elms + 1] = block
-					end
-				else
-					-- doc is raw data and inserted as a div
-					self:log("info", "include", "id %s, inc '%s:%s', data as div", elmid, what, how)
-					elms[#elms + 1] = pd.Div(doc, ncb.attr)
-				end
-			else
-				-- todo: never reached?
-				self:log("error", "include", "skip id %s, inc '%s:%s' data is '%s'", elmid, what, how, doc)
-				elms[#elms + 1] = pd.Div(
-					string.format("[stitch](error) id %s, %s:%s: unknown or no output seen", elmid, what, how),
-					ncb.attr
-				)
-			end
+			fcb.attr.identifier = string.format("%s-%d-%s", I.opts.cid, idx, what)
+			elms[#elms + 1] = self.mkelm[type_](fcb, cb, doc, what)
 		else
-			self:log("error", "include", "skip id %s, invalid directive inc '%s:%s'", self.opts.cid, what, how)
+			self:log("error", "include", "skip id %s, invalid directive inc '%s:%s'", self.opts.cid, what, type_)
 		end
 	end
 

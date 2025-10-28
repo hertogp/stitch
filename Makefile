@@ -47,11 +47,13 @@ show:
 	@echo "- CMD -----------"
 	@echo "cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html"
 	@echo ""
-	@echo "- Available -----"
+	@echo "- Individual targets -"
 	@echo $(TARGETS) | tr " " "\n"
 	@echo
 	@echo "- Usage --------"
-	@echo "make ex<..> (see Available)"
-	@echo
+	@echo "make <target>  (one of the individual targets, see above)"
+	@echo "make show      (this output)"
+	@echo "make all       (make all individual targets)"
+	@echo "make clean     (removes directory $(EX_DIR)/$(ST_DIR)) and its contents"
 
 
