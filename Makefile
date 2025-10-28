@@ -20,8 +20,8 @@ ex%:
 
 all: $(TARGETS)
 
-# gnuplot:
-# 	cd $(EXAMPLES); $(PANDOC) --lua-filter $(FILTER) gnuplot.md -o gnuplot.pdf
+gnuplot:
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) gnuplot.md -o gnuplot.pdf
 
 # TODO:
 # test:

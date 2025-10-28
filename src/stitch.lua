@@ -82,7 +82,7 @@ I.hardcoded = {
 	-- * filter.func is lua-module with optional .func to call (should accept doc data)
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
-	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
+	cbx = "#dir/#cid-#sha.cbx", -- the codeblock.text as file on disk
 	out = "#dir/#cid-#sha.out", -- capture of stdout (if any)
 	err = "#dir/#cid-#sha.err", -- capture of stderr (if any)
 	art = "#dir/#cid-#sha.#fmt", -- artifact (output) file (if any)
@@ -114,6 +114,7 @@ function I.parse_inc(str)
 	-- str is what:type!format+extensions@module.function, ..
 	local inc = {}
 	local part = "([^!@:]+)"
+
 	str = pd.utils.stringify(str):gsub("[,%s]+", " ")
 	for p in str:gmatch("%S+") do
 		inc[#inc + 1] = {
@@ -124,6 +125,7 @@ function I.parse_inc(str)
 		}
 	end
 	I.log("debug", "include", "include found %s inc's in '%s'", #inc, str)
+
 	return inc
 end
 
@@ -273,6 +275,7 @@ function I.fread(name, format)
 	if format and #format > 0 then
 		ok, dta = pcall(pd.read, dta, format)
 		if ok then
+			I.log("info", "read", "pandoc.read as %s succeeded (type=%s)", format, pd.utils.type(dta))
 			return dta
 		else
 			I.log("error", "read", "pandoc.read as %s failed: %s", format, dta)
@@ -389,7 +392,7 @@ I.mkelm = {
 			-- doc discarded, org cb included (in markdown format)
 			fcb.text = pd.write(pd.Pandoc({ cb }, {}), "markdown")
 		else
-			-- doc used as-is
+			-- doc used as-is for out, err
 			fcb.text = doc
 		end
 		I.log("info", "include", "%s, id %s, pandoc.CodeBlock", what, fcb.attr.identifier)
@@ -401,7 +404,7 @@ I.mkelm = {
 		-- doc is discarded and output file linked to as Image
 		-- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
 		--  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
-		--  nb: Image is an Inline, need to wrap it in a Para (a Block, like a CodeBlock)
+		--  nb: Image is type-Inline -> wrap it in a Para which is type-Block (as-is a cb)
 		local title = fcb.attributes.title or ""
 		local caption = fcb.attributes.caption
 		I.log("info", "include", "%s, id %s, pandoc.Image", what, fcb.attr.identifier)
@@ -410,20 +413,32 @@ I.mkelm = {
 
 	fig = function(fcb, cb, doc, what)
 		-- doc is discarded and output file linked to as Figure
-		local para = I.mkelm.img(fcb, cb, doc, what) -- pd.Image({ caption }, I.opts[what], title, fcb.attr)
-		local img = para.content[1]
-		img.attr.identifier = img.attr.identifier .. "-img"
-		img.attributes.caption = nil
+		-- nb: Figure is type-Block
+		-- TODO: do not use I.mkelm.img because that sets Image attributes
+		-- TODO: is Figure a block element or not? (if not, wrap in Para)
+		-- local para = I.mkelm.img(fcb, cb, doc, what) -- pd.Image({ caption }, I.opts[what], title, fcb.attr)
+		-- local img = para.content[1]
+		local img = pd.Image({}, I.opts[what], "", {})
+		img.attr.identifier = fcb.attr.identifier .. "-img"
+		-- img.attributes.caption = nil
 		I.log("info", "include", "%s, is %s, pandoc.Figure", what, fcb.attr.identifier)
 		return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
 	end,
 
-	[""] = function(idx, cb, doc, what)
+	[""] = function(fcb, cb, doc, what)
 		-- no type of ast element specified, do default per `what`
-		if "art" == what then
-			return I.mkelm.fig(idx, cb, doc, what)
+		I.log("info", "include", "%s: no element type specified for doc (type %s)", what, pd.utils.type(doc))
+
+		if "Pandoc" == pd.utils.type(doc) then
+			-- doc converted to pandoc native form, attr copied if possible
+			if doc and doc.blocks[1].attr then
+				doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
+			end
+			return doc.blocks[1]
+		elseif "art" == what then
+			return I.mkelm.fig(fcb, cb, doc, what)
 		else
-			return I.mkelm.fcb(idx, cb, doc, what) -- for cbx, out or err
+			return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
 		end
 	end,
 }

@@ -3,15 +3,15 @@ author: hertogp
 date: today
 stitch:
   man:
-    ins: out:fcb
+    inc: out:fcb
   gnuplot:
     fmt: png
-    prg: gnuplot
-    ins: art:fig, cb:fcb, err:fcb
-    cmd: "#prg #inp 1>#art 2>#err"
+    inc: art err cbx
+    log: debug
+    cmd: "gnuplot #cbx 1>#art 2>#err"
 ...
 
-```{#id0 .stitch ins=out:fcb}
+```{#id0 .stitch inc=out:fcb}
 echo gnuplot | figlet -c -w 55 | boxes -d peek -p h2v1 | sed 's/\/\*/  /;s/\*\//-+/'
 echo "                https://gnuplot.sourceforge.net\n\n\n"
 gnuplot -h | sed 's/^/           /'
@@ -30,6 +30,8 @@ set samples 200, 200
 plot [-30:20] besj0(x)*0.12e1 with impulses, \
     (x**besj0(x))-2.5 with points
 ```
+
+\newpage
 
 # Surface, no hidden lines
 
@@ -59,15 +61,14 @@ NO_ANIMATION = 1
 splot 1 / (x*x + y*y + 1)
 ```
 
-# Regular image
-
-![regular image](./test.png){width=100%}
-
 # Documentation
 
 ## gnuplot -h
 
-
+```{#id3 .stitch inc=out:fcb}
+#! /usr/bin/env bash
+gnuplot -h
+```
 ## man gnuplot
 
 ```{#man .stitch cfg=man}
