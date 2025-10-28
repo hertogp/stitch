@@ -75,7 +75,11 @@ I.hardcoded = {
 	log = "info", -- debug, error, warn, info, silent
 	exe = "maybe", -- yes, no, maybe
 	old = "purge", -- keep, purge
-	-- include directives, format is "^what:how!format[+extensions]@filter[.func]"
+	-- inc = "what:type!format[+extensions]@filter[.func], .." (csv/space separated)
+	-- * what {cbx, out, err, art} - mandatory, rest is optional
+	-- * type {fcb, img, fig} - if absent -> art is Figure, cbx,out,err is fcb
+	-- * format+extensions = pandoc -f FORMAT and possible EXTENSIONS
+	-- * filter.func is lua-module with optional .func to call (should accept doc data)
 	inc = "cbx:fcb out:fcb art:img err:fcb",
 	-- expandable filenames
 	cbx = "#dir/#cid-#sha.cb", -- the codeblock.text as file on disk
@@ -107,20 +111,20 @@ end
 ---@param str string the I.opts.inc string with include directives
 ---@return table directives list of 4-element lists of strings
 function I.parse_inc(str)
-	-- what:how!format+extensions@module.function
-	local todo = {}
+	-- str is what:type!format+extensions@module.function, ..
+	local inc = {}
 	local part = "([^!@:]+)"
-	str = pd.utils.stringify(str) -- just in case
-	for p in str:gsub("[,%s]+", " "):gmatch("%S+") do
-		todo[#todo + 1] = {
+	str = pd.utils.stringify(str):gsub("[,%s]+", " ")
+	for p in str:gmatch("%S+") do
+		inc[#inc + 1] = {
 			p:match("^" .. part) or "", -- what to include
 			p:match("!" .. part) or "", -- read as type
 			p:match("@" .. part) or "", -- filter
 			p:match(":" .. part) or "", -- element/how
 		}
 	end
-	I.log("debug", "include", "include found %s inc's in '%s'", #todo, str)
-	return todo
+	I.log("debug", "include", "include found %s inc's in '%s'", #inc, str)
+	return inc
 end
 
 -- extract specific data from ast elements into lua table(s)
@@ -415,7 +419,7 @@ I.mkelm = {
 	end,
 
 	[""] = function(idx, cb, doc, what)
-		-- no `how` (type of element) specified, do default per `what`
+		-- no type of ast element specified, do default per `what`
 		if "art" == what then
 			return I.mkelm.fig(idx, cb, doc, what)
 		else
