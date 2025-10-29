@@ -1,13 +1,8 @@
 <p><code>:Open https://github.com/pandoc-ext/diagram/blob/985ff8299caf4fe0d11ce94de507765bc6eb1c10/_extensions/diagram/diagram.lua#L627</code>
 <code>:Open https://codeberg.org/cdsoft/panda/src/branch/master/src/panda.lua</code></p>
 <h1 id="id0-markdown">id0 markdown</h1>
-<pre id="id0-2-out" class="stitched"><code>``` {#id0 .stitch inc=&quot;cbx:fcb out!csv&quot; log=&quot;debug&quot;}
-#! /usr/bin/env bash
-# https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv
-wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv -O -
-```
-</code></pre>
-<table id="id0-2-out" class="stitched">
+<pre id="id0-3-err" class="stitched"><code></code></pre>
+<table id="id0-3-err" class="stitched">
 <thead>
 <tr class="header">
 <th>Address Block</th>
@@ -325,12 +320,13 @@ wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-sp
 </tr>
 </tbody>
 </table>
+<pre id="id0-3-err" class="stitched"><code></code></pre>
 <h1 id="codeblock-as-markdown">codeblock as markdown</h1>
 <h1 class="stitched" id="mark-1-cbx">Not really a codeblock</h1>
 <h1 id="id1-boxes">id1 boxes</h1>
 <p>Inside this para?</p>
 <figure id="id1-1-art" class="stitched" data-caption="id1-caption">
-<img src=".stitch/id1-9e66bba74cbaf29226ec210d17ab06ece134cb2c.png"
+<img src=".stitch/id1-44bd50ba078aed6431e9940e9a11288f519e919e.png"
 id="id1-1-art-img" />
 <figcaption>id1-caption</figcaption>
 </figure>
@@ -340,7 +336,7 @@ id="id1-1-art-img" />
 <h1 id="id2-defaults">id2 defaults</h1>
 <figure id="id2-1-art" class="stitched bash" data-nou="moe"
 data-caption="id2-caption">
-<img src=".stitch/id2-466db5c4fd3974ff12b90d4cb95269685c95d8cc.stdout"
+<img src=".stitch/id2-9a9053c0b8a79bc00f458c65f8b12292cf036610.stdout"
 id="id2-1-art-img" />
 <figcaption>id2-caption</figcaption>
 </figure>
@@ -366,7 +362,7 @@ cat $0 | boxes -d peek -p h2v1
 <h1 id="quoted-codeblock">quoted codeblock</h1>
 <blockquote>
 <figure id="id5-1-art" class="lua stitched">
-<img src=".stitch/id5-f9fa8523ef21a93c8b65bea35606e97b9fcb99d1.png"
+<img src=".stitch/id5-20bd71d0283ab223feb8cec7f9ebcc3e708d9d18.png"
 id="id5-1-art-img" />
 </figure>
 <div class="sourceCode" id="id5-4-err"><pre
@@ -377,29 +373,29 @@ class="sourceCode lua stitched"><code class="sourceCode lua"></code></pre></div>
 class="sourceCode lua stitched"><code class="sourceCode lua"></code></pre></div>
 </blockquote>
 <h1 id="ping-example">ping example</h1>
-<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:810::200e) 56 data bytes
-64 bytes from ams17s12-in-x0e.1e100.net (2a00:1450:400e:810::200e): icmp_seq=1 ttl=120 time=5.38 ms
-64 bytes from ams17s12-in-x0e.1e100.net (2a00:1450:400e:810::200e): icmp_seq=2 ttl=120 time=5.50 ms
+<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:803::200e) 56 data bytes
+64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=1 ttl=120 time=5.55 ms
+64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=2 ttl=120 time=6.18 ms
 
 --- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1002ms
-rtt min/avg/max/mdev = 5.379/5.441/5.503/0.062 ms
+2 packets transmitted, 2 received, 0% packet loss, time 1000ms
+rtt min/avg/max/mdev = 5.552/5.865/6.178/0.313 ms
 </code></pre>
-<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:810::200e) 56 data bytes
-64 bytes from ams17s12-in-x0e.1e100.net (2a00:1450:400e:810::200e): icmp_seq=1 ttl=120 time=5.38 ms
-64 bytes from ams17s12-in-x0e.1e100.net (2a00:1450:400e:810::200e): icmp_seq=2 ttl=120 time=5.50 ms
+<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:803::200e) 56 data bytes
+64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=1 ttl=120 time=5.55 ms
+64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=2 ttl=120 time=6.18 ms
 
 --- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1002ms
-rtt min/avg/max/mdev = 5.379/5.441/5.503/0.062 ms
+2 packets transmitted, 2 received, 0% packet loss, time 1000ms
+rtt min/avg/max/mdev = 5.552/5.865/6.178/0.313 ms
 </code></pre>
-<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:810::200e) 56 data bytes
-64 bytes from ams17s12-in-x0e.1e100.net (2a00:1450:400e:810::200e): icmp_seq=1 ttl=120 time=5.38 ms
-64 bytes from ams17s12-in-x0e.1e100.net (2a00:1450:400e:810::200e): icmp_seq=2 ttl=120 time=5.50 ms
+<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:803::200e) 56 data bytes
+64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=1 ttl=120 time=5.55 ms
+64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=2 ttl=120 time=6.18 ms
 
 --- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1002ms
-rtt min/avg/max/mdev = 5.379/5.441/5.503/0.062 ms
+2 packets transmitted, 2 received, 0% packet loss, time 1000ms
+rtt min/avg/max/mdev = 5.552/5.865/6.178/0.313 ms
 </code></pre>
 <h1 id="todo">ToDo</h1>
 <p>Test out some of these <a

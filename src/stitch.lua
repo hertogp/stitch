@@ -426,14 +426,14 @@ I.mkelm = {
 	end,
 
 	[""] = function(fcb, cb, doc, what)
-		-- no type of ast element specified, do default per `what`
-		I.log("info", "include", "%s: no element type specified for doc (type %s)", what, pd.utils.type(doc))
-
+		-- no type of ast element specified, do default per `what` (except for a Pandoc doc)
+		I.log("debug", "include", "no type for %s, going with it's default", what)
 		if "Pandoc" == pd.utils.type(doc) then
 			-- doc converted to pandoc native form, attr copied if possible
 			if doc and doc.blocks[1].attr then
 				doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
 			end
+			I.log("info", "include", "%s, is %s, pandoc block", what, fcb.attr.identifier)
 			return doc.blocks[1]
 		elseif "art" == what then
 			return I.mkelm.fig(fcb, cb, doc, what)
@@ -514,7 +514,6 @@ end
 ---@return table result sequence of pandoc ast elements
 function I.result(cb)
 	local elms = {}
-	local fcb = I.mkfcb(cb)
 
 	for idx, elm in ipairs(I.parse_inc(I.opts.inc)) do
 		local what, format, filter, type_ = table.unpack(elm)
@@ -528,6 +527,7 @@ function I.result(cb)
 				I.fsave(doc, fname)
 			end
 
+			local fcb = I.mkfcb(cb) -- need fcb per inclusion(!)
 			fcb.attr.identifier = string.format("%s-%d-%s", I.opts.cid, idx, what)
 			elms[#elms + 1] = I.mkelm[type_](fcb, cb, doc, what)
 		else
