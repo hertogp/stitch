@@ -1,13 +1,18 @@
 --[[ stitch ]]
 -- TODO:
--- * check utf8 requirements (if any)
--- * opts.cid doesn't show originating file
+-- [o] check utf8 requirements (if any)
+-- [c] opts.cid doesn't show originating file
 --   - _ENV.PANDOC_STATE.input_files = pd.List of input files
 --   - `:Open https://pandoc.org/lua-filters.html#type-commonstate`
 --   - could add a module level input file counter .. in Pandoc func
--- * add hardcoded.cbc = 0, cb count, "cb"..I.opts.cbc is fallback for I.opts.cid
--- * add mediabag to store files related to cb's
--- * add Code handler to insert pieces of a CodeBlock
+--   - --file-scope is pandoc option to parse files individually. Normally
+--     pandoc concatenates files with blank line inbetween and only then parses
+--     so CodeBlock handlers never see their individual filenames
+--     => id is like: examples__ex00.md__id0-2-cbx (prefixed with filepath)
+-- [c] add hardcoded.cbc = 0, cb count, "cb"..I.opts.cbc is fallback for I.opts.cid
+--  * not needed anymore, use cli argument --file-scope
+-- [o] add mediabag to store files related to cb's
+-- [o] add Code handler to insert pieces of a CodeBlock
 --
 -- TODO's
 -- [c] pandoc.Caption needs >= 3.6.1
@@ -207,8 +212,9 @@ function I.mkcmd(cb)
   for _, fpath in ipairs({ 'cbx', 'out', 'err', 'art' }) do
     -- `normalize` (v2.12) makes dir platform independent
     local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
-    if not os.execute('mkdir -p ' .. dir) then
-      I.log('error', 'cmd', 'cbx could not create dir' .. dir)
+    -- if not os.execute('mkdir -p ' .. dir) then
+    if not pd.system.make_directory(dir, true) then
+      I.log('error', 'cmd', 'permission denied when creating ' .. dir)
       return false
     end
   end
@@ -659,10 +665,10 @@ local Stitch = {
 
   Pandoc = function(doc)
     -- tmp
-    -- local inputs = _ENV.PANDOC_STATE.input_files
-    -- I.input_idx = I.input_idx + 1
-    -- I.log("info", "filter", "processing %s", inputs[I.input_idx])
-    -- print("---->", inputs)
+    local inputs = _ENV.PANDOC_STATE.input_files
+    I.input_idx = I.input_idx + 1
+    I.log('info', 'filter', 'processing %s', inputs[I.input_idx])
+    print('---->', inputs)
     -- /tmp
     I.setup(doc)
     return doc:walk({ CodeBlock = I.codeblock })
