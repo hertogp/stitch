@@ -515,11 +515,11 @@ function I.result(cb)
       local fcb = I.mkfcb(cb) -- need fcb per inclusion(!)
       fcb.attr.identifier = string.format('%s-%d-%s', I.opts.cid, idx, what)
       local new = I.mkelm[type_](fcb, cb, doc, what)
-      -- new is either Blocks or Block
-      new = 'Blocks' == pd.utils.type(new) and new or { new }
-      for _, x in ipairs(new) do
-        print('x', type(x), pd.utils.type(x), x)
-        elms[#elms + 1] = x
+      -- see `:Open https://pandoc.org/lua-filters.html#type-blocks`
+      -- new is either Blocks or Block; pandoc.List:extend (3.0) is shorter..
+      new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
+      for _, block in ipairs(new) do
+        elms[#elms + 1] = block
       end
     else
       I.log('error', 'include', "skip id %s, invalid directive inc '%s:%s'", I.opts.cid, what, type_)
