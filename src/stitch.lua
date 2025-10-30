@@ -13,7 +13,7 @@ local I = {} -- Stitch's Implementation; for testing
 I.input_idx = 0
 
 I.ctx = {} -- this doc's context (= meta.stitch)
-I.opts = { log = 'info' } --> set per cb being processed
+I.opts = { log = 'info' } --> for initial logging, is reset for each cb
 I.level = {
   silent = 0,
   error = 1,
@@ -296,7 +296,7 @@ function I.fkill()
       for _, fold in ipairs(pd.system.list_directory(dir)) do
         fold = pd.path.join({ dir, fold })
         if fold:match(pat) and fold ~= fnew then
-          local ok, err = os.remove(fold) -- pd.system.remove >=version 3.7.1 :(
+          local ok, err = os.remove(fold) -- pd.system.remove version >=3.7.1 :(
           if not ok then
             I.log('error', 'files', 'unable to remove: %s (%s)', fold, err)
           else
@@ -521,6 +521,9 @@ function I.options(cb)
     end
   end
 
+  for k, _ in pairs(I.hardcoded) do
+    I.log('debug', 'cb.opts', '%s = %q', k, I.opts[k])
+  end
   return true
 end
 
@@ -551,6 +554,14 @@ function I.setup(doc)
   for section, map in pairs(I.ctx) do
     I.ctx[section] = I.validate(section, map)
   end
+
+  -- tmp/debug
+  for section, _ in pairs(I.ctx) do
+    for k, _ in pairs(I.hardcoded) do
+      I.log('info', 'meta', '%s.%s = %q', section, k, I.ctx[section][k])
+    end
+  end
+  -- /tmp
 
   return I.ctx
 end
@@ -597,28 +608,17 @@ end
 --  + Pandoc 3.0 introduces pandoc.Figure element
 I.log('info', 'check', string.format('running on %s', pd.system.os))
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
---   I.log('info', 'check', 'ok, pandoc version %s', _ENV.PANDOC_VERSION)
--- else
---   I.log('error', 'check', 'pandoc version is %s, need 3.0 or later')
--- end
 
 local Stitch = {
-  -- alt: if Pandoc" == pd.utils.type(doc) then return .. else return I end
   _ = I, -- Stitch's implementation: for testing only
 
   Pandoc = function(doc)
-    -- tmp
-    local inputs = _ENV.PANDOC_STATE.input_files
-    I.input_idx = I.input_idx + 1
-    I.log('info', 'filter', 'processing %s', inputs[I.input_idx])
-    print('---->', inputs)
-    -- /tmp
     I.setup(doc)
     return doc:walk({ CodeBlock = I.codeblock })
   end,
 }
 
--- return Stitch --<-- requires pandoc 3.5
+-- just `return Stitch` requires pandoc 3.5 (single filter instead of list of filters)
 return {
-  Stitch,
+  Stitch, -- bare return of Stitch requires version >=3.5
 }

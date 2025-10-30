@@ -24,7 +24,10 @@ gnuplot:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) gnuplot.md -o gnuplot.pdf
 
 scope:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --file-scope  --from $(FROM)+${EXTS} ex00.md ex01.md -o $ex0x.html
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --file-scope  --from $(FROM)+${EXTS} ex00.md ex01.md -o ex0x.html
+
+cetz:
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) cetz-01.md -o cetz-01.html
 
 # TODO:
 # test:
