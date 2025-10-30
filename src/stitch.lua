@@ -1,49 +1,8 @@
 --[[ stitch ]]
 -- TODO:
 -- [o] check utf8 requirements (if any)
--- [c] opts.cid doesn't show originating file
---   - _ENV.PANDOC_STATE.input_files = pd.List of input files
---   - `:Open https://pandoc.org/lua-filters.html#type-commonstate`
---   - could add a module level input file counter .. in Pandoc func
---   - --file-scope is pandoc option to parse files individually. Normally
---     pandoc concatenates files with blank line inbetween and only then parses
---     so CodeBlock handlers never see their individual filenames
---     => id is like: examples__ex00.md__id0-2-cbx (prefixed with filepath)
--- [c] add hardcoded.cbc = 0, cb count, "cb"..I.opts.cbc is fallback for I.opts.cid
---  * not needed anymore, use cli argument --file-scope
 -- [o] add mediabag to store files related to cb's
 -- [o] add Code handler to insert pieces of a CodeBlock
---
--- TODO's
--- [c] pandoc.Caption needs >= 3.6.1
--- [c] pandoc -v -> ~/.local/share/pandoc = pandoc user data directory
---     + at moment ~/.local/share/pandoc/filters/ is being used (on LUA_PATH)
--- [x] pd.system.os () -> for checking OS type
--- [x] pd.system.list_directory('dir') (v2.19)
--- [o] pd.system.make_directory('dir/subdir', true) (v2.19)
--- [o] pd.system.remove_directory('dir) (v2.19)
--- [c] return SingleFilter -> Pandoc 3.5 2024-10-04
---     `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-35-2024-10-04`
---     + pandoc 3.5 allows for single filter (table) to be returned, e.g.
---       return Stitch -> easier for testing
---     + in that case, returned filter should not contain numeric indices or it
---       might still be treated as a list of filters.
--- [o] add file id for file being processes
---   - `_ENV.PANDOC_STATE.input_file` lists all input files mentioned on the cli
---   - however, pandoc calls Stitch.Pandoc only once since it strings all input
---     together into 1 document AST
---   - hence the best one can do is to set meta.stitch.defaults.fid="xyz"
---     + cid = fid-cbid-sha.{out, err, cbx, art}
---   - meta.stitch.defaults.dir = doc_name
---     + this helps and, for single doc conversion, all you need
---   - for multi-doc converstion (nx inputs on cli), use:
---     + meta.stitch.defaults.dir = .stitch/project_name (or any path)
---     + meta.stitch.defaults.fid = file_id (per file)
---     * dir-path is relative to working dir for the running pandoc, or any
---       absolute path you desire (e.g ~/tmp/ or /tmp)
--- [o] shorten filenames in logs: full sha := abcd..pqrs.ext
---     * not for logging file removal (?)
---     * fssha, fcurt, fpoor, ...
 --
 --  OTHER PROJECTS:
 --  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
@@ -70,9 +29,10 @@ I.optvalues = {
   old = { 'keep', 'purge' },
 }
 
+I.cbc = 0 -- cb counted as they are seen by Stitch.codeblock(cb)
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
-  cid = 'x', -- x marks the spot if cb has no identifier
+  cid = 'x', -- TODO: MUST be unique for each cb so old file detectinon is possible
   cfg = '', -- name of config section in doc.meta.stitch.<cfg> (if any)
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
@@ -81,24 +41,19 @@ I.hardcoded = {
   exe = 'maybe', -- yes, no, maybe
   old = 'purge', -- keep, purge
   -- inc = "what:type!format[+extensions]@filter[.func], .." (csv/space separated)
-  -- * what {cbx, out, err, art} - mandatory, rest is optional
-  -- * type {fcb, img, fig} - if absent -> art is Figure, cbx,out,err is fcb
-  -- * format+extensions = pandoc -f FORMAT and possible EXTENSIONS
-  -- * filter.func is lua-module with optional .func to call (should accept doc data)
+  -- * what (mandatory) {cbx, out, err, art}, type {fcb, img, fig}
   inc = 'cbx:fcb out:fcb art:img err:fcb',
   -- expandable filenames
   cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
   out = '#dir/#cid-#sha.out', -- capture of stdout (if any)
   err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
   art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
-  -- command must be expanded last
   cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
   -- bash: $@ is list of args, ${@: -1} is last argument
 }
 
 --[[ helpers ]]
 
--- local dump = require("dump") -- tmp, delme
 local pd = require('pandoc')
 
 function I.log(lvl, action, msg, ...)
@@ -186,15 +141,14 @@ end
 ---@param cb table a pandoc codeblock
 ---@return string sha1 hash of option values and codeblock content
 function I.mksha(cb)
-  -- sorting for repeatable fingerprints
+  -- for repeatable fingerprints: keys are sorted, whitespace removed
   local hardcoded_keys = {}
   for key in pairs(I.hardcoded) do
-    hardcoded_keys[#hardcoded_keys + 1] = key
+    -- toggle'ing exe=yes/no should not effect fingerprint
+    if 'exe' ~= key then hardcoded_keys[#hardcoded_keys + 1] = key end
   end
   table.sort(hardcoded_keys) -- sorts inplace
 
-  -- fingerprint is hash on option values + cb.text
-  -- for repeatable fingerprints, eliminate whitespace
   local vals = {}
   for _, key in ipairs(hardcoded_keys) do
     vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub('%s', '')
@@ -212,8 +166,7 @@ function I.mkcmd(cb)
   for _, fpath in ipairs({ 'cbx', 'out', 'err', 'art' }) do
     -- `normalize` (v2.12) makes dir platform independent
     local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
-    -- if not os.execute('mkdir -p ' .. dir) then
-    if not pd.system.make_directory(dir, true) then
+    if not os.execute('mkdir -p ' .. dir) then
       I.log('error', 'cmd', 'permission denied when creating ' .. dir)
       return false
     end
@@ -233,16 +186,11 @@ function I.mkcmd(cb)
   end
   fh:close()
 
-  -- review: not platform independent
-  -- * this fails on Windows where I.opts.cbx should be a bat file
-  -- * maybe check *.bat and skip?  Or just try & warn if not successful
-  -- package.config:sub(1,1) -> \ for windows, / for others
   if not os.execute('chmod u+x ' .. I.opts.cbx) then
     I.log('error', 'cmd', 'cbx could not mark executable: ' .. I.opts.cbx)
     return false
   end
 
-  -- review: check expanse complete, no more #<names> left?
   I.log('info', 'expand', "cmd template '%s'", I.opts.cmd)
   I.opts.cmd = I.opts.cmd:gsub('%#(%w+)', I.opts)
   I.log('info', 'expand', '%s', I.opts.cmd)
@@ -302,7 +250,6 @@ function I.fsave(doc, fname)
     return false
   end
 
-  -- save doc to fname (even if doc is 0 bytes)
   local fh = io.open(fname, 'w')
   if nil == fh then
     I.log('error', 'write', '%s, unable to open for writing', fname)
@@ -349,7 +296,7 @@ function I.fkill()
       for _, fold in ipairs(pd.system.list_directory(dir)) do
         fold = pd.path.join({ dir, fold })
         if fold:match(pat) and fold ~= fnew then
-          local ok, err = os.remove(fold)
+          local ok, err = os.remove(fold) -- pd.system.remove >=version 3.7.1 :(
           if not ok then
             I.log('error', 'files', 'unable to remove: %s (%s)', fold, err)
           else
@@ -370,9 +317,6 @@ end
 ---@return boolean deja_vu true or false
 function I.deja_vu()
   -- if cbx exist with 1 or more ouputs, we were here before
-  -- REVIEW: should take I.opts.inc's what into account and check all of them?
-  -- * an output file not included in I.opts.inc is never created(!)
-  -- * you want to catch when 1 or more artifacts were removed somehow
 
   if I.freal(I.opts.cbx) then
     if I.freal(I.opts.out) or I.freal(I.opts.err) or I.freal(I.opts.art) then return true end
@@ -414,7 +358,7 @@ I.mkelm = {
   end,
 
   fig = function(fcb, _, _, what)
-    -- pandoc.Figure (type Block)
+    -- pandoc.Figure (type Block) >=version 3.0
     -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
     --  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
     local img = pd.Image({}, I.opts[what], '', {})
@@ -560,9 +504,7 @@ function I.options(cb)
   I.opts = I.metalua(cb.attributes)
   I.opts = I.validate('cb.attr', I.opts)
   setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
-
-  -- additional options ("" is an absent identifier)
-  I.opts.cid = #cb.identifier > 0 and cb.identifier or nil
+  I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%03d', I.cbc)
   I.opts.sha = I.mksha(cb) -- derived only
 
   -- expand filenames for this codeblock (cmd is expanded as exe later)
@@ -616,6 +558,8 @@ end
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
 function I.codeblock(cb)
+  I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
+
   if not cb.classes:find('stitch') then return nil end
 
   -- TODO: also check I.opts.exe and I.opts.old (keep/purge)
@@ -636,8 +580,7 @@ function I.codeblock(cb)
   end
 
   -- do not remove old files if exe=no (if that was added, the cb changed and
-  -- so did the cb's sha fingerprint(!) thus files generated last would be
-  -- removed: not what you'd want or expect.
+  -- so did the cb's sha fingerprint(!): TODO: remove exe from fingerprint.
   if 'no' == I.opts.exe then
     I.log('info', 'files', 'not removing any old files (exe=%s)', I.opts.exe)
   else
@@ -653,11 +596,11 @@ end
 -- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
 --  + Pandoc 3.0 introduces pandoc.Figure element
 I.log('info', 'check', string.format('running on %s', pd.system.os))
-if _ENV.PANDOC_VERSION >= { 3, 0 } then
-  I.log('info', 'check', 'ok, pandoc version %s', _ENV.PANDOC_VERSION)
-else
-  I.log('error', 'check', 'pandoc version is %s, need 3.0 or later')
-end
+_ENV.PANDOC_VERSION:must_be_at_least('3.0')
+--   I.log('info', 'check', 'ok, pandoc version %s', _ENV.PANDOC_VERSION)
+-- else
+--   I.log('error', 'check', 'pandoc version is %s, need 3.0 or later')
+-- end
 
 local Stitch = {
   -- alt: if Pandoc" == pd.utils.type(doc) then return .. else return I end

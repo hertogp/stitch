@@ -1,328 +1,36 @@
 <p><code>:Open https://github.com/pandoc-ext/diagram/blob/985ff8299caf4fe0d11ce94de507765bc6eb1c10/_extensions/diagram/diagram.lua#L627</code>
 <code>:Open https://codeberg.org/cdsoft/panda/src/branch/master/src/panda.lua</code></p>
 <h1 id="id0-markdown">id0 markdown</h1>
-<pre id="id0-3-err" class="stitched"><code></code></pre>
-<table id="id0-3-err" class="stitched">
-<thead>
-<tr class="header">
-<th>Address Block</th>
-<th>Name</th>
-<th>RFC</th>
-<th>Allocation Date</th>
-<th>Termination Date</th>
-<th>Source</th>
-<th>Destination</th>
-<th>Forwardable</th>
-<th>Globally Reachable</th>
-<th>Reserved-by-Protocol</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>0.0.0.0/8</td>
-<td>"This network"</td>
-<td>[RFC791], Section 3.2</td>
-<td>1981-09</td>
-<td>N/A</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>True</td>
-</tr>
-<tr class="even">
-<td>0.0.0.0/32</td>
-<td>"This host on this network"</td>
-<td>[RFC1122], Section 3.2.1.3</td>
-<td>1981-09</td>
-<td>N/A</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>True</td>
-</tr>
-<tr class="odd">
-<td>10.0.0.0/8</td>
-<td>Private-Use</td>
-<td>[RFC1918]</td>
-<td>1996-02</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>100.64.0.0/10</td>
-<td>Shared Address Space</td>
-<td>[RFC6598]</td>
-<td>2012-04</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>127.0.0.0/8</td>
-<td>Loopback</td>
-<td>[RFC1122], Section 3.2.1.3</td>
-<td>1981-09</td>
-<td>N/A</td>
-<td>False [1]</td>
-<td>False [1]</td>
-<td>False [1]</td>
-<td>False [1]</td>
-<td>True</td>
-</tr>
-<tr class="even">
-<td>169.254.0.0/16</td>
-<td>Link Local</td>
-<td>[RFC3927]</td>
-<td>2005-05</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-<td>True</td>
-</tr>
-<tr class="odd">
-<td>172.16.0.0/12</td>
-<td>Private-Use</td>
-<td>[RFC1918]</td>
-<td>1996-02</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>192.0.0.0/24 [2]</td>
-<td>IETF Protocol Assignments</td>
-<td>[RFC6890], Section 2.1</td>
-<td>2010-01</td>
-<td>N/A</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>192.0.0.0/29</td>
-<td>IPv4 Service Continuity Prefix</td>
-<td>[RFC7335]</td>
-<td>2011-06</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>192.0.0.8/32</td>
-<td>IPv4 dummy address</td>
-<td>[RFC7600]</td>
-<td>2015-03</td>
-<td>N/A</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>192.0.0.9/32</td>
-<td>Port Control Protocol Anycast</td>
-<td>[RFC7723]</td>
-<td>2015-10</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>192.0.0.10/32</td>
-<td>Traversal Using Relays around NAT Anycast</td>
-<td>[RFC8155]</td>
-<td>2017-02</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>192.0.0.170/32, 192.0.0.171/32</td>
-<td>NAT64/DNS64 Discovery</td>
-<td>[RFC8880][RFC7050], Section 2.2</td>
-<td>2013-02</td>
-<td>N/A</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>True</td>
-</tr>
-<tr class="even">
-<td>192.0.2.0/24</td>
-<td>Documentation (TEST-NET-1)</td>
-<td>[RFC5737]</td>
-<td>2010-01</td>
-<td>N/A</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>192.31.196.0/24</td>
-<td>AS112-v4</td>
-<td>[RFC7535]</td>
-<td>2014-12</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>192.52.193.0/24</td>
-<td>AMT</td>
-<td>[RFC7450]</td>
-<td>2014-12</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>192.88.99.0/24</td>
-<td>Deprecated (6to4 Relay Anycast)</td>
-<td>[RFC7526]</td>
-<td>2001-06</td>
-<td>2015-03</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>192.88.99.2/32</td>
-<td>6a44-relay anycast address</td>
-<td>[RFC6751]</td>
-<td>2012-10</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>192.168.0.0/16</td>
-<td>Private-Use</td>
-<td>[RFC1918]</td>
-<td>1996-02</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>192.175.48.0/24</td>
-<td>Direct Delegation AS112 Service</td>
-<td>[RFC7534]</td>
-<td>1996-01</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>198.18.0.0/15</td>
-<td>Benchmarking</td>
-<td>[RFC2544]</td>
-<td>1999-03</td>
-<td>N/A</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>198.51.100.0/24</td>
-<td>Documentation (TEST-NET-2)</td>
-<td>[RFC5737]</td>
-<td>2010-01</td>
-<td>N/A</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="odd">
-<td>203.0.113.0/24</td>
-<td>Documentation (TEST-NET-3)</td>
-<td>[RFC5737]</td>
-<td>2010-01</td>
-<td>N/A</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>240.0.0.0/4</td>
-<td>Reserved</td>
-<td>[RFC1112], Section 4</td>
-<td>1989-08</td>
-<td>N/A</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>False</td>
-<td>True</td>
-</tr>
-<tr class="odd">
-<td>255.255.255.255/32</td>
-<td>Limited Broadcast</td>
-<td>[RFC8190] [RFC919], Section 7</td>
-<td>1984-10</td>
-<td>N/A</td>
-<td>False</td>
-<td>True</td>
-<td>False</td>
-<td>False</td>
-<td>True</td>
-</tr>
-</tbody>
-</table>
-<pre id="id0-3-err" class="stitched"><code></code></pre>
+<pre id="id0-1-cbx" class="stitched"><code>``` {#id0 .stitch inc=&quot;cbx:fcb out!csv err&quot; log=&quot;debug&quot;}
+#! /usr/bin/env bash
+# https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv
+wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv -O -
+```
+</code></pre>
+<pre id="id0-2-out" class="stitched"><code>#! /usr/bin/env bash
+# https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv
+wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv -O -</code></pre>
+<pre id="id0-3-err" class="stitched"><code>#! /usr/bin/env bash
+# https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv
+wget -q https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv -O -</code></pre>
 <h1 id="codeblock-as-markdown">codeblock as markdown</h1>
-<h1 class="stitched" id="mark-1-cbx">Not really a codeblock</h1>
+<pre id="mark-1-cbx" class="stitched"><code>```` {#mark .stitch cmd=&quot;&quot; inc=&quot;cbx!markdown&quot;}
+# Not really a codeblock
+but some (generated) markdown instead
+straight in the codeblock
+
+## But rather an included markdown doc
+with multiple headings
+and even an image:
+![test](test.png){#nestid caption=&quot;nested-cappi&quot;}
+
+```
+{#nested .stitch cmd=&quot;#cbx 1&gt;#out&quot; caption=&quot;nested-cappucino&quot;}
+#!/usr/bin/env bash
+cat $0 | boxes -d peek -p h2v1
+```
+````
+</code></pre>
 <h1 id="id1-boxes">id1 boxes</h1>
 <p>Inside this para?</p>
 <figure id="id1-1-art" class="stitched" data-caption="id1-caption">
@@ -330,9 +38,15 @@
 id="id1-1-art-img" />
 <figcaption>id1-caption</figcaption>
 </figure>
-<pre id="id1-4-err" class="stitched" data-caption="id1-caption"><code></code></pre>
-<pre id="id1-4-err" class="stitched" data-caption="id1-caption"><code></code></pre>
-<pre id="id1-4-err" class="stitched" data-caption="id1-caption"><code></code></pre>
+<pre id="id1-2-cbx" class="stitched" data-caption="id1-caption"><code>``` {#id1 .stitch cfg=&quot;boxes&quot; caption=&quot;id1-caption&quot;}
+#!/usr/bin/env bash
+cat $0 | boxes -d peek -p h2v1
+```
+</code></pre>
+<pre id="id1-3-out" class="stitched" data-caption="id1-caption"><code>#!/usr/bin/env bash
+cat $0 | boxes -d peek -p h2v1</code></pre>
+<pre id="id1-4-err" class="stitched" data-caption="id1-caption"><code>#!/usr/bin/env bash
+cat $0 | boxes -d peek -p h2v1</code></pre>
 <h1 id="id2-defaults">id2 defaults</h1>
 <figure id="id2-1-art" class="stitched bash" data-nou="moe"
 data-caption="id2-caption">
@@ -340,15 +54,20 @@ data-caption="id2-caption">
 id="id2-1-art-img" />
 <figcaption>id2-caption</figcaption>
 </figure>
+<div class="sourceCode" id="id2-2-cbx" data-nou="moe"
+data-caption="id2-caption"><pre
+class="sourceCode stitched bash"><code class="sourceCode bash"><span id="id2-2-cbx-1"><a href="#id2-2-cbx-1" aria-hidden="true" tabindex="-1"></a><span class="kw">```</span> <span class="ex">{#id2</span> .stitch .bash nou=<span class="st">&quot;moe&quot;</span> fmt=<span class="st">&quot;stdout&quot;</span> caption=<span class="st">&quot;id2-caption&quot;</span>}</span>
+<span id="id2-2-cbx-2"><a href="#id2-2-cbx-2" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id2-2-cbx-3"><a href="#id2-2-cbx-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="va">$0</span> <span class="kw">|</span> <span class="ex">boxes</span> <span class="at">-d</span> peek <span class="at">-p</span> h2v1</span>
+<span id="id2-2-cbx-4"><a href="#id2-2-cbx-4" aria-hidden="true" tabindex="-1"></a><span class="kw">```</span></span></code></pre></div>
+<div class="sourceCode" id="id2-3-out" data-nou="moe"
+data-caption="id2-caption"><pre
+class="sourceCode stitched bash"><code class="sourceCode bash"><span id="id2-3-out-1"><a href="#id2-3-out-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id2-3-out-2"><a href="#id2-3-out-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="va">$0</span> <span class="kw">|</span> <span class="ex">boxes</span> <span class="at">-d</span> peek <span class="at">-p</span> h2v1</span></code></pre></div>
 <div class="sourceCode" id="id2-4-err" data-nou="moe"
 data-caption="id2-caption"><pre
-class="sourceCode stitched bash"><code class="sourceCode bash"></code></pre></div>
-<div class="sourceCode" id="id2-4-err" data-nou="moe"
-data-caption="id2-caption"><pre
-class="sourceCode stitched bash"><code class="sourceCode bash"></code></pre></div>
-<div class="sourceCode" id="id2-4-err" data-nou="moe"
-data-caption="id2-caption"><pre
-class="sourceCode stitched bash"><code class="sourceCode bash"></code></pre></div>
+class="sourceCode stitched bash"><code class="sourceCode bash"><span id="id2-4-err-1"><a href="#id2-4-err-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id2-4-err-2"><a href="#id2-4-err-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="va">$0</span> <span class="kw">|</span> <span class="ex">boxes</span> <span class="at">-d</span> peek <span class="at">-p</span> h2v1</span></code></pre></div>
 <h1 id="indented-codeblock">indented codeblock</h1>
 <pre><code>```{#id3 .stitch not-shown}
 #!/usr/bin/env bash
@@ -365,38 +84,28 @@ cat $0 | boxes -d peek -p h2v1
 <img src=".stitch/id5-20bd71d0283ab223feb8cec7f9ebcc3e708d9d18.png"
 id="id5-1-art-img" />
 </figure>
+<div class="sourceCode" id="id5-2-cbx"><pre
+class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-2-cbx-1"><a href="#id5-2-cbx-1" aria-hidden="true" tabindex="-1"></a>``` <span class="op">{#</span><span class="va">id5</span> <span class="op">.</span><span class="va">lua</span> <span class="op">.</span><span class="va">stitch</span><span class="op">}</span></span>
+<span id="id5-2-cbx-2"><a href="#id5-2-cbx-2" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id5-2-cbx-3"><a href="#id5-2-cbx-3" aria-hidden="true" tabindex="-1"></a><span class="va">cat</span> $<span class="dv">0</span> <span class="op">|</span> <span class="va">boxes</span> <span class="op">-</span><span class="va">d</span> <span class="va">peek</span> <span class="op">-</span><span class="va">p</span> <span class="va">h2v1</span></span>
+<span id="id5-2-cbx-4"><a href="#id5-2-cbx-4" aria-hidden="true" tabindex="-1"></a>```</span></code></pre></div>
+<div class="sourceCode" id="id5-3-out"><pre
+class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-3-out-1"><a href="#id5-3-out-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id5-3-out-2"><a href="#id5-3-out-2" aria-hidden="true" tabindex="-1"></a><span class="va">cat</span> $<span class="dv">0</span> <span class="op">|</span> <span class="va">boxes</span> <span class="op">-</span><span class="va">d</span> <span class="va">peek</span> <span class="op">-</span><span class="va">p</span> <span class="va">h2v1</span></span></code></pre></div>
 <div class="sourceCode" id="id5-4-err"><pre
-class="sourceCode lua stitched"><code class="sourceCode lua"></code></pre></div>
-<div class="sourceCode" id="id5-4-err"><pre
-class="sourceCode lua stitched"><code class="sourceCode lua"></code></pre></div>
-<div class="sourceCode" id="id5-4-err"><pre
-class="sourceCode lua stitched"><code class="sourceCode lua"></code></pre></div>
+class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-4-err-1"><a href="#id5-4-err-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="id5-4-err-2"><a href="#id5-4-err-2" aria-hidden="true" tabindex="-1"></a><span class="va">cat</span> $<span class="dv">0</span> <span class="op">|</span> <span class="va">boxes</span> <span class="op">-</span><span class="va">d</span> <span class="va">peek</span> <span class="op">-</span><span class="va">p</span> <span class="va">h2v1</span></span></code></pre></div>
 </blockquote>
 <h1 id="ping-example">ping example</h1>
-<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:803::200e) 56 data bytes
-64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=1 ttl=120 time=5.55 ms
-64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=2 ttl=120 time=6.18 ms
-
---- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1000ms
-rtt min/avg/max/mdev = 5.552/5.865/6.178/0.313 ms
+<pre id="x-1-cbx" class="stitched"><code>``` {.stitch cfg=&quot;ping&quot; arg=&quot;google.com&quot; cid=&quot;asdf&quot;}
+this codeblock should be ignored
+it has no identifier, so files should be x-..
+```
 </code></pre>
-<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:803::200e) 56 data bytes
-64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=1 ttl=120 time=5.55 ms
-64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=2 ttl=120 time=6.18 ms
-
---- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1000ms
-rtt min/avg/max/mdev = 5.552/5.865/6.178/0.313 ms
-</code></pre>
-<pre id="x-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:803::200e) 56 data bytes
-64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=1 ttl=120 time=5.55 ms
-64 bytes from ams15s42-in-x0e.1e100.net (2a00:1450:400e:803::200e): icmp_seq=2 ttl=120 time=6.18 ms
-
---- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1000ms
-rtt min/avg/max/mdev = 5.552/5.865/6.178/0.313 ms
-</code></pre>
+<pre id="x-2-err" class="stitched"><code>this codeblock should be ignored
+it has no identifier, so files should be x-..</code></pre>
+<pre id="x-3-out" class="stitched"><code>this codeblock should be ignored
+it has no identifier, so files should be x-..</code></pre>
 <h1 id="todo">ToDo</h1>
 <p>Test out some of these <a
 href="https://www.linuxlinks.com/excellent-free-plotting-tools/">plotting

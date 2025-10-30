@@ -23,6 +23,9 @@ all: $(TARGETS)
 gnuplot:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) gnuplot.md -o gnuplot.pdf
 
+scope:
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --file-scope  --from $(FROM)+${EXTS} ex00.md ex01.md -o $ex0x.html
+
 # TODO:
 # test:
 # 	$(BUSTED)
