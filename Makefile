@@ -5,6 +5,8 @@ EX_DIR   = examples
 ST_DIR   = .stitch
 FROM     = markdown
 EXTS     = inline_code_attributes
+UNICODE  = -V mainfont="DejaVu Serif" -V mainfontfallback="NotoColorEmoji:mode=harf"
+ENGINE   = --pdf-engine=xelatex
 
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
@@ -16,18 +18,33 @@ ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
 
 %.pdf:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.pdf
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $(ENGINE) ${@:%.pdf=%.md} -o $@
 
 all: $(TARGETS)
 
-gnuplot:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) gnuplot.md -o gnuplot.pdf
+# gnuplot:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) gnuplot.md -o gnuplot.pdf
+#
+# scope:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --file-scope  --from $(FROM)+${EXTS} ex00.md ex01.md -o ex0x.html
+#
+# cetz:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) cetz-01.md -o cetz-01.pdf
+#
+# diagon:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) diagon.md -o diagon.pdf
+#
+# ctioga2:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) ctioga2.md -o ctioga2.pdf
+#
+# asciichart:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) asciichart.md -o asciichart.pdf
+#
+# youplot:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) $@.md -o $@.pdf
 
-scope:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --file-scope  --from $(FROM)+${EXTS} ex00.md ex01.md -o ex0x.html
-
-cetz:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) cetz-01.md -o cetz-01.html
+%:
+	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) $@.md -o $@.pdf
 
 # TODO:
 # test:
@@ -61,5 +78,3 @@ show:
 	@echo "make show      (this output)"
 	@echo "make all       (make all individual targets)"
 	@echo "make clean     (removes directory $(EX_DIR)/$(ST_DIR)) and its contents"
-
-

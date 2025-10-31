@@ -11,15 +11,46 @@ stitch:
     inc: cbx:fcb art
 ...
 
+```{#id0 .stitch inc=out}
+#!/usr/bin/env bash
+figlet -c -w 60 "typst / cetz" | boxes -d ian_jones -p h2v1
+```
 
-# typst with cetz
+Notes:
 
-```{#id1 .stitch cfg=typst}
+- create a single image using `typst c src dst.fmt` (src = codeblock contents)
+- [cetz](https://typst.app/universe/package/cetz) is a package (of many) for drawing
+- these (sub)packages are downloaded automagically when `import`'d in a doc.typ
+- homepage [typst.app](https://typst.app/)
+- packages [universe](https://typst.app/universe/search/?kind=packages) with
+tons of packages
+
+\newpage
+
+# Local installation
+
+## typst -h
+
+```{#id0.0 .stitch inc=out}
+typst -h
+```
+
+## snap info typst
+
+```{#id1 .stitch inc=out}
+snap info typst
+```
+
+\newpage
+
+# Examples
+
+## Karl's picture, from [typst.app](https://typst.app/universe/package/cetz/)
+
+```{#id1 .stitch cfg=typst caption="Karl's picture"}
 #import "@preview/cetz:0.4.2"
 #set page(width: auto, height: auto, margin: .5cm)
-
 #show math.equation: block.with(fill: white, inset: 1pt)
-
 #cetz.canvas(length: 3cm, {
   import cetz.draw: *
 
@@ -36,9 +67,7 @@ stitch:
   )
 
   grid((-1.5, -1.5), (1.4, 1.4), step: 0.5, stroke: gray + 0.2pt)
-
   circle((0,0), radius: 1)
-
   line((-1.5, 0), (1.5, 0), mark: (end: "stealth"))
   content((), $ x $, anchor: "west")
   line((0, -1.5), (0, 1.5), mark: (end: "stealth"))
@@ -48,7 +77,6 @@ stitch:
     line((x, 3pt), (x, -3pt))
     content((), anchor: "north", ct)
   }
-
   for (y, ct) in ((-1, $ -1 $), (-0.5, $ -1/2 $), (0.5, $ 1/2 $), (1, $ 1 $)) {
     line((3pt, y), (-3pt, y))
     content((), anchor: "east", ct)
@@ -59,9 +87,7 @@ stitch:
     label: text(green, [#sym.alpha]))
 
   line((0,0), (1, calc.tan(30deg)))
-
   set-style(stroke: (thickness: 1.2pt))
-
   line((30deg, 1), ((), "|-", (0,0)), stroke: (paint: red), name: "sin")
   content(("sin.start", 50%, "sin.end"), text(red)[$ sin alpha $])
   line("sin.end", (0,0), stroke: (paint: blue), name: "cos")
@@ -71,9 +97,13 @@ stitch:
 })
 ```
 
-# plot
+\newpage
 
-```{#id2 .stitch cfg=typst}
+## Cetz-plot
+
+Example from [cetz-plot](https://github.com/cetz-package/cetz-plot)
+
+```{#id2 .stitch cfg=typst caption="Cetz-plot"}
 #import "@preview/cetz:0.4.2": canvas, draw
 #import "@preview/cetz-plot:0.1.3": plot
 
