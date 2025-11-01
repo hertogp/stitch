@@ -306,7 +306,7 @@ function I.fkill()
         end
       end
     else
-      I.log('warn', 'files', 'filename template used without sha1 (%s), unable to detect old files', I.opts.sha)
+      I.log('warn', 'files', '`#%s` template without `#sha` (%s), unable to detect old files', what, I.opts.sha)
     end
   end
 
@@ -344,7 +344,7 @@ I.mkelm = {
       -- doc used as-is for out, err
       fcb.text = doc
     end
-    I.log('info', 'include', '%s, id %s, pandoc.CodeBlock', what, fcb.attr.identifier)
+    I.log('info', 'include', '%s, id %s, fenced pandoc.CodeBlock', what, fcb.attr.identifier)
 
     return fcb
   end,
@@ -374,10 +374,14 @@ I.mkelm = {
       if doc and doc.blocks[1].attr then
         doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
       end
-      I.log('info', 'include', "%s, is %s, merging %d pandoc.Block's", what, fcb.attr.identifier, #doc.blocks)
+      I.log('info', 'include', "%s, id %s, merging %d pandoc.Block's", what, fcb.attr.identifier, #doc.blocks)
       return doc.blocks
     elseif 'art' == what then
       return I.mkelm.fig(fcb, cb, doc, what)
+    elseif 'cbx' == what then
+      fcb.text = doc
+      I.log('info', 'include', '%s, id %s, plain pandoc.CodeBlock', what, fcb.attr.identifier)
+      return fcb
     else
       return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
     end

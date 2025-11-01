@@ -1,7 +1,6 @@
 ---
 author: pdh
 date: today
-mainfont: "Latin Modern Mono"
 monofont: FreeMono
 stitch:
   defaults:
@@ -17,16 +16,12 @@ figlet -c -w 40 youplot | boxes -d ian_jones -p h6v2
 
 *Notes*
 
-- visit [youplot](https://github.com/red-data-tools/YouPlot)
+- see [youplot](https://github.com/red-data-tools/YouPlot)
 - `sudo apt-get install ruby-dev`
 - `sudo gem install youplot`
-- uplot's option *-o* makes output go to stdout (use in cb itself)
+- uplot's option *-o* makes output go to stdout
 - uses `--pdf-engine=xelatex`
-- add in meta:
-```
-    mainfont: "Latin Modern Mono"
-    monofont: FreeMono
-```
+- add in meta: `monofont: FreeMono`
 
 \newpage
 
@@ -55,7 +50,7 @@ curl -sL https://git.io/ISLANDScsv \
 
 ## density
 
-```{#id1.2 .stitch}
+```{#id2.1 .stitch}
 curl -sL https://git.io/IRIStsv \
 | cut -f1-4 \
 | uplot density -H -t IRIS -o
@@ -65,7 +60,7 @@ curl -sL https://git.io/IRIStsv \
 
 ## lineplot
 
-```{#id1.3 .stitch}
+```{#id3.1 .stitch}
 curl -sL https://git.io/AirPassengers \
 | cut -f2,3 -d, \
 | uplot line -d, -w 50 -h 15 -t AirPassengers \
@@ -74,9 +69,32 @@ curl -sL https://git.io/AirPassengers \
 
 \newpage
 
+The local temperature for the next 7 days (168 hrs) (at the time of writing).
+
+```{#id3.2 .stitch}
+curl -sL 'https://api.open-meteo.com/v1/forecast?'\
+'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+| tail -n +5 | cut -f2 -d, \
+| uplot line -d, -w 60 -h 15 -t "Temperature (˚C)" --ylim 0,25 -o
+```
+
+\newpage
+
+Or today's temperature in a bar plot:
+
+```{#id3.3 .stitch}
+curl -sL 'https://api.open-meteo.com/v1/forecast?'\
+'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+| head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
+|  uplot bar -d, -t "Temperature (˚C) Today" -o
+```
+
+
+\newpage
+
 ## scatter
 
-```{#id1.4 .stitch}
+```{#id4.1 .stitch}
 curl -sL https://git.io/IRIStsv \
 | cut -f1-4 \
 | uplot scatter -H -t IRIS -o
