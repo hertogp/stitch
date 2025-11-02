@@ -17,7 +17,7 @@ stitch:
     inc: cbx:fcb art
 ...
 
-```{#id0 .stitch inc=out}
+```{#id0 stitch="" inc=out}
 #!/usr/bin/env bash
 figlet -c -w 60 "typst / cetz" | boxes -d ian_jones -p h2v1
 ```
@@ -43,7 +43,7 @@ Notes:
 
 ## Cetz, from [typst.app](https://typst.app/universe/package/cetz/)
 
-```{#id1 .stitch cfg=typst caption="Karl's picture"}
+```{#id1 stitch=typst caption="Karl's picture"}
 #import "@preview/cetz:0.4.2"
 #set page(width: auto, height: auto, margin: .5cm)
 #show math.equation: block.with(fill: white, inset: 1pt)
@@ -93,7 +93,7 @@ Notes:
 
 Example from [cetz-plot](https://github.com/cetz-package/cetz-plot)
 
-```{#id2 .stitch cfg=typst caption="Cetz-plot"}
+```{#id2 stitch=typst caption="Cetz-plot"}
 #import "@preview/cetz:0.4.2": canvas, draw
 #import "@preview/cetz-plot:0.1.3": plot
 #set text(size: 10pt)
@@ -135,45 +135,87 @@ Example from [cetz-plot](https://github.com/cetz-package/cetz-plot)
 ## Fletcher
 
 
-```{#id3 .stitch cfg=typst caption="Fletcher" fmt=svg}
+```{#id3 stitch=typst caption="Fletcher" fmt=svg}
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #import fletcher.shapes: diamond
 #set text(font: "Comic Neue", size: 10pt) // testing: omit
 #set page(fill: none, width: auto, height: auto, margin: (x: 6pt, y:3pt))
 
 #diagram(
-	node-stroke: .1em,
+    node-stroke: .1em,
     spacing: 2em,
-	node((0,0), [Start], corner-radius: .2em, extrude: (0, 3)),
-	edge("-|>"),
-	node((0,1), align(center)[
-		Hey, wait,\ this flowchart\ is a trap!
-	], shape: diamond),
-	edge("d,r,u,l", "-|>", [Yes], label-pos: 0.1)
+    node((0,0), [Start], corner-radius: .2em, extrude: (0, 3)),
+    edge("-|>"),
+    node((0,1), align(center)[
+        Hey, wait,\ this flowchart\ is a trap!
+    ], shape: diamond),
+    edge("d,r,u,l", "-|>", [Yes], label-pos: 0.1)
 )
 ```
 
 \newpage
 
 
-```{#id4 .stitch cfg=typst caption="Fletcher" fmt=svg}
+```{#id4 stitch=typst caption="Fletcher" fmt=svg}
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #set text(10pt)
 #set page(fill: none, width: auto, height: auto, margin: (x: 6pt, y:3pt))
 #diagram(
-	node-stroke: .1em,
-	node-fill: gradient.radial(blue.lighten(80%), blue, center: (30%, 20%), radius: 80%),
-	spacing: 4em,
-	edge((-1,0), "r", "-|>", `open(path)`, label-pos: 0, label-side: center),
-	node((0,0), `reading`, radius: 2em),
-	edge(`read()`, "-|>"),
-	node((1,0), `eof`, radius: 2em),
-	edge(`close()`, "-|>"),
-	node((2,0), `closed`, radius: 2em, extrude: (-2.5, 0)),
-	edge((0,0), (0,0), `read()`, "--|>", bend: 130deg),
-	edge((0,0), (2,0), `close()`, "-|>", bend: -40deg),
+    node-stroke: .1em,
+    node-fill: gradient.radial(blue.lighten(80%), blue, center: (30%, 20%), radius: 80%),
+    spacing: 4em,
+    edge((-1,0), "r", "-|>", `open(path)`, label-pos: 0, label-side: center),
+    node((0,0), `reading`, radius: 2em),
+    edge(`read()`, "-|>"),
+    node((1,0), `eof`, radius: 2em),
+    edge(`close()`, "-|>"),
+    node((2,0), `closed`, radius: 2em, extrude: (-2.5, 0)),
+    edge((0,0), (0,0), `read()`, "--|>", bend: 130deg),
+    edge((0,0), (2,0), `close()`, "-|>", bend: -40deg),
 )
 ```
+
+\newpage
+
+A high level overview of how the stitch filter works.
+
+```{#id4.1 stitch=typst caption="Stitch(cb)" fmt=svg}
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import fletcher.shapes: pill, parallelogram, diamond
+#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#set text(10pt)
+
+#diagram(
+  node-stroke: .1em,
+  node-fill: gradient.radial(blue.lighten(80%), blue, center: (30%, 20%), radius: 80%),
+  spacing: 4em,
+  mark-scale: 150%,
+  node((-1,-1), "codeblock", name: <cb>, shape: pill),
+  node((-1,0), "stitch?", name: <stitch>, shape: diamond),
+  edge(<cb>, <stitch>, "-|>"),
+  node((0,0), "exe?", name: <exe>, shape: diamond),
+  edge(<stitch>, <exe>, "-|>", `yes`),
+  node((1,0), "create: cbx art out err", name: <create>, shape: parallelogram, extrude: (-2.5, 0)),
+  edge(<exe>, <create>, "->", `yes`),
+  node((0,1), "purge?", name: <purge>, shape:diamond),
+  edge(<exe>, <purge>, "-|>", `no`),
+  edge(<create.south>, (1, 0.5), (0, 0.5),  "-|>"),
+  node((1,1), "rm old files", name: <rm>, shape: parallelogram, extrude: (-2.5,0)),
+  edge(<purge>, <rm>, "-|>", `yes`),
+  node((0,2), "parse `inc`-opt", name: <parse>, shape: parallelogram),
+  edge(<purge>, <parse>, "-|>", `no`),
+  edge(<rm.south>, (1, 1.5), (0,1.5), "-|>"),
+  node((0,3), "`inc:`-parts?", name: <parts>, shape: diamond),
+  edge(<parse>, <parts>, "-|>"),
+  node((1,3), "include in order parsed", name: <include>, shape: parallelogram),
+  edge(<parts>, <include>, "-|>", `yes`),
+  node((-1,4), "continue", name: <continue>, shape: pill),
+  edge(<stitch>, <continue>, "-|>", `no`),
+  edge(<parts>, (0, 3.45), (-1, 3.45), "-|>", `no`),
+  edge(<include>, (1, 4), <continue>, "-|>"),
+)
+```
+
 
 \newpage
 
@@ -186,13 +228,13 @@ Notes:
 - `#id5.0` with `inc=""` would hide it completely while still being executed
 - `#id5.1` uses path to the csv-file, relative to dir where pandoc was started
 
-```{#id5.0 .stitch cfg=download arg="dta/local-temperature.csv"}
+```{#id5.0 stitch=download arg="dta/local-temperature.csv"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 'latitude=52.52&longitude=13.41&hourly=temperature_2m'\
 '&format=csv' | tail -n +5 | head -n 24 | sed 's/^[^T]*T//;s/:/./'
 ```
 
-```{#id5.1 .stitch cfg=typst caption="Temperature (C)\
+```{#id5.1 stitch=typst caption="Temperature (C)\
 today by Lilaq" fmt=svg exe=yes}
 #import "@preview/lilaq:0.5.0" as lq
 #set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
@@ -215,13 +257,13 @@ to get a typst `datetime` value.  So rather than parse out all fields to
 create a [datetime](https://typst.app/docs/reference/foundations/datetime/)
 codeblock `#id5.3` simply turns the `HH` part into an `int`.
 
-```{#id5.2 .stitch cfg=download arg="dta/local-temperature.json" inc="cbx:fcb out:fcb"}
+```{#id5.2 stitch=download arg="dta/local-temperature.json" inc="cbx:fcb out:fcb"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&'\
 'hourly=temperature_2m&timezone=Europe%2FLondon&forecast_days=1&format=json'\
 | jq .
 ```
 
-```{#id5.3 .stitch blah= cfg=typst caption="Temperature (C)\
+```{#id5.3 stitch=typst caption="Temperature (C)\
 today by Lilaq" fmt=svg exe=yes}
 #import "@preview/lilaq:0.5.0" as lq
 #set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
@@ -242,7 +284,7 @@ today by Lilaq" fmt=svg exe=yes}
 
 ## Plotsy-3d
 
-```{#id6.0 .stitch cfg=typst caption="Plotsy-3d" fmt=svg}
+```{#id6.0 stitch=typst caption="Plotsy-3d" fmt=svg}
 #import "@preview/plotsy-3d:0.2.1": plot-3d-parametric-surface
 #set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 
@@ -281,7 +323,7 @@ $ x(u,v) = u sin(v), space y(u,v)= u cos(v), space z(u,v)= u $
 ```
 \newpage
 
-```{#id6.1 .stitch cfg=typst caption="Plotsy-3d" fmt=svg}
+```{#id6.1 stitch=typst caption="Plotsy-3d" fmt=svg}
 #import "@preview/plotsy-3d:0.2.1": plot-3d-surface
 #set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 #let size = 10
@@ -322,7 +364,7 @@ $ z= x^2 + y^2 $
 
 ## typst -h
 
-```{#id0.0 .stitch inc=out}
+```{#id0.0 stitch="" inc=out}
 typst -h
 ```
 

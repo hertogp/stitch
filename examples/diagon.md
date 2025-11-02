@@ -161,10 +161,10 @@ if ("stitch?") {
 \
 Notes:
 
-- if a codeblock hasn't changed, it's not executed again
+- an unchanged codeblock with 1+ existing artifacts, is not executed again
 - if `exe=no`, the codeblock isn't executed either
 - executing usually creates 3 artifacts in addition to the cbx itself
-- if `inc=""`, nothing will be included & codeblock is omitted entirely
+- if `inc=""`, nothing will be included, not even the original codeblock
 - `inc=""` allows for side-effects, like downloading data to be used later \
   which probably uses a fixed filename, instead of a generated one.
 

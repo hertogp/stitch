@@ -5,6 +5,8 @@
 -- [o] add Code handler to insert pieces of a CodeBlock
 -- [ ] drop the class 'stitch', use stitch="" or stitch="section"
 --     that way we can also drop cfg="section"
+-- [ ] asciichart uses ANSI esc for colors, how to fix (use aha tool?)
+--
 --  default
 --  OTHER PROJECTS:
 --  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
@@ -153,6 +155,7 @@ function I.mksha(cb)
 
   local vals = {}
   for _, key in ipairs(hardcoded_keys) do
+    print('key', key, I, I.opts, vals)
     vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub('%s', '')
   end
   vals[#vals + 1] = cb.text:gsub('%s', '') -- also no wspace
@@ -509,7 +512,8 @@ function I.options(cb)
   -- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
   I.opts = I.metalua(cb.attributes)
   I.opts = I.validate('cb.attr', I.opts)
-  setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
+  -- setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
+  setmetatable(I.opts, { __index = I.ctx[I.opts.stitch] })
   I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%03d', I.cbc)
   I.opts.sha = I.mksha(cb) -- derived only
 
@@ -577,7 +581,8 @@ end
 function I.codeblock(cb)
   I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
 
-  if not cb.classes:find('stitch') then return nil end
+  if not (cb.attributes.stitch or cb.classes:find('stitch')) then return nil end
+  -- if not cb.classes:find('stitch') then return nil end
 
   -- TODO: also check I.opts.exe and I.opts.old (keep/purge)
   if I.options(cb) and I.mkcmd(cb) then
