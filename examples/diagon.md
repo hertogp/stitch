@@ -7,14 +7,14 @@ stitch:
   defaults:
     dir: .stitch/diagon
     cmd: "diagon #arg < #cbx 1>#out 2>#err"
-    inc: out cbx
+    inc: "out cbx:fcb"
   intro:
     log: debug
     inc: out
     cmd: "#cbx 1>#out"
 ...
 
-```{#id0.0 .stitch cfg=intro inc=out}
+```{#id0.0 stitch=intro inc=out}
 #!/usr/bin/env bash
 figlet -c -w 60 diagon | boxes -d ian_jones -p h6v2
 ```
@@ -33,7 +33,7 @@ Added to diagon.md meta:
 
 # diagon -h
 
-```{#id0.1 .stitch cfg=intro inc=out}
+```{#id0.1 stitch=intro inc=out}
 diagon -h
 ```
 
@@ -57,11 +57,11 @@ Renderer -> Browser: DidCommitNavigation()
 
 ## Frame
 
-```{#id2.0 .stitch cfg=intro inc="out cbx"}
+```{#id2.0 stitch=intro inc="out cbx:fcb"}
 figlet diagon | diagon Frame
 ```
 
-```{#id2.1 .stitch cfg=intro inc="out cbx"}
+```{#id2.1 stitch=intro inc="out cbx:fcb"}
 cat ../.stylua.toml | diagon Frame
 ```
 
@@ -137,6 +137,8 @@ else if ("OKAY, YOU SEE THE LINE LABELED 'YES'?") {
 \newpage
 
 ## Stitch(cb)
+
+High-level overview of how `stitch` processes a codeblock.
 
 
 ```{#id6.0 .stitch arg=Flowchart inc=out}

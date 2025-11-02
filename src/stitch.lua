@@ -2,8 +2,8 @@
 -- TODO:
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
--- [o] add Code handler to insert pieces of a CodeBlock
--- [ ] drop the class 'stitch', use stitch="" or stitch="section"
+-- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
+-- [x] drop the class 'stitch', use stitch="" or stitch="section"
 --     that way we can also drop cfg="section"
 -- [ ] asciichart uses ANSI esc for colors, how to fix (use aha tool?)
 --
@@ -37,7 +37,7 @@ I.cbc = 0 -- cb counted as they are seen by Stitch.codeblock(cb)
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
   cid = 'x', -- TODO: MUST be unique for each cb so old file detectinon is possible
-  cfg = '', -- name of config section in doc.meta.stitch.<cfg> (if any)
+  -- cfg = '', -- name of config section in doc.meta.stitch.<cfg> (if any)
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
   fmt = 'png', -- format for images (if any)
@@ -155,7 +155,6 @@ function I.mksha(cb)
 
   local vals = {}
   for _, key in ipairs(hardcoded_keys) do
-    print('key', key, I, I.opts, vals)
     vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub('%s', '')
   end
   vals[#vals + 1] = cb.text:gsub('%s', '') -- also no wspace

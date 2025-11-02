@@ -80,7 +80,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 
 \newpage
 
-Or today's temperature in a bar plot:
+Or the temperature, on the day of compiling this document, in a bar plot:
 
 ```{#id3.3 .stitch}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\

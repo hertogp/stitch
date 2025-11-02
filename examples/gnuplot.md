@@ -21,7 +21,7 @@ gnuplot -h | sed 's/^/           /'
 
 # Simple Plot
 
-```{#id1 .stitch cfg=gnuplot caption="Created by gnuplot"}
+```{#id1 stitch=gnuplot caption="Created by gnuplot"}
 set terminal pngcairo transparent enhanced font \
     "arial,10" fontscale 1.0 size 500, 350
 set key inside left top vertical Right noreverse enhanced \
@@ -35,7 +35,7 @@ plot [-30:20] besj0(x)*0.12e1 with impulses, \
 
 # Surface, no hidden lines
 
-```{#id2 .stitch cfg=gnuplot caption="Created by gnuplot"}
+```{#id2 stitch=gnuplot caption="Created by gnuplot"}
 set terminal pngcairo  transparent enhanced font "arial,10" fontscale 1.0 \
     size 600, 400
 # set output 'gnuplot-02.png'
@@ -71,7 +71,7 @@ gnuplot -h
 ```
 ## man gnuplot
 
-```{#man .stitch cfg=man}
+```{#man stitch=man}
 #!/usr/bin/env sh
 MANWIDTH=75 man gnuplot | col -bx | iconv -t ascii//TRANSLIT
 ```
