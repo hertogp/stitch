@@ -487,7 +487,7 @@ function I.result(cb)
   return elms
 end
 
---[[ context & cb ]]
+--[[ options (meta/cb) ]]
 
 -- check values for given `opts`, removes those that are illegal
 ---@param opts table single k,v store of options
@@ -507,7 +507,7 @@ end
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
-function I.options(cb)
+function I.mkopt(cb)
   -- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
   I.opts = I.metalua(cb.attributes)
   I.opts = I.validate('cb.attr', I.opts)
@@ -525,13 +525,13 @@ function I.options(cb)
   -- check against circular refs
   for k, _ in pairs(I.hardcoded) do
     if 'cmd' ~= k and 'string' == type(I.opts[k]) and I.opts[k]:match('#%w+') then
-      I.log('error', 'options', '%s not entirely expanded: %s', k, I.opts[k])
+      I.log('error', 'mkopt', '%s not entirely expanded: %s', k, I.opts[k])
       return false
     end
   end
 
   for k, _ in pairs(I.hardcoded) do
-    I.log('debug', 'cb.opts', '%s = %q', k, I.opts[k])
+    I.log('debug', 'mkopt', '%s = %q', k, I.opts[k])
   end
   return true
 end
@@ -539,7 +539,7 @@ end
 --- extract `doc.meta.stitch` config from a doc's meta block (if any)
 ---@param doc table the doc's ast
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
-function I.setup(doc)
+function I.mkctx(doc)
   -- pickup named cfg sections in meta.stitch, resolution order:
   -- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
   I.ctx = I.metalua(doc.meta.stitch or {}) or {} -- REVIEW: last or {} needed?
@@ -584,7 +584,7 @@ function I.codeblock(cb)
   -- if not cb.classes:find('stitch') then return nil end
 
   -- TODO: also check I.opts.exe and I.opts.old (keep/purge)
-  if I.options(cb) and I.mkcmd(cb) then
+  if I.mkopt(cb) and I.mkcmd(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
     elseif I.deja_vu() and 'maybe' == I.opts.exe then
@@ -623,7 +623,7 @@ local Stitch = {
   _ = I, -- Stitch's implementation: for testing only
 
   Pandoc = function(doc)
-    I.setup(doc)
+    I.mkctx(doc)
     return doc:walk({ CodeBlock = I.codeblock })
   end,
 }
