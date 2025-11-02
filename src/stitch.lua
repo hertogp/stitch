@@ -61,7 +61,7 @@ I.hardcoded = {
 local pd = require('pandoc')
 
 function I.log(lvl, action, msg, ...)
-  -- [stitch level] (action cb_id) msg .. (need to validate opts.log value)
+  -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
   if (I.level[I.opts.log] or 1) >= I.level[lvl] then
     local fmt = '[stitch %5s] %s %-7s| ' .. tostring(msg) .. '\n'
     local text = string.format(fmt, lvl, I.opts.cid or 'mod', action, ...)
@@ -93,22 +93,22 @@ function I.parse_inc(str)
   return inc
 end
 
--- extract specific data from ast elements into lua table(s)
+-- translate specific data from ast elements to lua table(s)
 ---@param elm any either `doc.blocks`, `doc.meta` or a `CodeBlock`
 ---@return any regular table holding the metadata as lua values
-function I.metalua(elm)
-  -- note: metalua(doc.blocks) -> list of cb tables.
+function I.xlate(elm)
+  -- note: xlate(doc.blocks) -> list of cb tables.
   local ptype = pd.utils.type(elm)
   if 'Meta' == ptype or 'table' == ptype or 'AttributeList' == ptype then
     local t = {}
     for k, v in pairs(elm) do
-      t[k] = I.metalua(v)
+      t[k] = I.xlate(v)
     end
     return t
   elseif 'List' == ptype or 'Blocks' == ptype then
     local l = {}
     for _, v in ipairs(elm) do
-      l[#l + 1] = I.metalua(v)
+      l[#l + 1] = I.xlate(v)
     end
     return l
   elseif 'Inlines' == ptype or 'string' == ptype then
@@ -120,18 +120,18 @@ function I.metalua(elm)
   elseif 'attr' == ptype then
     local t = {
       identifier = elm.identifier,
-      classes = I.metalua(elm.classes),
+      classes = I.xlate(elm.classes),
       attributes = {},
     }
     for k, v in pairs(elm.attributes) do
-      t.attributes[k] = I.metalua(v)
+      t.attributes[k] = I.xlate(v)
     end
     return t
   elseif 'CodeBlock' == elm.tag then
     -- a CodeBlock's type is actually 'Block'
     return {
       text = elm.text,
-      attr = I.metalua(elm.attr),
+      attr = I.xlate(elm.attr),
     }
   else
     I.log('error', 'meta', "option unknown type '%s'? for %s", ptype, tostring(elm))
@@ -492,13 +492,13 @@ end
 -- check values for given `opts`, removes those that are illegal
 ---@param opts table single k,v store of options
 ---@return table opts same table with illegal options removed
-function I.validate(section, opts)
+function I.check(section, opts)
   for k, valid in pairs(I.optvalues) do
     local v = opts[k]
     if v and #v > 0 and not pd.List.includes(valid, v, 1) then
       local need = table.concat(valid, ', ')
       opts[k] = nil
-      I.log('error', 'meta', "%s.%s='%s' ignored, need one of: %s", section, k, v, need)
+      I.log('error', 'check', "%s.%s='%s' ignored, need one of: %s", section, k, v, need)
     end
   end
   return opts
@@ -509,8 +509,8 @@ end
 ---@return boolean ok success indicator
 function I.mkopt(cb)
   -- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
-  I.opts = I.metalua(cb.attributes)
-  I.opts = I.validate('cb.attr', I.opts)
+  I.opts = I.xlate(cb.attributes)
+  I.opts = I.check('cb.attr', I.opts)
   -- setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
   setmetatable(I.opts, { __index = I.ctx[I.opts.stitch] })
   I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%03d', I.cbc)
@@ -542,7 +542,7 @@ end
 function I.mkctx(doc)
   -- pickup named cfg sections in meta.stitch, resolution order:
   -- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
-  I.ctx = I.metalua(doc.meta.stitch or {}) or {} -- REVIEW: last or {} needed?
+  I.ctx = I.xlate(doc.meta.stitch or {}) or {} -- REVIEW: last or {} needed?
 
   -- defaults -> hardcoded
   local defaults = I.ctx.defaults or {}
@@ -559,9 +559,9 @@ function I.mkctx(doc)
     __index = function() return defaults end,
   })
 
-  defaults = I.validate('defaults', defaults)
+  defaults = I.check('defaults', defaults)
   for section, map in pairs(I.ctx) do
-    I.ctx[section] = I.validate(section, map)
+    I.ctx[section] = I.check(section, map)
   end
 
   -- tmp/debug
@@ -577,7 +577,7 @@ end
 
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
-function I.codeblock(cb)
+function I.cbexe(cb)
   I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
 
   if not (cb.attributes.stitch or cb.classes:find('stitch')) then return nil end
@@ -624,7 +624,7 @@ local Stitch = {
 
   Pandoc = function(doc)
     I.mkctx(doc)
-    return doc:walk({ CodeBlock = I.codeblock })
+    return doc:walk({ CodeBlock = I.cbexe })
   end,
 }
 
