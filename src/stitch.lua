@@ -319,7 +319,7 @@ end
 
 -- says whether cb-executable file and 1 or more outputs already exist or not
 ---@return boolean deja_vu true or false
-function I.deja_vu()
+function I.recur()
   -- if cbx exist with 1 or more ouputs, we were here before
 
   if I.freal(I.opts.cbx) then
@@ -587,7 +587,7 @@ function I.cbexe(cb)
   if I.mkopt(cb) and I.mkcmd(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
-    elseif I.deja_vu() and 'maybe' == I.opts.exe then
+    elseif I.recur() and 'maybe' == I.opts.exe then
       I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
     else
       I.log('info', 'execute', "running codeblock (exe='%s')", I.opts.exe)

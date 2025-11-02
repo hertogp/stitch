@@ -338,17 +338,20 @@ id="nestid" data-caption="nested-cappi" alt="test" /></p>
 cat $0 | boxes -d peek -p h2v1</code></pre>
 <h1 id="id1-boxes">id1 boxes</h1>
 <p>Inside this para?</p>
-<figure id="id1-1-art" class="stitched" data-caption="id1-caption">
-<img src=".stitch/id1-e44e7b4165cc9f69f2144a95e6e90cebe0049561.png"
+<figure id="id1-1-art" class="stitched" data-cfg="boxes"
+data-caption="id1-caption">
+<img src=".stitch/id1-caaab02b7f493a3835a56a4f160ba0ac10d2bcb1.png"
 id="id1-1-art-img" />
 <figcaption>id1-caption</figcaption>
 </figure>
-<pre id="id1-2-cbx" class="stitched" data-caption="id1-caption"><code>``` {#id1 .stitch cfg=&quot;boxes&quot; caption=&quot;id1-caption&quot;}
+<pre id="id1-2-cbx" class="stitched" data-cfg="boxes"
+data-caption="id1-caption"><code>``` {#id1 .stitch cfg=&quot;boxes&quot; caption=&quot;id1-caption&quot;}
 #!/usr/bin/env bash
 cat $0 | boxes -d peek -p h2v1
 ```
 </code></pre>
-<pre id="id1-3-out" class="stitched" data-caption="id1-caption"><code>/*       _\|/_
+<pre id="id1-3-out" class="stitched" data-cfg="boxes"
+data-caption="id1-caption"><code>/*       _\|/_
          (o o)
  +----oOO-{_}-OOo-------------------+
  |                                  |
@@ -356,7 +359,8 @@ cat $0 | boxes -d peek -p h2v1
  |  cat $0 | boxes -d peek -p h2v1  |
  |                                  |
  +---------------------------------*/</code></pre>
-<pre id="id1-4-err" class="stitched" data-caption="id1-caption"><code></code></pre>
+<pre id="id1-4-err" class="stitched" data-cfg="boxes"
+data-caption="id1-caption"><code></code></pre>
 <h1 id="id2-defaults">id2 defaults</h1>
 <figure id="id2-1-art" class="stitched bash" data-nou="moe"
 data-caption="id2-caption">
@@ -417,21 +421,9 @@ class="sourceCode lua stitched"><code class="sourceCode lua"><span id="id5-3-out
 class="sourceCode lua stitched"><code class="sourceCode lua"></code></pre></div>
 </blockquote>
 <h1 id="ping-example">ping example</h1>
-<pre id="cb008-1-cbx" class="stitched"><code>``` {.stitch cfg=&quot;ping&quot; arg=&quot;google.com&quot; cid=&quot;asdf&quot;}
-this codeblock should be ignored
-it has no identifier, so files should be x-..
-```
-</code></pre>
-<pre id="cb008-2-err" class="stitched"><code>this codeblock should be ignored
+<pre class="stitch" data-cfg="ping" data-arg="google.com"
+data-cid="asdf"><code>this codeblock should be ignored
 it has no identifier, so files should be x-..</code></pre>
-<pre id="cb008-3-out" class="stitched"><code>PING google.com (2a00:1450:400e:802::200e) 56 data bytes
-64 bytes from ams15s41-in-x0e.1e100.net (2a00:1450:400e:802::200e): icmp_seq=1 ttl=119 time=5.99 ms
-64 bytes from ams15s41-in-x0e.1e100.net (2a00:1450:400e:802::200e): icmp_seq=2 ttl=119 time=5.55 ms
-
---- google.com ping statistics ---
-2 packets transmitted, 2 received, 0% packet loss, time 1001ms
-rtt min/avg/max/mdev = 5.553/5.770/5.987/0.217 ms
-</code></pre>
 <h1 id="todo">ToDo</h1>
 <p>Test out some of these <a
 href="https://www.linuxlinks.com/excellent-free-plotting-tools/">plotting
