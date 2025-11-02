@@ -3,7 +3,9 @@
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
 -- [o] add Code handler to insert pieces of a CodeBlock
---
+-- [ ] drop the class 'stitch', use stitch="" or stitch="section"
+--     that way we can also drop cfg="section"
+--  default
 --  OTHER PROJECTS:
 --  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
 --  * `:Open https://github.com/LaurentRDC/pandoc-plot/tree/master`
@@ -596,12 +598,12 @@ function I.codeblock(cb)
 
   -- do not remove old files if exe=no (if that was added, the cb changed and
   -- so did the cb's sha fingerprint(!): TODO: remove exe from fingerprint.
-  if 'no' == I.opts.exe then
-    I.log('info', 'files', 'not removing any old files (exe=%s)', I.opts.exe)
-  else
-    local count = I.fkill()
-    I.log('info', 'files', '%d old files removed', count)
-  end
+  -- if 'no' == I.opts.exe then
+  --   I.log('info', 'files', 'not removing any old files (exe=%s)', I.opts.exe)
+  -- else
+  local count = I.fkill()
+  I.log('info', 'files', '%d old files removed', count)
+  -- end
 
   return I.result(cb)
 end

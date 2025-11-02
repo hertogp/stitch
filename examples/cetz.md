@@ -4,7 +4,7 @@ date: today
 stitch:
   defaults:
     log: debug
-  hidden:
+  download:
     log: debug
     dir: ".stitch/cetz"
     out: ".stitch/cetz/#arg"
@@ -13,7 +13,7 @@ stitch:
   typst:
     dir: ".stitch/cetz"
     arg: compile
-    cmd: "typst #arg #cbx #art"
+    cmd: "typst #arg #cbx #art" # don't catch stderr
     inc: cbx:fcb art
 ...
 
@@ -26,12 +26,10 @@ Notes:
 
 - `snap install typst`
 - `sudo apt-get install librsvg-bin` (for `Lilaq`)
-- create a single image using `typst c in-file out-file.fmt` (src = cb.text)
-- see [cetz](https://typst.app/universe/package/cetz) is a package (of many) for drawing
-- packages are downloaded automagically when `import`'d in a doc.typ
 - homepage [typst.app](https://typst.app/)
-- [packages universe](https://typst.app/universe/search/?kind=packages) with
-tons of packages:
+- cli command `typst compile cb.cbx cb.<fmt>`
+- packages are downloaded automagically when `import`'d in a doc.typ
+- see [packages universe](https://typst.app/universe/search/?kind=packages)
    - [Cetz](https://typst.app/universe/package/cetz), library for plotting, charts & tree layout
    - [Cetz-plot](https://github.com/cetz-package/cetz-plot), adds plots and charts to CeTZ
    - [Fletcher](https://typst.app/universe/package/fletcher), draw diagrams with nodes and arrows
@@ -183,28 +181,143 @@ Example from [cetz-plot](https://github.com/cetz-package/cetz-plot)
 
 Notes:
 
-- `#id5.0` just downloads csv-data (see `meta.stitch.hidden`)
-- `cfg=hidden` repeatable with different `arg=..` to download other data
+- `typst` only has local data loading, so cb `#id5.0` does the downloading
+- `#id5.0` downloads csv-data (see `meta.stitch.download`)
+- `#id5.0` with `inc=""` would hide it completely while still being executed
 - `#id5.1` uses path to the csv-file, relative to dir where pandoc was started
 
-```{#id5.0 .stitch cfg=hidden arg="dta/local-temperature.csv"}
+```{#id5.0 .stitch cfg=download arg="dta/local-temperature.csv"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 'latitude=52.52&longitude=13.41&hourly=temperature_2m'\
 '&format=csv' | tail -n +5 | head -n 24 | sed 's/^[^T]*T//;s/:/./'
 ```
 
-```{#id5.1 .stitch blah= cfg=typst caption="Temperature (C)\
+```{#id5.1 .stitch cfg=typst caption="Temperature (C)\
 today by Lilaq" fmt=svg exe=yes}
 #import "@preview/lilaq:0.5.0" as lq
 #set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 #let (x, y) = lq.load-txt(read("dta/local-temperature.csv"))
 
 #lq.diagram(
+title: [source: api.open-meteo.com],
+  xlabel: [hour],
+  ylabel: [temperature (C)],
   lq.plot(x, y),
 )
 ```
 
 \newpage
+
+Among the (local) [data loading](https://typst.app/docs/reference/data-loading/)
+facilities is `json` which makes downloading a bit easier but the datetime
+string, formatted as `YYY-MM-DDTHH:MM`, still needs some manual massaging
+to get a typst `datetime` value.  So rather than parse out all fields to
+create a [datetime](https://typst.app/docs/reference/foundations/datetime/)
+codeblock `#id5.3` simply turns the `HH` part into an `int`.
+
+```{#id5.2 .stitch cfg=download arg="dta/local-temperature.json" inc="cbx:fcb out:fcb"}
+curl -sL 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&'\
+'hourly=temperature_2m&timezone=Europe%2FLondon&forecast_days=1&format=json'\
+| jq .
+```
+
+```{#id5.3 .stitch blah= cfg=typst caption="Temperature (C)\
+today by Lilaq" fmt=svg exe=yes}
+#import "@preview/lilaq:0.5.0" as lq
+#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#let dta = json("dta/local-temperature.json")
+#let hour(str) = {
+    return int(str.slice(11, count: 2))
+}
+#let hours = dta.hourly.time.map(hour)
+
+#lq.diagram(
+  title: [GPS (#dta.latitude, #dta.longitude)\ source: api.open-meteo.com],
+  xlabel: [hour\ (#dta.timezone)],
+  ylabel: [temperature (#dta.hourly_units.temperature_2m)],
+  lq.plot(hours, dta.hourly.temperature_2m),
+)
+```
+\newpage
+
+## Plotsy-3d
+
+```{#id6.0 .stitch cfg=typst caption="Plotsy-3d" fmt=svg}
+#import "@preview/plotsy-3d:0.2.1": plot-3d-parametric-surface
+#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+
+#let xfunc(u,v) = u*calc.sin(v)
+#let yfunc(u,v) = u*calc.cos(v)
+#let zfunc(u,v) = u
+#let color-func(x, y, z, x-lo,x-hi,y-lo,y-hi,z-lo,z-hi) = {
+  return purple.transparentize(20%).lighten((z/(z-hi - z-lo)) * 80%)
+}
+#let scale-factor = 0.25
+#let (xscale,yscale,zscale) = (0.3,0.2,0.3)
+#let scale-dim = (xscale*scale-factor,yscale*scale-factor, zscale*scale-factor)
+
+$ x(u,v) = u sin(v), space y(u,v)= u cos(v), space z(u,v)= u $
+#plot-3d-parametric-surface(
+  xfunc,
+  yfunc,
+  zfunc,
+  xaxis: (-5,5), // set the minimum axis size, scales with function if needed
+  yaxis: (-5,5),
+  zaxis: (0,5),
+  color-func: color-func,
+  subdivisions:5,
+  scale-dim: scale-dim,
+  udomain:(0, calc.pi+1), // note this gets truncated to an integer
+  vdomain:(0, 2*calc.pi+1), // note this gets truncated to an integer
+  axis-step: (5,5,5),
+  dot-thickness: 0.05em,
+  front-axis-thickness: 0.1em,
+  front-axis-dot-scale: (0.04, 0.04),
+  rear-axis-dot-scale: (0.08,0.08),
+  rear-axis-text-size: 0.5em,
+  axis-label-size: 1.5em,
+  xyz-colors: (red,green,blue),
+)
+```
+\newpage
+
+```{#id6.1 .stitch cfg=typst caption="Plotsy-3d" fmt=svg}
+#import "@preview/plotsy-3d:0.2.1": plot-3d-surface
+#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#let size = 10
+#let scale-factor = 0.11
+#let (xscale,yscale,zscale) = (0.3,0.3,0.02)
+#let scale-dim = (xscale*scale-factor,yscale*scale-factor, zscale*scale-factor)
+#let func(x,y) = x*x + y*y
+#let color-func(x, y, z, x-lo,x-hi,y-lo,y-hi,z-lo,z-hi) = {
+  return blue.transparentize(20%).darken((y/(y-hi - y-lo))*100%).lighten((x/(x-hi - x-lo)) * 50%)
+}
+
+$ z= x^2 + y^2 $
+#plot-3d-surface(
+  func,
+  color-func: color-func,
+  subdivisions: 2,
+  subdivision-mode: "decrease",
+  scale-dim: scale-dim,
+  xdomain: (-size,size),
+  ydomain:  (-size,size),
+  pad-high: (0,0,0), // padding around the domain with no function displayed
+  pad-low: (0,0,5),
+  axis-step: (3,3,75),
+  dot-thickness: 0.05em,
+  front-axis-thickness: 0.1em,
+  front-axis-dot-scale: (0.05,0.05),
+  rear-axis-dot-scale: (0.08,0.08),
+  rear-axis-text-size: 0.5em,
+  axis-label-size: 1.5em,
+  xyz-colors: (red,green,blue),
+)
+```
+
+
+\newpage
+
 # Local installation
 
 ## typst -h

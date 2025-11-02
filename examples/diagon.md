@@ -1,6 +1,7 @@
 ---
 author: pdh
 date: today
+#monofont: "FreeMono"
 monofont: "DejaVu Sans Mono"
 stitch:
   defaults:
@@ -132,3 +133,38 @@ else if ("OKAY, YOU SEE THE LINE LABELED 'YES'?") {
 "LET'S GO DRING";
 "HEY, I SHOULD TRY INSTALLING FREEBSD!"
 ```
+
+\newpage
+
+## Stitch(cb)
+
+
+```{#id6.0 .stitch arg=Flowchart inc=out}
+
+"CodeBlock"
+
+if ("stitch?") {
+  if ("exe?") {
+    "cbx, art, out, err created"
+  }
+  if ("purge?") {
+    "remove old files"
+  }
+  "parse inc-option"
+  if("inc: part(s)?") {
+    "include in the order parsed"
+  }
+}
+
+"CONTINUE"
+```
+\
+Notes:
+
+- if a codeblock hasn't changed, it's not executed again
+- if `exe=no`, the codeblock isn't executed either
+- executing usually creates 3 artifacts in addition to the cbx itself
+- if `inc=""`, nothing will be included & codeblock is omitted entirely
+- `inc=""` allows for side-effects, like downloading data to be used later \
+  which probably uses a fixed filename, instead of a generated one.
+
