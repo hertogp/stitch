@@ -72,25 +72,25 @@ end
 --[[ options ]]
 
 -- parse `I.opts.inc` into list: {{what, format, filter, how}, ..}
----@param str string the I.opts.inc string with include directives
+---@param inc string the I.opts.inc string with include directives
 ---@return table directives list of 4-element lists of strings
-function I.parse_inc(str)
+function I.parse(inc)
   -- str is what:type!format+extensions@module.function, ..
-  local inc = {}
+  local directives = {}
   local part = '([^!@:]+)'
 
-  str = pd.utils.stringify(str):gsub('[,%s]+', ' ')
-  for p in str:gmatch('%S+') do
-    inc[#inc + 1] = {
+  inc = pd.utils.stringify(inc):gsub('[,%s]+', ' ')
+  for p in inc:gmatch('%S+') do
+    directives[#directives + 1] = {
       p:match('^' .. part) or '', -- what to include
       p:match('!' .. part) or '', -- read as type
       p:match('@' .. part) or '', -- filter
       p:match(':' .. part) or '', -- element/how
     }
   end
-  I.log('debug', 'include', "include found %s inc's in '%s'", #inc, str)
+  I.log('debug', 'include', "include found %s inc's in '%s'", #inc, inc)
 
-  return inc
+  return directives
 end
 
 -- translate specific data from ast elements to lua table(s)
@@ -458,7 +458,7 @@ end
 function I.result(cb)
   local elms = {}
 
-  for idx, elm in ipairs(I.parse_inc(I.opts.inc)) do
+  for idx, elm in ipairs(I.parse(I.opts.inc)) do
     local what, format, filter, type_ = table.unpack(elm)
     local fname = I.opts[what]
     if fname then
