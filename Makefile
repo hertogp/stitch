@@ -10,6 +10,7 @@ ENGINE   = --pdf-engine=xelatex
 
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
+ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
 
 # make any ex(ample) converting markdown -> html
 default: show
@@ -20,10 +21,10 @@ ex%:
 %.pdf:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $(ENGINE) ${@:%.pdf=%.md} -o $@
 
-all: $(TARGETS)
+all: $(TARGETS:%=%.pdf)
 
-%:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) $@.md -o $@.pdf
+# %:
+# 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+$(EXTS) $(ENGINE) $@.md -o $@.pdf
 
 # TODO:
 # test:

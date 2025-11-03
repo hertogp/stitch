@@ -31,6 +31,8 @@ I.optvalues = {
   exe = { 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'info', 'debug' },
   old = { 'keep', 'purge' },
+  inc_what = { 'cbx', 'art', 'out', 'err' },
+  inc_how = { '', 'fcb', 'img', 'fig' },
 }
 
 I.cbc = 0 -- cb counted as they are seen by Stitch.codeblock(cb)
@@ -63,7 +65,7 @@ local pd = require('pandoc')
 function I.log(lvl, action, msg, ...)
   -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
   if (I.level[I.opts.log] or 1) >= I.level[lvl] then
-    local fmt = '[stitch %5s] %s %-7s| ' .. tostring(msg) .. '\n'
+    local fmt = '[stitch %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
     local text = string.format(fmt, lvl, I.opts.cid or 'mod', action, ...)
     io.stderr:write(text)
   end
@@ -85,10 +87,14 @@ function I.parse(inc)
       p:match('^' .. part) or '', -- what to include
       p:match('!' .. part) or '', -- read as type
       p:match('@' .. part) or '', -- filter
-      p:match(':' .. part) or '', -- element/how
+      p:match(':' .. part) or '', -- how to include (type of element)
     }
   end
-  I.log('debug', 'include', "include found %s inc's in '%s'", #inc, inc)
+
+  -- no validity checking:
+  -- an invalid what-value will be skipped by I.result
+  -- an invalid how-value will
+  I.log('debug', 'include', "include found %s inc's in '%s'", #directives, inc)
 
   return directives
 end
@@ -348,7 +354,7 @@ I.mkelm = {
       -- doc used as-is for out, err
       fcb.text = doc
     end
-    I.log('info', 'include', '%s, id %s, fenced pandoc.CodeBlock', what, fcb.attr.identifier)
+    I.log('info', 'include', "cb.'#%s', '%s:fcb', fenced pandoc.CodeBlock", fcb.attr.identifier, what)
 
     return fcb
   end,
@@ -357,7 +363,7 @@ I.mkelm = {
     -- pandoc.Para type Block wrapper, since pandoc.Image is type Inline
     local title = fcb.attributes.title or ''
     local caption = fcb.attributes.caption
-    I.log('info', 'include', '%s, id %s, pandoc.Image', what, fcb.attr.identifier)
+    I.log('info', 'include', "cb.'#%s', '%s:img', pandoc.Image", fcb.attr.identifier, what)
     return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
   end,
 
@@ -367,24 +373,25 @@ I.mkelm = {
     --  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
     local img = pd.Image({}, I.opts[what], '', {})
     img.attr.identifier = fcb.attr.identifier .. '-img'
-    I.log('info', 'include', '%s, is %s, pandoc.Figure', what, fcb.attr.identifier)
+    I.log('info', 'include', "cb.'#%s', '%s:fig', pandoc.Figure", fcb.attr.identifier, what)
     return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
   end,
 
   [''] = function(fcb, cb, doc, what)
     -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
-    I.log('debug', 'include', 'no type for %s, fallback to default', what)
+    local cid = fcb.attr.identifier
+    I.log('debug', 'include', "cb.'%s', '%s', no type specified (using default)", cid, what)
     if 'Pandoc' == pd.utils.type(doc) then
       if doc and doc.blocks[1].attr then
         doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
       end
-      I.log('info', 'include', "%s, id %s, merging %d pandoc.Block's", what, fcb.attr.identifier, #doc.blocks)
+      I.log('info', 'include', "cb.'%s', '%s', merging %d pandoc.Block's", cid, what, #doc.blocks)
       return doc.blocks
     elseif 'art' == what then
       return I.mkelm.fig(fcb, cb, doc, what)
     elseif 'cbx' == what then
       fcb.text = doc
-      I.log('info', 'include', '%s, id %s, plain pandoc.CodeBlock', what, fcb.attr.identifier)
+      I.log('info', 'include', "cb.'%s', id %s, plain pandoc.CodeBlock", cid, what)
       return fcb
     else
       return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
@@ -392,7 +399,18 @@ I.mkelm = {
   end,
 }
 
--- setmetatable(mkelm, mkelm_mt)
+setmetatable(I.mkelm, {
+  __index = function(t, how)
+    local keys = {}
+    for k, _ in pairs(t) do
+      keys[#keys + 1] = string.format('%q', k)
+    end
+    local valid = table.concat(keys, ', ')
+    local msg = string.format("howto: expected one of {%s}, got '%s'", valid, how)
+    I.log('error', 'include', msg)
+    return function() return {} end
+  end,
+})
 
 -- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
@@ -459,9 +477,9 @@ function I.result(cb)
   local elms = {}
 
   for idx, elm in ipairs(I.parse(I.opts.inc)) do
-    local what, format, filter, type_ = table.unpack(elm)
+    local what, format, filter, how = table.unpack(elm)
     local fname = I.opts[what]
-    if fname then
+    if fname and I.freal(fname) then
       local count = 0 -- num of filters actually applied
       local doc = I.fread(fname, format) -- format maybe "" (just reads fname)
       doc, count = I.xform(doc, filter)
@@ -472,15 +490,20 @@ function I.result(cb)
 
       local fcb = I.mkfcb(cb) -- need fcb per inclusion(!)
       fcb.attr.identifier = string.format('%s-%d-%s', I.opts.cid, idx, what)
-      local new = I.mkelm[type_](fcb, cb, doc, what)
+      local new = I.mkelm[how](fcb, cb, doc, what)
       -- see `:Open https://pandoc.org/lua-filters.html#type-blocks`
-      -- new is either Blocks or Block; pandoc.List:extend (3.0) is shorter..
+      -- new is either Blocks or Block;
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
       for _, block in ipairs(new) do
         elms[#elms + 1] = block
       end
+      if #new == 0 then I.log('warn', 'include', "cb.'#%s', skipping '%s:%s' (invalid)", I.opts.cid, what, how) end
     else
-      I.log('error', 'include', "skip id %s, invalid directive inc '%s:%s'", I.opts.cid, what, type_)
+      if fname then
+        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (no file)", I.opts.cid, what, how)
+      else
+        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (invalid)", I.opts.cid, what, how)
+      end
     end
   end
 
@@ -489,19 +512,48 @@ end
 
 --[[ options (meta/cb) ]]
 
--- check values for given `opts`, removes those that are illegal
----@param opts table single k,v store of options
----@return table opts same table with illegal options removed
+-- checks if `name`,`value` is a valid pair
+---@param name string the name of the option
+---@param value any the value of the option
+---@return boolean ok true if `value` is valid for given, valid, `name`, false otherwise
+---@return string? err message in case of invalid `name` or `value`, nil otherwise
+function I.vouch(name, value)
+  local values = I.optvalues[name]
+  if not values then return false, string.format("'%s' is not a known option", name) end
+
+  for _, v in ipairs(values) do
+    if value == v then return true, nil end
+  end
+
+  local err = "option '%s' expects one of {%s}, got '%s'"
+  err = string.format(err, name, table.concat(values, ', '), value)
+  return false, err
+end
+
+-- check known option,value-pairs, removing those that are not valid
+---@param section string name of config section to check
+---@param opts table single, flat, k,v store of options (v's are strings)
+---@return table opts same table with illegal option,values removed
 function I.check(section, opts)
-  for k, valid in pairs(I.optvalues) do
-    local v = opts[k]
-    if v and #v > 0 and not pd.List.includes(valid, v, 1) then
-      local need = table.concat(valid, ', ')
+  for k, _ in pairs(I.optvalues) do
+    local val = opts[k]
+    local ok, err = I.vouch(k, val)
+    if val and not ok then
       opts[k] = nil
-      I.log('error', 'check', "%s.%s='%s' ignored, need one of: %s", section, k, v, need)
+      I.log('error', 'check', 'in ' .. section .. ': ' .. err)
     end
   end
   return opts
+
+  -- for k, valid in pairs(I.optvalues) do
+  --   local v = opts[k]
+  --   if v and #v > 0 and not pd.List.includes(valid, v, 1) then
+  --     local need = table.concat(valid, ', ')
+  --     opts[k] = nil
+  --     I.log('error', 'check', "%s.%s='%s' ignored, need one of: %s", section, k, v, need)
+  --   end
+  -- end
+  -- return opts
 end
 
 ---sets I.opts for the current codeblock
@@ -525,13 +577,13 @@ function I.mkopt(cb)
   -- check against circular refs
   for k, _ in pairs(I.hardcoded) do
     if 'cmd' ~= k and 'string' == type(I.opts[k]) and I.opts[k]:match('#%w+') then
-      I.log('error', 'mkopt', '%s not entirely expanded: %s', k, I.opts[k])
+      I.log('error', 'option', '%s not entirely expanded: %s', k, I.opts[k])
       return false
     end
   end
 
   for k, _ in pairs(I.hardcoded) do
-    I.log('debug', 'mkopt', '%s = %q', k, I.opts[k])
+    I.log('debug', 'option', '%s = %q', k, I.opts[k])
   end
   return true
 end
@@ -554,7 +606,7 @@ function I.mkctx(doc)
     setmetatable(attr, { __index = defaults })
   end
 
-  -- missing I.ctx.keys also fallback to defaults -> hardcoded
+  -- missing I.ctx keys also fallback to defaults -> hardcoded
   setmetatable(I.ctx, {
     __index = function() return defaults end,
   })
