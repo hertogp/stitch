@@ -16,7 +16,7 @@ ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
 default: show
 
 readme:
-	$(PANDOC) $(FILTER) _readme.md -o README.md
+	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md
 
 ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
