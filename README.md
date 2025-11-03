@@ -210,8 +210,9 @@ id="cb03-1-art-img" />
 
 ### [Fletcher](https://typst.app/universe/package/fletcher)
 
-Another package from the [typst]() universe, for drawing diagrams and
-arrows. Revisiting the flowchart show earlier with diagon.
+Another package from the [typst](https://typst.app/) universe, for
+drawing diagrams and arrows. Revisiting the flowchart show earlier with
+[diagon](https://github.com/ArthurSonzogni/Diagon).
 
 <figure id="cb04-1-art" data-stitch="cetz" data-caption="Stitch">
 <img
