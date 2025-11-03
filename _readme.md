@@ -8,10 +8,12 @@ stitch:
 ...
 
 ```{#id stitch=doc}
-figlet -w 60 -kcf slant stitch | boxes -d ian_jones -p h6v1
+figlet -w 60 -kcf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 ```
 
-## a lua-filter for pandoc, turning codeblocks into works of art
+## A pandoc lua-filter, turning codeblocks into works of art
+
+
 
 # Examples
 
