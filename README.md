@@ -20,9 +20,9 @@
 
 ## A pandoc lua-filter, turning codeblocks into works of art
 
-If you can generate output, be it text or graphics, stitch will help you
-do the same from within a codeblock and include its result upon
-converting to another format.
+If you can generate output (be it text or graphics) from the command
+line, stitch will help you do the same from within a codeblock and
+include its result upon converting to another format.
 
                             doc
                              |
@@ -154,14 +154,16 @@ Or go more graphical with
 the [typst](https://typst.app/universe/search/?kind=packages) universe
 for plotting, charts & tree layout.
 
-<figure id="cb03-1-art" data-stitch="cetz">
+<figure id="cb03-1-art" data-stitch="cetz"
+data-caption="Karl&#39;s picture">
 <img
 src=".stitch/cetz/cb03-b9bee3b2db9f17c89dd7a5199c939e3cc1298311.png"
 id="cb03-1-art-img" />
+<figcaption>Karl's picture</figcaption>
 </figure>
 
 ````
-``` {#cb03 stitch="cetz"}
+``` {#cb03 stitch="cetz" caption="Karl's picture"}
 #import "@preview/cetz:0.4.2"
 #set page(width: auto, height: auto, margin: .5cm)
 #show math.equation: block.with(fill: white, inset: 1pt)

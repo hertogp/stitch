@@ -27,9 +27,9 @@ figlet -w 60 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 
 ## A pandoc lua-filter, turning codeblocks into works of art
 
-If you can generate output, be it text or graphics, stitch will help you
-do the same from within a codeblock and include its result upon converting
-to another format.
+If you can generate output (be it text or graphics) from the command line,
+stitch will help you do the same from within a codeblock and include its result
+upon converting to another format.
 
 ```
                         doc
@@ -93,7 +93,7 @@ Or go more graphical with [Cetz](https://typst.app/universe/package/cetz), one
 of many packages in the [typst](https://typst.app/universe/search/?kind=packages)
 universe for plotting, charts & tree layout.
 
-```{#cb03 stitch=cetz}
+```{#cb03 stitch=cetz caption="Karl's picture"}
 #import "@preview/cetz:0.4.2"
 #set page(width: auto, height: auto, margin: .5cm)
 #show math.equation: block.with(fill: white, inset: 1pt)
