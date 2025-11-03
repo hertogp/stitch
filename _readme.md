@@ -7,11 +7,11 @@ stitch:
     inc: out
 ...
 
-# stitch
-
 ```{#id stitch=doc}
 figlet -w 60 -kcf slant stitch | boxes -d ian_jones -p h6v1
 ```
+
+## a lua-filter for pandoc, turning codeblocks into works of art
 
 # Examples
 

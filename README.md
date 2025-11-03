@@ -1,5 +1,3 @@
-# stitch
-
 ```
                                   \\\///
                                  / _  _ \
@@ -19,6 +17,8 @@
                                \_)    ) /
                                      (_/
 ```
+
+## a lua-filter for pandoc, turning codeblocks into works of art
 
 # Examples
 
