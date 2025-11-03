@@ -150,7 +150,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 ### [Cetz](https://typst.app/universe/package/cetz)
 
 Or go more graphical with
-[Cetz](https://typst.app/universe/package/cetz), one of may packages in
+[Cetz](https://typst.app/universe/package/cetz), one of many packages in
 the [typst](https://typst.app/universe/search/?kind=packages) universe
 for plotting, charts & tree layout.
 
