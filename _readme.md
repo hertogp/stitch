@@ -2,16 +2,18 @@
 author: hertogp <git.hertogp@gmail.com>
 title: stitch
 stitch:
-  defaults:
+  doc:
+    cmd: "#cbx 1>#out"
     inc: out
-  boxes:
 ...
 
 # stitch
 
-```{#id .stitch cfg=boxes out: ocb,stdout}
+```{#id stitch=doc}
 figlet stitch | boxes -d ian_jones -p h2v1
 ```
+
+# Examples
 
 ```
                         doc
@@ -20,11 +22,12 @@ figlet stitch | boxes -d ian_jones -p h2v1
                          |             |
                   +--<exec cb>--+      |
                   |      |      |      |
- .stitch/hash. stdout   file  stderr   cb
+ .stitch/hash. stdout   file  stderr cb.txt
+                  :      :      :      :
+                <out>  <art>  <err>  <cbx>
                   |      |      |      |
-                <cnv>  <cnv>  {fcb}  {ocb}
-                  |      |      :      :
-                 ins    ins     :      :
+                 inc    inc    inc    inc
+                  :      :      :      :
                   +------+------+------+
                          |
                         doc

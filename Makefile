@@ -15,6 +15,9 @@ ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
 # make any ex(ample) converting markdown -> html
 default: show
 
+readme:
+	$(PANDOC) $(FILTER) _readme.md -o README.md
+
 ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
 

@@ -1,2 +1,39 @@
 # stitch
-lua filter for pandoc turning codeblocks into works of art
+
+``` {#id-1-out stitch="doc"}
+             \\\///
+            / _  _ \
+          (| (.)(.) |)
+.-------.OOOo--()--oOOO.------.
+|                             |
+|       _   _ _       _       |
+|   ___| |_(_) |_ ___| |__    |
+|  / __| __| | __/ __| '_ \   |
+|  \__ \ |_| | || (__| | | |  |
+|  |___/\__|_|\__\___|_| |_|  |
+|                             |
+|                             |
+'------.oooO------------------'
+        (   )   Oooo.
+         \ (    (   )
+          \_)    ) /
+                (_/
+```
+
+# Examples
+
+                            doc
+                             |
+                            cb-------------+
+                             |             |
+                      +--<exec cb>--+      |
+                      |      |      |      |
+     .stitch/hash. stdout   file  stderr cb.txt
+                      :      :      :      :
+                    <out>  <art>  <err>  <cbx>
+                      |      |      |      |
+                     inc    inc    inc    inc
+                      :      :      :      :
+                      +------+------+------+
+                             |
+                            doc
