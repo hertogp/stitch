@@ -207,3 +207,53 @@ id="cb03-1-art-img" />
 })
 ```
 ````
+
+### [Fletcher](https://typst.app/universe/package/fletcher)
+
+Another package from the [typst]() universe, for drawing diagrams and
+arrows. Revisiting the flowchart show earlier with diagon.
+
+<figure id="cb04-1-art" data-stitch="cetz" data-caption="Stitch">
+<img
+src=".stitch/cetz/cb04-bd0c45053df016a44368a42c558dd38e1f294b17.svg"
+id="cb04-1-art-img" />
+<figcaption>Stitch</figcaption>
+</figure>
+
+````
+``` {#cb04 stitch="cetz" caption="Stitch" fmt="svg"}
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import fletcher.shapes: pill, parallelogram, diamond
+#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#set text(10pt)
+#diagram(
+  node-stroke: .1em,
+  node-fill: gradient.radial(blue.lighten(80%), blue, center: (30%, 20%), radius: 80%),
+  spacing: 4em,
+  mark-scale: 150%,
+  node((-1,-1), "codeblock", name: <cb>, shape: pill),
+  node((-1,0), "stitch?", name: <stitch>, shape: diamond),
+  edge(<cb>, <stitch>, "-|>"),
+  node((0,0), "exe?", name: <exe>, shape: diamond),
+  edge(<stitch>, <exe>, "-|>", `yes`),
+  node((1,0), "create: cbx art out err", name: <create>, shape: parallelogram, extrude: (-2.5, 0)),
+  edge(<exe>, <create>, "->", `yes`),
+  node((0,1), "purge?", name: <purge>, shape:diamond),
+  edge(<exe>, <purge>, "-|>", `no`),
+  edge(<create.south>, (1, 0.5), (0, 0.5),  "-|>"),
+  node((1,1), "rm old files", name: <rm>, shape: parallelogram, extrude: (-2.5,0)),
+  edge(<purge>, <rm>, "-|>", `yes`),
+  node((0,2), "parse `inc`-opt", name: <parse>, shape: parallelogram),
+  edge(<purge>, <parse>, "-|>", `no`),
+  edge(<rm.south>, (1, 1.5), (0,1.5), "-|>"),
+  node((0,3), "`inc:`-parts?", name: <parts>, shape: diamond),
+  edge(<parse>, <parts>, "-|>"),
+  node((1,3), "include in order parsed", name: <include>, shape: parallelogram),
+  edge(<parts>, <include>, "-|>", `yes`),
+  node((-1,4), "continue", name: <continue>, shape: pill),
+  edge(<stitch>, <continue>, "-|>", `no`),
+  edge(<parts>, (0, 3.45), (-1, 3.45), "-|>", `no`),
+  edge(<include>, (1, 4), <continue>, "-|>"),
+)
+```
+````
