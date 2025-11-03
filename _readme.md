@@ -10,7 +10,7 @@ stitch:
 # stitch
 
 ```{#id stitch=doc}
-figlet stitch | boxes -d ian_jones -p h2v1
+figlet -w 50 stitch | boxes -d ian_jones -p h4v1
 ```
 
 # Examples
