@@ -48,22 +48,41 @@ If you were there for the dawn of the Internet, you might appreciate the
 simplicity of ascii output.
 
 ```
-The translator: .stitch/cb003-38f1f0e55ba88c3f1ac4c09026e5bd908ebe00ff.cbx doesn't exist
-List of available translator:
-  - Math
-  - Sequence
-  - Tree
-  - Table
-  - Grammar
-  - Frame
-  - GraphDAG
-  - GraphPlanar
-  - Flowchart
-Please read the manual by using diagon --help
+┌─────────┐                                           
+│CodeBlock│                                           
+└────┬────┘                                           
+  ___▽___       ____     ┌──────────────┐             
+ ╱       ╲     ╱    ╲    │cbx, art, out,│             
+╱ stitch? ╲___╱ exe? ╲___│err created   │             
+╲         ╱yes╲      ╱yes└───────┬──────┘             
+ ╲_______╱     ╲____╱            │                    
+     │no         │no             │                    
+     │           └───┬───────────┘                    
+     │             __▽___                             
+     │            ╱      ╲    ┌────────────────┐      
+     │           ╱ purge? ╲___│remove old files│      
+     │           ╲        ╱yes└────────┬───────┘      
+     │            ╲______╱             │              
+     │               │no               │              
+     │               └────┬────────────┘              
+     │           ┌────────▽───────┐                   
+     │           │parse inc-option│                   
+     │           └────────┬───────┘                   
+     │              ______▽______     ┌──────────────┐
+     │             ╱             ╲    │include in the│
+     │            ╱ inc: part(s)? ╲___│order parsed  │
+     │            ╲               ╱yes└───────┬──────┘
+     │             ╲_____________╱            │       
+     │                    │no                 │       
+     └──────────┬─────────┴───────────────────┘       
+           ┌────▽───┐                                 
+           │CONTINUE│                                 
+           └────────┘                                 
+
 ```
 
 ````
-``` {stitch="ascii"}
+``` {#cb01 stitch="diagon" arg="Flowchart"}
 "CodeBlock"
 
 if ("stitch?") {

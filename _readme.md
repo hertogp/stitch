@@ -6,12 +6,13 @@ stitch:
   doc:
     cmd: "#cbx 1>#out"
     inc: out
-  ascii:
-    cmd: "diagon #cbx 1>#out"
+  diagon:
+    dir: ".stitch/diagon"
+    cmd: "diagon #arg <#cbx 1>#out"
     inc: "out cbx:fcb"
 ...
 
-```{#id stitch=doc}
+```{#cb00 stitch=doc}
 figlet -w 60 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 ```
 
@@ -46,7 +47,7 @@ to another format.
 If you were there for the dawn of the Internet, you might appreciate the
 simplicity of ascii output.
 
-```{stitch=ascii}
+```{#cb01 stitch=diagon arg=Flowchart}
 "CodeBlock"
 
 if ("stitch?") {
