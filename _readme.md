@@ -264,8 +264,8 @@ resolution order.
 
 Using `stitch=` or `stitch=""` is the same as including the `.stitch` class. If
 the hardcoded defaults are enough, simply add `.stitch` as a class.  If the
-tool being used requires other settings, create a `name`d section in the meta
-section of the document and set the codeblock attribute `stitch=name`.
+tool being used requires other settings, create a `name`'d section in the meta
+block of the document and set the codeblock attribute `stitch=name`.
 
 Examples:
 
@@ -273,6 +273,7 @@ Examples:
     echo "just using the defaults"
     ```
 or
+
     ```{#id-y stitch=download out="#dir/dta/wheather.json"}
     curl -sL https://host/v1/forecast/?today&format=json
     ```
