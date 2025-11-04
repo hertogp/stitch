@@ -262,7 +262,7 @@ If either one is found, the codeblock will be processed according to the set of
 options found for this codeblock. See [Options](#options) below for the
 resolution order.
 
-Using `stitch=` or `stitch=""` is the same as included the `.stitch` class. If
+Using `stitch=` or `stitch=""` is the same as including the `.stitch` class. If
 the hardcoded defaults are enough, simply add `.stitch` as a class.  If the
 tool being used requires other settings, create a `name`d section in the meta
 section of the document and set the codeblock attribute `stitch=name`.
