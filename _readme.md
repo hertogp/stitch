@@ -490,7 +490,7 @@ or `art`) file data, which possibly is reread if `!read` is specified.
 Specifies how to include the final result (i.e. data) after reading, re-reading
 and possibly filtering.
 
-* <none>, means going with the Stitch default for what is being included:
+* \<none\>, means going with the Stitch default for what is being included:
   + `art` is linked to as an pandoc.Image
   + `out` is included as the body of a pandoc.CodeBlock
   + `err` dito
