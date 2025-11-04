@@ -553,9 +553,69 @@ order) via a csv/space separated list of directives, each of the form:
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
 
-Note that the same artifact can be included multiple times. E.g. if you
-are wondering what the pandoc AST looks like for a snippet the following
-codeblock would reveal that when reading some csv-file using `-f csv`:
+Note that the same artifact can be included multiple times.
+
+*what*
+
+This part starts the directive and is the only mandatory part and refers
+to:
+
+- `cbx`, the codeblock itself
+- `art`, usually contains graphical output (depends on `cmd` used)
+- `out`, usually contains the output on stdout (depends on `cmd` used)
+- `err`, usually contains the output on stderr (depends on `cmd` used)
+
+*read*
+
+The output denoted by `what` is first read and if `!read` is specified,
+the data is read again using `pandoc.read(data, <read>)` producing a new
+pandoc doc.
+
+The value of `read` should be one of the `-f formats` values that pandoc
+understands, see [pandoc’s
+options](https://pandoc.org/MANUAL.html#general-options) or
+`% pandoc --list-input-formats` for possible values for `read`. So
+something like `!markdown`, `!csv` or some other value on that list.
+
+*filter*
+
+After the `what` has been read (and possibly reread using pandoc.read),
+it can be processed further by listing a filter in the form of
+`mod.func`. Stitch will require `mod` which is supposed to return a list
+of filters. For each filter in that list, `func(data)` is called if
+exported by that filter.
+
+Note that `data` is the result of reading the artificat’s (`cbx`, `out`,
+`err` or `art`) file data, which possibly is reread if `!read` *how*
+
+Specifies how to include the final result (i.e. data) after reading,
+re-reading and possibly filtering.
+
+- <none>, means going with the Stitch default for what is being
+  included:
+  - `art` is linked to as an pandoc.Image
+  - `out` is included as the body of a pandoc.CodeBlock
+  - `err` dito
+  - `cbx` is included as a pandoc.CodeBlock
+- fcb, to include the result in a fenced codeblock
+  - if data is a pandoc element -\> cb content =
+    `pandoc.write(data, native)`
+  - otherwise, data is included as-is in the codeblock contents
+- img, a pandoc.Image link to the file on disk for `what`
+- fig, same but using pandoc.Figure
+
+*putting it together*
+
+If you are wondering what the pandoc AST looks like for a snippet the
+following codeblock would reveal that when reading some csv-file using
+`-f csv`. The codeblock is:
+
+1.  inserted as-is inside another codeblock, revealing the entire
+    codeblock
+2.  inserted as the markdown produced by pandoc after reading the csv
+    with `-f csv`
+3.  inserted as the AST as produced in step 2., serialized as `native`
+    output
 
 ```` stitched
 ``` {#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe="no"}
@@ -649,77 +709,3 @@ exe, maybe, execute
     (TableFoot ( "" , [] , [] ) [])
 ]
 ```
-
-*what*
-
-This part starts the directive and is the only mandatory part and refers
-to:
-
-- `cbx`, the codeblock itself
-- `art`, usually contains graphical output (depends on `cmd` used)
-- `out`, usually contains the output on stdout (depends on `cmd` used)
-- `err`, usually contains the output on stderr (depends on `cmd` used)
-
-*read*
-
-The output denoted by `what` is first read and if `read` is specified,
-the data is read again using `pandoc.read()` producing a new pandoc doc.
-See [pandoc’s options](https://pandoc.org/MANUAL.html#general-options)
-for a list of available input formats to interpret the data, simply run
-`pandoc --list-input-formats`. Example:
-
-    ```{.st.ch inc="out!markdown"}
-    pandoc --list-input-formats | sed 's/^/- /'
-    ```
-
-*filter*
-
-After the `what` has been read (and possibly reread using pandoc.read),
-it can be processed further by listing a filter in the form of
-`mod.func`. If defined, the lua-module `mod` will be required and its
-`func` called with the data read. The `mod.func` is passed the data,
-which could be image data, plain ascii text or a pandoc doc (if *read*
-was used).
-
-*how*
-
-Specifies how to include the result:
-
-- <none>, means going with the Stitch default
-
-- fcb, to include the result in a fenced codeblock
-
-- img, a pandoc.Image link to the file on disk for `what`
-
-- fig, same but using a pandoc.Figure element
-
-- codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
-
-- exec bit is turned on
-
-- the `cbx` is either run as a system command or processed by another
-  command
-
-- that produces one of more of:
-
-  - stdout (text), redir to `#out`
-  - stderr (text), redir to `err`
-  - artifact (image), to `#art`
-
-- then the cb(x) and/or 1 or more results can be included as per `inc`
-  option
-
-- `inc` = `what!reader@filter:how`, `what` is mandatory, the others are
-  optional
-
-### Configuration
-
-- associate a cb with stitch: `.stitch` or `stitch=name`
-- options are resolved in this order:
-  - codeblock attributes
-  - meta\[name\] section
-  - meta\[defaults\] section (if any)
-  - hardcoded
-- options are:
-  - dir ..
-  - cmd .. etc..
