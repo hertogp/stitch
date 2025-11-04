@@ -305,3 +305,48 @@ id="cb06-1-art-img" />
 )
 ```
 ````
+
+## Documentation
+
+### Installation
+
+- put stitch.lua somewhere on your \$LUA_PATH,
+  e.g. `~/.local/share/pandoc/filters`
+
+- create the dir if necessary
+
+- add the dir to LUA_PATH as needed
+
+- run `pandoc doc.md --pdf-engine <your favorite> -t doc.pdf` (for
+  example)
+
+- codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
+
+- exec bit is turned on
+
+- the `cbx` is either run as a system command or processed by another
+  command
+
+- that produces one of more of:
+
+  - stdout (text), redir to `#out`
+  - stderr (text), redir to `err`
+  - artifact (image), to `#art`
+
+- then the cb(x) and/or 1 or more results can be included as per `inc`
+  option
+
+- `inc` = `what!reader@filter:how`, `what` is mandatory, the others are
+  optional
+
+### Configuration
+
+- associate a cb with stitch: `.stitch` or `stitch=name`
+- options are resolved in this order:
+  - codeblock attributes
+  - meta\[name\] section
+  - meta\[defaults\] section (if any)
+  - hardcoded
+- options are:
+  - dir ..
+  - cmd .. etc..
