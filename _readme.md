@@ -482,7 +482,9 @@ will require `mod` which is supposed to return a list of filters.  For each
 filter in that list, `func(data)` is called if exported by that filter.
 
 Note that `data` is the result of reading the artificat's (`cbx`, `out`, `err`
-or `art`) file data, which possibly is reread if `!read`
+or `art`) file data, which possibly is reread if `!read` is specified.
+
+
 *how*
 
 Specifies how to include the final result (i.e. data) after reading, re-reading
