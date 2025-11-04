@@ -263,27 +263,27 @@ Outline
 
 - features
   * conditional codeblock execution
-  * cleans up old files
   * organize file storage locations
-  * include stdout, stderr, image, codeblock or none
-  * codeblock can be used for side-effects only
-  * different log levels to show processing details
+  * old file detection and (possibly) clean up
+  * include 0 or more of stdout, stderr, image and/or codeblock
   * run codeblock as system command or run it through another command
+  * codeblock can be used for side-effects only (0 includes)
+  * different log levels to show processing details
 
 ```
 
 ### Installation
 
-- put stitch.lua somewhere on your $LUA_PATH
+Installation is pretty straightforward:
 
-- echo $LUA_PATH
-- if needed, add `~/.local/share/pandoc/filters/?.lua` to `LUA_PATH`
-- create the dir if necessary
-- add the dir to LUA_PATH as needed
+| - put `stitch.lua` on your `$LUA_PATH`
+| - usually `~/.local/share/pandoc/filters`
+| - add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
+
 
 ### Usage
 
-- run `pandoc --lua-filter stitch.lua doc.md -t doc.pdf` (for example)
+| `% pandoc --lua-filter stitch.lua doc.md -t doc.pdf` (for example)
 
 ### Options
 
