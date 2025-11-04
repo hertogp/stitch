@@ -377,6 +377,20 @@ multiple documents into one output document, those could go into a yaml
 file mentioned last on the command line. Or as the first one, since meta
 information is merged, where the ‘last one wins’.
 
+*stitchable codeblock*
+
+A codeblock can be marked for processing by `stitch` by:
+
+- `.stitch` included as a class, and/or
+- `stitch=name` included as an attribute
+
+If either one is found, the codeblock will be processed according to the
+set of options found for this codeblock. See [Options](###options) below
+for the resolution order.
+
+Using `stitch=` or `stitch=""` is the same as included the `.stitch`
+class.
+
 ### Features
 
 Stitch provides a few features that make converting codeblocks easy:
@@ -405,7 +419,7 @@ The list of options and default values:
 | Opt | Value                               | Description                                      |
 |:----|:------------------------------------|:-------------------------------------------------|
 | arg | ’’                                  | argument for the command line                    |
-| cid | ‘x’                                 | unique codeblock identifier                      |
+| cid | ‘x’                                 | unique codeblock identifier (\*)                 |
 | dir | ‘.stitch’                           | Stitch’s working directory, relative to pandoc’s |
 | exe | ‘maybe’                             | execute codeblock (or not)                       |
 | fmt | ‘png’                               | intended graphic file format                     |
@@ -418,7 +432,8 @@ The list of options and default values:
 | art | ‘\#dir/#cid-#sha.#fmt’              | cmd output file template                         |
 | cmd | ‘\#cbx \#arg \#art 1\>#out 2\>#err’ | command line template                            |
 
-Table Stitch options
+Table Stitch options (\*) assigned by stitch, unique across all
+codeblocks in the current doc
 
 #### `inc`-option specifies include directives
 
