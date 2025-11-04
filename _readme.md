@@ -41,25 +41,10 @@ If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
 upon converting to another format.
 
-```
-                        doc
-                         |
-                        cb-------------+
-                         |             |
-                  +--<exec cb>--+      |
-                  |      |      |      |
- .stitch/hash. stdout   file  stderr cb.txt
-                  :      :      :      :
-                <out>  <art>  <err>  <cbx>
-                  |      |      |      |
-                 inc    inc    inc    inc
-                  :      :      :      :
-                  +------+------+------+
-                         |
-                        doc
-```
 
 ## Examples
+
+A few examples, mostly taken from the repo's of the command line tools used.
 
 ### [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
