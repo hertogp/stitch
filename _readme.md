@@ -312,9 +312,9 @@ Stitch options are resolved in the following most to least specific order:
   3. the meta `defaults` section
   4. hardcoded Stitch defaults
 
-The list of options:
+The list of options and default values:
 
-Opt | Default                        | Description
+Opt | Value                          | Description
 :---|:-------------------------------|:--------------------------------
 arg | ''                             | argument for the command line
 cid | 'x'                            | unique codeblock identifier
