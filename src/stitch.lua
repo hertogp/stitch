@@ -434,6 +434,9 @@ end
 ---@return string|table? doc the, possibly, modified doc
 ---@return number count the number of filters actually applied
 function I.xform(doc, filter)
+  -- TODO: allow for require"mod" to return:
+  --  1. a list of pandoc filters, each of which should have 'func'
+  --  2. a regular module exporting 'func' (i.e mod.func != nil)
   local count = 0
   local ok, filters, tmp
   if #filter == 0 then return doc, count end
