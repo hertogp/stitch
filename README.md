@@ -315,7 +315,7 @@ id="cb07-1-art-img" />
 </figure>
 
 ````
-``` {#cb07 stitch="gnuplot" inc="art:fig cbx:fcb"}
+``` {#cb07 stitch="gnuplot"}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox

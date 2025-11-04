@@ -28,6 +28,7 @@ stitch:
   gnuplot:
     dir: ".stitch/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
+    inc: "art:fig cbx:fcb"
 ...
 
 ```{#cb00 stitch=doc}
@@ -224,7 +225,7 @@ which is then used in the following codeblock to create a graph.
 
 ## Gnuplot
 
-```{#cb07 stitch=gnuplot inc="art:fig cbx:fcb"}
+```{#cb07 stitch=gnuplot}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
