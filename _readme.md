@@ -39,7 +39,7 @@ figlet -w 60 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 
 If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
-upon converting to another format.
+upon converting the document.
 
 
 ## Examples

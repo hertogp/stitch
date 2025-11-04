@@ -22,7 +22,7 @@
 
 If you can generate output (be it text or graphics) from the command
 line, stitch will help you do the same from within a codeblock and
-include its result upon converting to another format.
+include its result upon converting the document.
 
 ## Examples
 
