@@ -317,8 +317,7 @@ id="cb06-1-art-img" />
 
 - add the dir to LUA_PATH as needed
 
-- run `pandoc doc.md --pdf-engine <your favorite> -t doc.pdf` (for
-  example)
+- run `pandoc --lua-filter stitch.lua doc.md -t doc.pdf` (for example)
 
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 
