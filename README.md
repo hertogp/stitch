@@ -389,7 +389,32 @@ set of options found for this codeblock. See [Options](#options) below
 for the resolution order.
 
 Using `stitch=` or `stitch=""` is the same as included the `.stitch`
-class.
+class. If the hardcoded defaults are enough, simply add `.stitch` as a
+class. If the tool being used requires other settings, create a named
+section in the meta section of the document.
+
+Examples:
+
+    ```{#id-x bash .stitch}
+    echo "just using the defaults"
+    ```
+
+or
+`{#id-y bash stitch=download out="#dir/dta/wheather.json"}     curl -sL https://host/v1/forecast/?today&format=json`
+and the meta section looks something like this:
+
+    ---
+    author: me
+    stitch:
+      defaults:
+        dir: ".stitch"     # work dir for all things stitch
+      download:
+        inc=""             # no includes, just download
+        cmd="#cbx 1>#out"  # redirect stdout to file given by cb's `#out`-attribute
+    ...
+
+The `#<opt>`’s are expanded by stitch using the option-set for the
+current codeblock.
 
 ### Features
 
