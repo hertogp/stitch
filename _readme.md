@@ -6,6 +6,7 @@ stitch:
   defaults:
     inc: "out cbx:fcb"
   doc:
+    dir: ".stitch/readme"
     cmd: "#cbx 1>#out"
     inc: out
   diagon:
@@ -19,6 +20,11 @@ stitch:
     arg: compile
     cmd: "typst #arg #cbx #art" # ignore stderr
     inc: "art cbx:fcb"
+  download:
+    dir: ".stitch/cetz"
+    out: ".stitch/cetz/#arg"
+    inc: "cbx:fcb"
+    exe: "yes"
 ...
 
 ```{#cb00 stitch=doc}
@@ -140,7 +146,7 @@ universe for plotting, charts & tree layout.
 ### [Fletcher](https://typst.app/universe/package/fletcher)
 
 Another package from the [typst](https://typst.app/) universe, for drawing
-diagrams and arrows. Revisiting the flowchart show earlier with
+diagrams and arrows. Revisiting the flowchart shown earlier with
 [diagon](https://github.com/ArthurSonzogni/Diagon).
 
 ``` {#cb04 stitch="cetz" caption="Stitch" fmt="svg"}
@@ -178,4 +184,37 @@ diagrams and arrows. Revisiting the flowchart show earlier with
   edge(<include>, (1, 4), <continue>, "-|>"),
 )
 
+```
+
+### [Lilaq](https://lilaq.org/)
+
+Yet another [typst](https://typst.app/) package, this time for advanced data
+visualization.  Unfortunately, typst and its packages have no way of
+downloading data, so the following codeblock is used for side-effects only
+(well, its included here to show it's actually there and doing something)
+
+``` {#cb05 stitch="download" arg="local-temperature.json"}
+curl -sL 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&'\
+'hourly=temperature_2m&timezone=Europe%2FLondon&forecast_days=1&format=json'\
+| jq .
+```
+
+This downloads today's temperature to `.stitch/cetz/local-temperature.json`,
+which is then used in the following codeblock to create a graph.
+
+```{#cb06 stitch=cetz caption="Temperature (C) today by Lilaq" fmt=svg exe=yes}
+#import "@preview/lilaq:0.5.0" as lq
+#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#let dta = json("local-temperature.json")
+#let hour(str) = {
+    return int(str.slice(11, count: 2))
+}
+#let hours = dta.hourly.time.map(hour)
+
+#lq.diagram(
+  title: [GPS (#dta.latitude, #dta.longitude)\ source: api.open-meteo.com],
+  xlabel: [hour\ (#dta.timezone)],
+  ylabel: [temperature (#dta.hourly_units.temperature_2m)],
+  lq.plot(hours, dta.hourly.temperature_2m),
+)
 ```
