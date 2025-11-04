@@ -1,7 +1,7 @@
 {
   "latitude": 52.52,
   "longitude": 13.419998,
-  "generationtime_ms": 0.032782554626464844,
+  "generationtime_ms": 0.03457069396972656,
   "utc_offset_seconds": 0,
   "timezone": "Europe/London",
   "timezone_abbreviation": "GMT",
@@ -59,9 +59,9 @@
       11.1,
       10.2,
       9.6,
-      9.4,
-      9.1,
-      8.8
+      9.0,
+      8.7,
+      8.4
     ]
   }
 }

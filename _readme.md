@@ -39,7 +39,7 @@ figlet -w 60 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 
 If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
-upon converting the document.
+upon converting the document using [pandoc](https://pandoc.org/).
 
 
 ## Examples
@@ -230,32 +230,9 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## Documentation
 
-```
-Outline
-- installation
-  * put stitch.lua somewhere on LUA_PATH (e.g. `~/.local/share/pandoc/filters`)
+This lua-filter requires pandoc version >= 2.19.  Some stuff in here
+is probably not Windows friendly, but any *nix should be fine.
 
-- usage
-  * `% pandoc --lua-filter stitch.lua doc.md -o doc.pdf`
-  * link a codeblock to stitch via attribute or class:
-    + `stitch=name`, attribute, points to a section in doc's meta
-    + `.stitch`, as one of the cb classes
-  * stitch options resolution order:
-    1. cb attributes
-    2. meta named section (if any)
-    3. meta defaults section (if any)
-    4. hardcoded
-
-- features
-  * conditional codeblock execution
-  * organize file storage locations
-  * old file detection and (possibly) clean up
-  * include 0 or more of stdout, stderr, image and/or codeblock
-  * run codeblock as system command or run it through another command
-  * codeblock can be used for side-effects only (0 includes)
-  * different log levels to show processing details
-
-```
 
 ### Installation
 
