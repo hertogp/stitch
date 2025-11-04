@@ -359,13 +359,11 @@ is an internal codeblock attribute set to either:
 - cb.attr.identifier, or
 - cb\<nth\>, where it's the nth codeblock seen by stitch
 
-This is also used when generating an `id` for included results:
+When generating `id` to assign to included elements, `id=cid-nth-what` is
+used, where `nth` is the nth directive of the `inc`-option being inserted and the
+`what` is the part being inserted.
 
-    id = cid-nth-what
-
-Where `nth` is the nth directive of the `inc`-option being inserted and the
-`what` is the part being inserted.  So `csv-3-err` is the id for the element
-inserted for codeblock with:\n
+So `csv-3-err` is the id for the element inserted for codeblock with:\
 - identifier `csv`, and\
 - its because of the 3rd directive in its `inc` option, where\
 - the `err` artificat is to be included.
