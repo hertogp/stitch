@@ -390,17 +390,18 @@ for the resolution order.
 
 Using `stitch=` or `stitch=""` is the same as included the `.stitch`
 class. If the hardcoded defaults are enough, simply add `.stitch` as a
-class. If the tool being used requires other settings, create a named
-section in the meta section of the document.
+class. If the tool being used requires other settings, create a `name`d
+section in the meta section of the document and set the codeblock
+attribute `stitch=name`.
 
 Examples:
 
-    ```{#id-x bash .stitch}
+    ```{#id-x .stitch}
     echo "just using the defaults"
     ```
 
 or
-`{#id-y bash stitch=download out="#dir/dta/wheather.json"}     curl -sL https://host/v1/forecast/?today&format=json`
+`{#id-y stitch=download out="#dir/dta/wheather.json"}     curl -sL https://host/v1/forecast/?today&format=json`
 and the meta section looks something like this:
 
     ---
@@ -423,7 +424,7 @@ directory where the pandoc conversion command was given.
 Stitch provides a few features that make converting codeblocks easy:
 
 - conditional codeblock execution
-- organize file storage locations
+- organize file storage locations for codeblock artifacts
 - old file detection and (possibly) clean up
 - include 0 or more of stdout, stderr, output file and/or codeblock
 - include the same output multiple times in different ways
@@ -453,6 +454,7 @@ The list of options and default values:
 | log | ‘info’                              | log verbosity                                    |
 | old | ‘purge’                             | what to do with old residue files                |
 | inc | ‘cbx:fcb out art:img err’           | what to include in which order                   |
+| —   | —– expandables ——-                  |                                                  |
 | cbx | ‘\#dir/#cid-#sha.cbx’               | codeblock file template                          |
 | out | ‘\#dir/#cid-#sha.out’               | stdout file capture template                     |
 | err | ‘\#dir/#cid-#sha.err’               | stderr file capture template                     |
