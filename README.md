@@ -402,25 +402,21 @@ order:
 
 The list of options:
 
-| Option | Default   | Description                                      |
-|:-------|:----------|:-------------------------------------------------|
-| arg    | ’’        | argument for the command line                    |
-| cid    | ‘x’       | unique codeblock identifier                      |
-| dir    | ‘.stitch’ | Stitch’s working directory, relative to pandoc’s |
-| exe    | ‘maybe’   | execute codeblock (or not)                       |
-| fmt    | ‘png’     | intended graphic file format                     |
-| log    | ‘info’    | log verbosity                                    |
-| old    | ‘purge’   | what to do with old residue files                |
-
-|                                                                    |
-|--------------------------------------------------------------------|
-| inc \| ‘cbx:fcb out art:img err’ \| what to include in which order |
-
-cbx \| ‘\#dir/#cid-#sha.cbx’ \| codeblock file template out \|
-‘\#dir/#cid-#sha.out’ \| stdout file capture template err \|
-‘\#dir/#cid-#sha.err’ \| stderr file capture template art \|
-‘\#dir/#cid-#sha.#fmt’ \| cmd output file template cmd \| ‘\#cbx \#arg
-\#art 1\>#out 2\>#err’ \| command line template
+| Option | Default                             | Description                                      |
+|:-------|:------------------------------------|:-------------------------------------------------|
+| arg    | ’’                                  | argument for the command line                    |
+| cid    | ‘x’                                 | unique codeblock identifier                      |
+| dir    | ‘.stitch’                           | Stitch’s working directory, relative to pandoc’s |
+| exe    | ‘maybe’                             | execute codeblock (or not)                       |
+| fmt    | ‘png’                               | intended graphic file format                     |
+| log    | ‘info’                              | log verbosity                                    |
+| old    | ‘purge’                             | what to do with old residue files                |
+| inc    | ‘cbx:fcb out art:img err’           | what to include in which order                   |
+| cbx    | ‘\#dir/#cid-#sha.cbx’               | codeblock file template                          |
+| out    | ‘\#dir/#cid-#sha.out’               | stdout file capture template                     |
+| err    | ‘\#dir/#cid-#sha.err’               | stderr file capture template                     |
+| art    | ‘\#dir/#cid-#sha.#fmt’              | cmd output file template                         |
+| cmd    | ‘\#cbx \#arg \#art 1\>#out 2\>#err’ | command line template                            |
 
 Table Stitch options
 
