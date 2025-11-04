@@ -323,9 +323,9 @@ exe    | 'maybe'                        | execute codeblock (or not)
 fmt    | 'png'                          | intended graphic file format
 log    | 'info'                         | log verbosity
 old    | 'purge'                        | what to do with old residue files
--------|--------------------------------|---------------------------------
+----
 inc    | 'cbx:fcb out art:img err'      | what to include in which order
--------|--------------------------------|---------------------------------
+----
 cbx    | '#dir/#cid-#sha.cbx'           | codeblock file template
 out    | '#dir/#cid-#sha.out'           | stdout file capture template
 err    | '#dir/#cid-#sha.err'           | stderr file capture template
