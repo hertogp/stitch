@@ -420,7 +420,26 @@ The list of options and default values:
 
 Table Stitch options
 
-#### inc directives
+#### `inc`-option specifies include directives
+
+The `inc`-option is a csv/space separated list of directives, each of
+the form:
+
+    what!read@filter:how
+     |    |     |     `- one of {"", fcb, img, fig}
+     |    |     `- mod.func, called with AST or data
+     |    `- one of the pandoc `from` formats
+     `- one of {cbx, art, out, err}
+
+*what*
+
+This part starts the directive and is the only one mandatory and refers
+to:
+
+- `cbx` the codeblock (either cb or the part saved on disk)
+- `art` usually contains graphical output (depends on `cmd` used)
+- `out` usually contains the output on stdout (depends on `cmd` used)
+- `err` usually contains the output on stderr (depends on `cmd` used)
 
 ```` stitched
 ``` {.stitch inc="cbx:fcb out!markdown"}
