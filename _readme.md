@@ -276,9 +276,9 @@ Outline
 
 Installation is pretty straightforward:
 
-    - put `stitch.lua` on your `$LUA_PATH`
-    - usually `~/.local/share/pandoc/filters`
-    - add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
+* put `stitch.lua` on your `$LUA_PATH`
+* usually `~/.local/share/pandoc/filters`
+* add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
 
 
 ### Usage
