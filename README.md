@@ -414,7 +414,9 @@ and the meta section looks something like this:
     ...
 
 The `#<opt>`’s are expanded by stitch using the option-set for the
-current codeblock.
+current codeblock. In case of the second codeblock example, stdout is
+redirect to `.stitch/dta/wheater.json` which is a path relative to the
+directory where the pandoc conversion command was given.
 
 ### Features
 
