@@ -506,7 +506,7 @@ more of:
 Stitch calculates a sha-hash using alle option values (sorted by key),
 excluding the `exe`’s value plus the codeblock contents and with all
 spaces removed. That fingerprint is then used (`#sha`) in filenames and
-allows for old/new file detection.
+allows for unique names as well as old/new file detection.
 
 So if `exe=maybe` and files exists for the newly calculated fingerprint
 the codeblock doesn’t run again and previous results will be used
@@ -518,12 +518,12 @@ the graphics format of the file produced.
 *log* is verbosity of logging, valid values are:
 `debug, info, warn, error, silent`. Use
 `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
-all all logging except for one codeblock where logging happens on the
+off all logging except for one codeblock where logging happens on the
 debug level.
 
 *old* old files are detected when their names end in `..-#sha.ext`. If
-`old=purge` then old files will be removed. Any other value will do to
-stop the purge. To override the hardcoded default, set
+`old=purge` then old files will be removed. Any other value will prevent
+the purge. To override the hardcoded default, set
 `meta.stitch.defaults.old` to some other value.
 
 *cbx, out, err, art* are (after expansion) simply filename to use as you
@@ -531,21 +531,19 @@ see fit in the `cmd` string. Usually `out, err` are used to redirect
 output on stdout and stder respectively. `art` usually refers to some
 graphics file (or whatever) produced by the codeblock.
 
-#### `inc`-option specifies include directives
-
-The `inc`-option is a csv/space separated list of directives, each of
-the form:
+*inc* specifies includes via a csv/space separated list of directives,
+each of the form:
 
     what!read@filter:how
      |    |     |     `- one of {<none>, fcb, img, fig} - optional
-     |    |     `- mod.func, called with AST or data - optional
-     |    `- one of the pandoc `from` formats - optional
-     `- one of {cbx, art, out, err} - mandatory
+     |    |     `------- mod.func, called with AST or data - optional
+     |    `------------- one of the pandoc `from` formats - optional
+     `------------------ one of {cbx, art, out, err} - mandatory
 
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
 
-*what*
+**what**
 
 This part starts the directive and is the only mandatory part and refers
 to:
