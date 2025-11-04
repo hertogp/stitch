@@ -426,18 +426,24 @@ The `inc`-option is a csv/space separated list of directives, each of
 the form:
 
     what!read@filter:how
-     |    |     |     `- one of {"", fcb, img, fig}
-     |    |     `- mod.func, called with AST or data
-     |    `- one of the pandoc `from` formats
-     `- one of {cbx, art, out, err}
+     |    |     |     `- one of {"", fcb, img, fig} - optional
+     |    |     `- mod.func, called with AST or data - optional
+     |    `- one of the pandoc `from` formats - optional
+     `- one of {cbx, art, out, err} - mandatory
 
-*what* This part starts the directive and is the only mandatory part and
-*must* refers to:
+     if a part is omitted, so is its leading marker (`!`, `@` or `:`).
+
+*what*
+
+This part starts the directive and is the only mandatory part and *must*
+refers to:
 
 - `cbx` the codeblock itself
 - `art` usually contains graphical output (depends on `cmd` used)
 - `out` usually contains the output on stdout (depends on `cmd` used)
 - `err` usually contains the output on stderr (depends on `cmd` used)
+
+*read*
 
 ```` stitched
 ``` {.stitch inc="cbx:fcb out!markdown"}
