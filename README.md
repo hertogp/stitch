@@ -364,13 +364,29 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 Installation is pretty straightforward:
 
-- put `stitch.lua` on your `$LUA_PATH`
-- usually `~/.local/share/pandoc/filters`
+- put `stitch.lua` on your `$LUA_PATH` (e.g. in
+  `~/.local/share/pandoc/filters`)
 - add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
 
 ### Usage
 
-`% pandoc --lua-filter stitch.lua doc.md -t doc.pdf` (for example)
+`% pandoc --lua-filter stitch.lua doc.md -t doc.pdf`
+
+A doc’s meta section is read by Stitch for options. When converting
+multiple documents into one output document, those could go into a yaml
+file mentioned last on the command line.
+
+### Features
+
+Stitch provides a few features that make converting codeblocks easy:
+
+- conditional codeblock execution
+- organize file storage locations
+- old file detection and (possibly) clean up
+- include 0 or more of stdout, stderr, image and/or codeblock
+- run codeblock as system command or run it through another command
+- codeblock can be used for side-effects only (0 includes)
+- different log levels to show processing details
 
 ### Options
 
