@@ -306,6 +306,32 @@ id="cb06-1-art-img" />
 ```
 ````
 
+## Gnuplot
+
+<figure id="cb07-1-art" data-stitch="gnuplot">
+<img
+src=".stitch/gnuplot/cb07-2d280d4ebabb1f76bba036bca17a97623b6cd92a.png"
+id="cb07-1-art-img" />
+</figure>
+
+````
+``` {#cb07 stitch="gnuplot" inc="art:fig cbx:fcb"}
+set terminal png
+set dummy u,v
+set key bmargin center horizontal Right noreverse enhanced autotitles nobox
+set parametric
+set view 50, 30, 1, 1
+set isosamples 50, 20
+set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
+set ticslevel 0
+set title "Interlocking Tori"
+set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
+set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
+splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
+1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
+```
+````
+
 ## Documentation
 
 ### Installation

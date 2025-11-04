@@ -497,12 +497,14 @@ function I.result(cb)
       for _, block in ipairs(new) do
         elms[#elms + 1] = block
       end
-      if #new == 0 then I.log('warn', 'include', "cb.'#%s', skipping '%s:%s' (invalid)", I.opts.cid, what, how) end
+      if #new == 0 then
+        I.log('warn', 'include', "cb.'#%s', skipping '%s:%s' (came up empty)", I.opts.cid, what, how)
+      end
     else
       if fname then
-        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (no file)", I.opts.cid, what, how)
+        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (no file produced)", I.opts.cid, what, how)
       else
-        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (invalid)", I.opts.cid, what, how)
+        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (invalid `what`)", I.opts.cid, what, how)
       end
     end
   end
