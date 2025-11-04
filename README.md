@@ -480,24 +480,25 @@ doc*
 
 Most options are straightforward:
 
-*arg* is used to optionally supply extra argument on the command line.
-Note that in a bash script, you can refer to cli-args by:
+**arg**  
+is used to optionally supply extra argument on the command line. Note
+that in a bash script, you can refer to cli-args by:
 
 - `${0}` the script’s name
 - `${n}` the nth argument
 - `${@: -1}` the last argument
 
-*dir* is used in the expansion of the artifact filepaths, basically
-setting the working directory for stitch relative to the directory where
-pandoc was started. Override the hardcoded `.stitch` default in one or
-more of:
+**dir**  
+is used in the expansion of the artifact filepaths, basically setting
+the working directory for stitch relative to the directory where pandoc
+was started. Override the hardcoded `.stitch` default in one or more of:
 
 - `meta.stitch.defaults.dir`, to change it for all codeblocks
 - `meta.stitch.name.dir`, to override for all codeblocks linked to
   `name`
 - `cb.attributes.dir`, to override for a specific codeblock
 
-*exe* specifies whether a codeblock should actually run:
+**exe** specifies whether a codeblock should actually run:
 
 - `yes`, always run the codeblock (new or unchanged)
 - `no`, do not run the codeblock, rest of processing still happens
@@ -512,26 +513,30 @@ So if `exe=maybe` and files exists for the newly calculated fingerprint
 the codeblock doesn’t run again and previous results will be used
 instead.
 
-*fmt* is used as the extension in the `#art` template, which is usually
-the graphics format of the file produced.
+**fmt**  
+is used as the extension in the `#art` template, which is usually the
+graphics format of the file produced.
 
-*log* is verbosity of logging, valid values are:
+**log**  
+is verbosity of logging, valid values are:
 `debug, info, warn, error, silent`. Use
 `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
 off all logging except for one codeblock where logging happens on the
 debug level.
 
-*old* old files are detected when their names end in `..-#sha.ext`. If
+**old**  
+old files are detected when their names end in `..-#sha.ext`. If
 `old=purge` then old files will be removed. Any other value will prevent
 the purge. To override the hardcoded default, set
 `meta.stitch.defaults.old` to some other value.
 
-*cbx, out, err, art* are (after expansion) simply filename to use as you
-see fit in the `cmd` string. Usually `out, err` are used to redirect
-output on stdout and stder respectively. `art` usually refers to some
-graphics file (or whatever) produced by the codeblock.
+**cbx, out, err, art**  
+are (after expansion) simply filename to use as you see fit in the `cmd`
+string. Usually `out, err` are used to redirect output on stdout and
+stder respectively. `art` usually refers to some graphics file (or
+whatever) produced by the codeblock.
 
-*inc* specifies includes via a csv/space separated list of directives,
+**inc** specifies includes via a csv/space separated list of directives,
 each of the form:
 
     what!read@filter:how
@@ -543,7 +548,7 @@ each of the form:
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
 
-**what**
+*what*
 
 This part starts the directive and is the only mandatory part and refers
 to:
