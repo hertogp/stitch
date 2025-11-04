@@ -385,7 +385,7 @@ A codeblock can be marked for processing by `stitch` by:
 - `stitch=name` included as an attribute
 
 If either one is found, the codeblock will be processed according to the
-set of options found for this codeblock. See [Options](###options) below
+set of options found for this codeblock. See [Options](#options) below
 for the resolution order.
 
 Using `stitch=` or `stitch=""` is the same as included the `.stitch`
