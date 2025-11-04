@@ -426,24 +426,48 @@ The `inc`-option is a csv/space separated list of directives, each of
 the form:
 
     what!read@filter:how
-     |    |     |     `- one of {"", fcb, img, fig} - optional
+     |    |     |     `- one of {<none>, fcb, img, fig} - optional
      |    |     `- mod.func, called with AST or data - optional
      |    `- one of the pandoc `from` formats - optional
      `- one of {cbx, art, out, err} - mandatory
 
-     if a part is omitted, so is its leading marker (`!`, `@` or `:`).
+     * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
+     * `what` should start the directive, the other parts can be in any order
 
 *what*
 
-This part starts the directive and is the only mandatory part and *must*
-refers to:
+This part starts the directive and is the only mandatory part and refers
+to:
 
-- `cbx` the codeblock itself
-- `art` usually contains graphical output (depends on `cmd` used)
-- `out` usually contains the output on stdout (depends on `cmd` used)
-- `err` usually contains the output on stderr (depends on `cmd` used)
+- `cbx`, the codeblock itself
+- `art`, usually contains graphical output (depends on `cmd` used)
+- `out`, usually contains the output on stdout (depends on `cmd` used)
+- `err`, usually contains the output on stderr (depends on `cmd` used)
 
 *read*
+
+The output denoted by `what` is first read and if `read` is specified,
+the data is read again using `pandoc.read()` producing a new pandoc doc.
+See [pandoc’s options](https://pandoc.org/MANUAL.html#general-options)
+for a list of available input formats to interpret the data.
+
+*filter*
+
+After the `what` has been read (and possibly reread using pandoc.read),
+it can be processed further by listing a filter in the form of
+`mod.func`. If defined, the lua-module `mod` will be required and its
+`func` called with the data read. The `mod.func` is passed the data,
+which could be image data, plain ascii text or a pandoc doc (if *read*
+was used).
+
+*how*
+
+Specifies how to include the result:
+
+- <none>, means going with the Stitch default
+- fcb, to include the result in a fenced codeblock
+- img, a pandoc.Image link to the file on disk for `what`
+- fig, same but using a pandoc.Figure element
 
 ```` stitched
 ``` {.stitch inc="cbx:fcb out!markdown"}
