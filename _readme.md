@@ -286,7 +286,8 @@ Installation is pretty straightforward:
 
 A doc's meta section is read by Stitch for options.  When converting
 multiple documents into one output document, those could go into
-a yaml file mentioned last on the command line.
+a yaml file mentioned last on the command line.  Or as the first one,
+since meta information is merged, where the 'last one wins'.
 
 
 ### Features
@@ -296,13 +297,39 @@ Stitch provides a few features that make converting codeblocks easy:
   * conditional codeblock execution
   * organize file storage locations
   * old file detection and (possibly) clean up
-  * include 0 or more of stdout, stderr, image and/or codeblock
+  * include 0 or more of stdout, stderr, output file and/or codeblock
+  * include the same output multiple times in different ways
   * run codeblock as system command or run it through another command
-  * codeblock can be used for side-effects only (0 includes)
+  * use a codeblock for side-effects only (0 includes)
   * different log levels to show processing details
 
-
 ### Options
+
+Stitch options are resolved in the following order (most to least specific):
+
+  1. codeblock attributes
+  2. a meta `name` section
+  3. the meta `defaults` section
+  4. hardcoded Stitch defaults
+
+The list of options:
+
+Option | Default                        | Description
+:------|:-------------------------------|:--------------------------------
+cid    | 'x'                            | unique codeblock identifier
+arg    | ''                             | argument for the command line
+dir    | '.stitch'                      | Stitch's working directory
+fmt    | 'png'                          | intended graphic file format
+log    | 'info'                         | log verbosity
+exe    | 'maybe'                        | execute codeblock (or not)
+old    | 'purge'                        | what to do with old residue files
+inc    | 'cbx:fcb out art:img err'      | what to include in which order
+cbx    | '#dir/#cid-#sha.cbx'           | codeblock file template
+out    | '#dir/#cid-#sha.out'           | stdout file capture template
+err    | '#dir/#cid-#sha.err'           | stderr file capture template
+art    | '#dir/#cid-#sha.#fmt'          | cmd output file template
+cmd    | '#cbx #arg #art 1>#out 2>#err' | command line template
+
 
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 - exec bit is turned on
