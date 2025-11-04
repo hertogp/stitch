@@ -408,14 +408,14 @@ started.  Override the hardcoded `.stitch` default in one or more of:
 - `meta.stitch.name.dir`, to override for all codeblocks linked to `name`
 - `cb.attributes.dir`, to override for a specific codeblock
 
-_*exe*_
+_*exe*_\
 specifies whether a codeblock should actually run:
 
 - `yes`, always run the codeblock (new or unchanged)
 - `no`, do not run the codeblock, rest of processing still happens
 - `maybe`, run the codeblock if something changed
 
-Stitch calculates a sha-hash using alle option values (sorted by key),
+Stitch calculates a sha-hash using all option values (sorted by key),
 excluding the `exe`'s value plus the codeblock contents and with all spaces
 removed.  That fingerprint is then used (`#sha`) in filenames and allows for
 unique names as well as old/new file detection.
@@ -440,14 +440,17 @@ override the hardcoded default, set `meta.stitch.defaults.old` to some other
 value.
 
 _*cbx, out, err, art*_\
-are (after expansion) simply filename to use as you see fit in the `cmd`
-string.  Usually `out, err` are used to redirect output on stdout and stder
+are (after expansion) simply filenames to use as you see fit in the `cmd`
+string.  Usually `out, err` are used to redirect output on stdout and stderr
 respectively.  `art` usually refers to some graphics file (or whatever)
 produced by the codeblock.
 
+_*cmd*_\
+is run via `os.execute(cmd)`, `cmd` is its expanded form.
 
-_*inc*_\ specifies includes via a csv/space separated list of directives, each of
-the form:
+_*inc*_\
+is a bit more involved and specifies what to include (and in which order) via a
+csv/space separated list of directives, each of the form:
 
     what!read@filter:how
      |    |     |     `- one of {<none>, fcb, img, fig} - optional
@@ -457,6 +460,17 @@ the form:
 
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
+
+Note that the same artificat can be included multiple times.  E.g. if you are
+wondering what the pandoc AST looks like for a snippet the following codeblock
+would reveal that for, eg., a table:
+
+```{#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe=no}
+opt,value,default
+arg, "", argument to be included on the cli
+exe, maybe, execute if something changed
+```
+
 
 *what*
 

@@ -498,13 +498,14 @@ was started. Override the hardcoded `.stitch` default in one or more of:
   `name`
 - `cb.attributes.dir`, to override for a specific codeblock
 
-**exe** specifies whether a codeblock should actually run:
+**exe**  
+specifies whether a codeblock should actually run:
 
 - `yes`, always run the codeblock (new or unchanged)
 - `no`, do not run the codeblock, rest of processing still happens
 - `maybe`, run the codeblock if something changed
 
-Stitch calculates a sha-hash using alle option values (sorted by key),
+Stitch calculates a sha-hash using all option values (sorted by key),
 excluding the `exe`’s value plus the codeblock contents and with all
 spaces removed. That fingerprint is then used (`#sha`) in filenames and
 allows for unique names as well as old/new file detection.
@@ -531,13 +532,17 @@ the purge. To override the hardcoded default, set
 `meta.stitch.defaults.old` to some other value.
 
 **cbx, out, err, art**  
-are (after expansion) simply filename to use as you see fit in the `cmd`
-string. Usually `out, err` are used to redirect output on stdout and
-stder respectively. `art` usually refers to some graphics file (or
+are (after expansion) simply filenames to use as you see fit in the
+`cmd` string. Usually `out, err` are used to redirect output on stdout
+and stderr respectively. `art` usually refers to some graphics file (or
 whatever) produced by the codeblock.
 
-**inc** specifies includes via a csv/space separated list of directives,
-each of the form:
+**cmd**  
+is run via `os.execute(cmd)`, `cmd` is its expanded form.
+
+**inc**  
+is a bit more involved and specifies what to include (and in which
+order) via a csv/space separated list of directives, each of the form:
 
     what!read@filter:how
      |    |     |     `- one of {<none>, fcb, img, fig} - optional
@@ -547,6 +552,127 @@ each of the form:
 
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
+
+Note that the same artificat can be included multiple times. E.g. if you
+are wondering what the pandoc AST looks like for a snippet the following
+codeblock would reveal that for, eg., a table:
+
+```` stitched
+``` {#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe="no"}
+opt,value,default
+arg, "", argument to be included on the cli
+exe, maybe, execute if something changed
+```
+````
+
+| opt | value | default                            |
+|-----|-------|------------------------------------|
+| arg |       | argument to be included on the cli |
+| exe | maybe | execute if something changed       |
+
+``` stitched
+[ Table
+    ( "csv-3-cbx" , [ "stitched" ] , [] )
+    (Caption Nothing [])
+    [ ( AlignDefault , ColWidthDefault )
+    , ( AlignDefault , ColWidthDefault )
+    , ( AlignDefault , ColWidthDefault )
+    ]
+    (TableHead
+       ( "" , [] , [] )
+       [ Row
+           ( "" , [] , [] )
+           [ Cell
+               ( "" , [] , [] )
+               AlignDefault
+               (RowSpan 1)
+               (ColSpan 1)
+               [ Plain [ Str "opt" ] ]
+           , Cell
+               ( "" , [] , [] )
+               AlignDefault
+               (RowSpan 1)
+               (ColSpan 1)
+               [ Plain [ Str "value" ] ]
+           , Cell
+               ( "" , [] , [] )
+               AlignDefault
+               (RowSpan 1)
+               (ColSpan 1)
+               [ Plain [ Str "default" ] ]
+           ]
+       ])
+    [ TableBody
+        ( "" , [] , [] )
+        (RowHeadColumns 0)
+        []
+        [ Row
+            ( "" , [] , [] )
+            [ Cell
+                ( "" , [] , [] )
+                AlignDefault
+                (RowSpan 1)
+                (ColSpan 1)
+                [ Plain [ Str "arg" ] ]
+            , Cell
+                ( "" , [] , [] ) AlignDefault (RowSpan 1) (ColSpan 1) []
+            , Cell
+                ( "" , [] , [] )
+                AlignDefault
+                (RowSpan 1)
+                (ColSpan 1)
+                [ Plain
+                    [ Str "argument"
+                    , Space
+                    , Str "to"
+                    , Space
+                    , Str "be"
+                    , Space
+                    , Str "included"
+                    , Space
+                    , Str "on"
+                    , Space
+                    , Str "the"
+                    , Space
+                    , Str "cli"
+                    ]
+                ]
+            ]
+        , Row
+            ( "" , [] , [] )
+            [ Cell
+                ( "" , [] , [] )
+                AlignDefault
+                (RowSpan 1)
+                (ColSpan 1)
+                [ Plain [ Str "exe" ] ]
+            , Cell
+                ( "" , [] , [] )
+                AlignDefault
+                (RowSpan 1)
+                (ColSpan 1)
+                [ Plain [ Str "maybe" ] ]
+            , Cell
+                ( "" , [] , [] )
+                AlignDefault
+                (RowSpan 1)
+                (ColSpan 1)
+                [ Plain
+                    [ Str "execute"
+                    , Space
+                    , Str "if"
+                    , Space
+                    , Str "something"
+                    , Space
+                    , Str "changed"
+                    ]
+                ]
+            ]
+        ]
+    ]
+    (TableFoot ( "" , [] , [] ) [])
+]
+```
 
 *what*
 
