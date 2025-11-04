@@ -225,6 +225,8 @@ which is then used in the following codeblock to create a graph.
 
 ## Gnuplot
 
+Another example using the trusty `gnuplot`.
+
 ```{#cb07 stitch=gnuplot}
 set terminal png
 set dummy u,v
@@ -243,12 +245,43 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## Documentation
 
+```
+Outline
+- installation
+  * put stitch.lua somewhere on LUA_PATH (e.g. `~/.local/share/pandoc/filters`)
+
+- usage
+  * `% pandoc --lua-filter stitch.lua doc.md -o doc.pdf`
+  * link a codeblock to stitch via attribute or class:
+    + `stitch=name`, attribute, points to a section in doc's meta
+    + `.stitch`, as one of the cb classes
+  * stitch options resolution order:
+    1. cb attributes
+    2. meta named section (if any)
+    3. meta defaults section (if any)
+    4. hardcoded
+
+- features
+  * conditional codeblock execution
+  * cleans up old files
+  * organize file storage locations
+  * include stdout, stderr, image, codeblock or none
+  * codeblock can be used for side-effects only
+  * different log levels to show processing details
+  * run codeblock as system command or run it through another command
+
+```
 ### Installation
 
 - put stitch.lua somewhere on your $LUA_PATH, e.g. `~/.local/share/pandoc/filters`
 - create the dir if necessary
 - add the dir to LUA_PATH as needed
+
+### Usage
+
 - run `pandoc --lua-filter stitch.lua doc.md -t doc.pdf` (for example)
+
+### Options
 
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 - exec bit is turned on
