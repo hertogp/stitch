@@ -475,7 +475,7 @@ is used to optionally supply an extra argument on the command line. It
 is a string and may contain spaces and it is simply interpolated in the
 `cmd` expansion.
 
-If the codeblock contains some shell script, one can refer to its
+Just as a gentle reminder to myself: in a shell script, you can refer to
 arguments by:
 
 - `${0}` the script’s name
