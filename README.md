@@ -364,9 +364,9 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 Installation is pretty straightforward:
 
-\- put `stitch.lua` on your `$LUA_PATH`  
-- usually `~/.local/share/pandoc/filters`  
-- add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
+    - put `stitch.lua` on your `$LUA_PATH`
+    - usually `~/.local/share/pandoc/filters`
+    - add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
 
 ### Usage
 
