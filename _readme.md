@@ -305,7 +305,7 @@ Stitch provides a few features that make converting codeblocks easy:
 
 ### Options
 
-Stitch options are resolved in the following order (most to least specific):
+Stitch options are resolved in the following most to least specific order:
 
   1. codeblock attributes
   2. a meta `name` section
@@ -316,20 +316,23 @@ The list of options:
 
 Option | Default                        | Description
 :------|:-------------------------------|:--------------------------------
-cid    | 'x'                            | unique codeblock identifier
 arg    | ''                             | argument for the command line
+cid    | 'x'                            | unique codeblock identifier
 dir    | '.stitch'                      | Stitch's working directory, relative to pandoc's
+exe    | 'maybe'                        | execute codeblock (or not)
 fmt    | 'png'                          | intended graphic file format
 log    | 'info'                         | log verbosity
-exe    | 'maybe'                        | execute codeblock (or not)
 old    | 'purge'                        | what to do with old residue files
+-------|--------------------------------|---------------------------------
 inc    | 'cbx:fcb out art:img err'      | what to include in which order
+-------|--------------------------------|---------------------------------
 cbx    | '#dir/#cid-#sha.cbx'           | codeblock file template
 out    | '#dir/#cid-#sha.out'           | stdout file capture template
 err    | '#dir/#cid-#sha.err'           | stderr file capture template
 art    | '#dir/#cid-#sha.#fmt'          | cmd output file template
 cmd    | '#cbx #arg #art 1>#out 2>#err' | command line template
 
+Table Stitch options
 
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 - exec bit is turned on
