@@ -316,7 +316,7 @@ The list of options:
 
 Option | Default                        | Description
 :------|:-------------------------------|:--------------------------------
-arg    | ''                             | argument for the command line
+arg    | ""                             | argument for the command line
 cid    | 'x'                            | unique codeblock identifier
 dir    | '.stitch'                      | Stitch's working directory, relative to pandoc's
 exe    | 'maybe'                        | execute codeblock (or not)
