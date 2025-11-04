@@ -199,7 +199,7 @@ id="cb03-1-art-img" />
 
 Another package from the [typst](https://typst.app/) universe, for
 drawing diagrams and arrows. Revisiting the flowchart shown earlier with
-[diagon](https://github.com/ArthurSonzogni/Diagon).
+[diagon](#diagon).
 
 <figure id="cb04-1-art" data-stitch="cetz" data-caption="Stitch">
 <img

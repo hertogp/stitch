@@ -136,7 +136,7 @@ universe for plotting, charts & tree layout.
 
 Another package from the [typst](https://typst.app/) universe, for drawing
 diagrams and arrows. Revisiting the flowchart shown earlier with
-[diagon](https://github.com/ArthurSonzogni/Diagon).
+[diagon](#diagon).
 
 ``` {#cb04 stitch="cetz" caption="Stitch" fmt="svg"}
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
