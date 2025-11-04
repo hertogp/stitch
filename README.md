@@ -420,6 +420,60 @@ The list of options and default values:
 
 Table Stitch options
 
+#### inc directives
+
+```` stitched
+``` {.stitch inc="cbx:fcb out!markdown"}
+pandoc --list-input-formats | sed 's/^/- /'
+```
+````
+
+- biblatex
+- bibtex
+- commonmark
+- commonmark_x
+- creole
+- csljson
+- csv
+- docbook
+- docx
+- dokuwiki
+- endnotexml
+- epub
+- fb2
+- gfm
+- haddock
+- html
+- ipynb
+- jats
+- jira
+- json
+- latex
+- man
+- markdown
+- markdown_github
+- markdown_mmd
+- markdown_phpextra
+- markdown_strict
+- mediawiki
+- muse
+- native
+- odt
+- opml
+- org
+- ris
+- rst
+- rtf
+- t2t
+- textile
+- tikiwiki
+- tsv
+- twiki
+- typst
+- vimwiki
+
+<!-- -->
+
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 - exec bit is turned on
 - the `cbx` is either run as a system command or processed by another

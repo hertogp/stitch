@@ -332,6 +332,12 @@ cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 
 Table Stitch options
 
+#### inc directives
+
+```{.stitch inc="cbx:fcb out!markdown"}
+pandoc --list-input-formats | sed 's/^/- /'
+```
+
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 - exec bit is turned on
 - the `cbx` is either run as a system command or processed by another command
