@@ -454,7 +454,7 @@ The list of options and default values:
 | log | ‘info’                              | log verbosity                                    |
 | old | ‘purge’                             | what to do with old residue files                |
 | inc | ‘cbx:fcb out art:img err’           | what to include in which order                   |
-| —   | —– expandables ——-                  |                                                  |
+| —   | — expandables —                     | —                                                |
 | cbx | ‘\#dir/#cid-#sha.cbx’               | codeblock file template                          |
 | out | ‘\#dir/#cid-#sha.out’               | stdout file capture template                     |
 | err | ‘\#dir/#cid-#sha.err’               | stderr file capture template                     |
