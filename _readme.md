@@ -393,8 +393,8 @@ started.  Override the hardcoded `.stitch` default in one or more of:
 _*exe*_\
 specifies whether a codeblock should actually run:
 
-- `yes`, always run the codeblock (new or unchanged)
-- `no`, do not run the codeblock, rest of processing still happens
+- `yes`, always run the codeblock (new or not)
+- `no`, do not run the codeblock even if new, rest of processing still happens
 - `maybe`, run the codeblock if something changed
 
 Stitch calculates a sha-hash using all option values (sorted by key),
