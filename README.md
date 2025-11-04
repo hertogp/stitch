@@ -401,7 +401,7 @@ Processing a codeblock follows these steps:
 5.  check for old files and conditionally remove them
 6.  parse the `inc` option and include results in order (if any)
 
-In the face of errors, log messages and continue.
+In the face of errors, just complain and carry on.
 
 ### Features
 
@@ -415,10 +415,13 @@ Stitch provides a few features that make converting codeblocks easy:
 - run codeblock as system command or run it through another command
 - use a codeblock for side-effects only (0 includes)
 - different log levels to show processing details
+- non-stitch cb attributes are transferred to included results if
+  possible
+- unique id is also assigned and transferred if possible
 
 ### Options
 
-Stitch options are resolved in the following most to least specific
+Stitch options are resolved in the following, most to least, specific
 order:
 
 1.  codeblock attributes
@@ -448,6 +451,22 @@ The list of options and default values:
 Table Stitch options  
 *(\*) assigned by stitch, unique across all codeblocks in the current
 doc*
+
+**cid**  
+is an internal codeblock attribute set to either:
+
+- cb.attr.identifier, or
+- cb<nth>, where it’s the nth codeblock seen by stitch
+
+This is also used when generating an `id` for included results:
+
+    id = cid-nth-what
+
+Where `nth` is the nth directive of the `inc`-option being inserted and
+the `what` is the part being inserted. So `csv-3-err` is the id for the
+element inserted for codeblock with: - identifier `csv`, and  
+- its because of the 3rd directive in its `inc` option, where  
+- the `err` artificat is to be included.
 
 Most options are straightforward:
 
