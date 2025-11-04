@@ -431,12 +431,10 @@ the form:
      |    `- one of the pandoc `from` formats
      `- one of {cbx, art, out, err}
 
-*what*
+*what* This part starts the directive and is the only mandatory part and
+*must* refers to:
 
-This part starts the directive and is the only mandatory part and *must*
-refers to:
-
-- `cbx` the codeblock (either cb or the part saved on disk)
+- `cbx` the codeblock itself
 - `art` usually contains graphical output (depends on `cmd` used)
 - `out` usually contains the output on stdout (depends on `cmd` used)
 - `err` usually contains the output on stderr (depends on `cmd` used)
