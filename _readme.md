@@ -436,7 +436,7 @@ csv/space separated list of directives, each of the form:
 
     what!read@filter:how
      |    |     |     `- one of {<none>, fcb, img, fig} - optional
-     |    |     `------- mod.func, called with AST or data - optional
+     |    |     `------- mod.func, list of filters w/ func to call
      |    `------------- one of the pandoc `from` formats - optional
      `------------------ one of {cbx, art, out, err} - mandatory
 
