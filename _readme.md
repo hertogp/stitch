@@ -223,7 +223,7 @@ which is then used in the following codeblock to create a graph.
 )
 ```
 
-## Gnuplot
+### [Gnuplot](https://gnuplot.sourceforge.net)
 
 Another example using the trusty `gnuplot`.
 
@@ -271,9 +271,13 @@ Outline
   * run codeblock as system command or run it through another command
 
 ```
+
 ### Installation
 
-- put stitch.lua somewhere on your $LUA_PATH, e.g. `~/.local/share/pandoc/filters`
+- put stitch.lua somewhere on your $LUA_PATH
+
+- echo $LUA_PATH
+- if needed, add `~/.local/share/pandoc/filters/?.lua` to `LUA_PATH`
 - create the dir if necessary
 - add the dir to LUA_PATH as needed
 

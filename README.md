@@ -306,7 +306,7 @@ id="cb06-1-art-img" />
 ```
 ````
 
-## Gnuplot
+### [Gnuplot](https://gnuplot.sourceforge.net)
 
 Another example using the trusty `gnuplot`.
 
@@ -362,9 +362,14 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ### Installation
 
-- put stitch.lua somewhere on your \$LUA_PATH,
-  e.g. `~/.local/share/pandoc/filters`
+- put stitch.lua somewhere on your \$LUA_PATH
+
+- echo \$LUA_PATH
+
+- if needed, add `~/.local/share/pandoc/filters/?.lua` to `LUA_PATH`
+
 - create the dir if necessary
+
 - add the dir to LUA_PATH as needed
 
 ### Usage
