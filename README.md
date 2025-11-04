@@ -460,9 +460,10 @@ is an internal codeblock attribute set to either:
 
 When generating `id` to assign to included elements, `id=cid-nth-what`
 is used, where `nth` is the nth directive of the `inc`-option being
-inserted and the `what` is the part being inserted.
+inserted and the `what` is the part being honored.
 
-So `csv-3-err` is the id for the element inserted for codeblock with:  
+So `csv-3-err` is the id for the element inserted for a codeblock
+with:  
 - identifier `csv`, and  
 - its because of the 3rd directive in its `inc` option, where  
 - the `err` artificat is to be included.
@@ -470,8 +471,12 @@ So `csv-3-err` is the id for the element inserted for codeblock with:
 Most options are straightforward:
 
 **arg**  
-is used to optionally supply extra argument on the command line. Note
-that in a bash script, you can refer to cli-args by:
+is used to optionally supply an extra argument on the command line. It
+is a string and may contain spaces and it is simply interpolated in the
+`cmd` expansion.
+
+If the codeblock contains some shell script, one can refer to its
+arguments by:
 
 - `${0}` the script’s name
 - `${n}` the nth argument
