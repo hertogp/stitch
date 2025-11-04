@@ -318,7 +318,7 @@ Option | Default                        | Description
 :------|:-------------------------------|:--------------------------------
 cid    | 'x'                            | unique codeblock identifier
 arg    | ''                             | argument for the command line
-dir    | '.stitch'                      | Stitch's working directory
+dir    | '.stitch'                      | Stitch's working directory, relative to pandoc's
 fmt    | 'png'                          | intended graphic file format
 log    | 'info'                         | log verbosity
 exe    | 'maybe'                        | execute codeblock (or not)
