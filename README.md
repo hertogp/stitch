@@ -462,8 +462,8 @@ The list of options and default values:
 | cmd | ‘\#cbx \#arg \#art 1\>#out 2\>#err’ | command line template                            |
 
 Table Stitch options  
-\*\* (\*) assigned by stitch, unique across all codeblocks in the
-current doc\*\*
+*(\*) assigned by stitch, unique across all codeblocks in the current
+doc*
 
 #### `inc`-option specifies include directives
 
