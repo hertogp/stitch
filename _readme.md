@@ -357,7 +357,7 @@ _*cid*_\
 is an internal codeblock attribute set to either:
 
 - cb.attr.identifier, or
-- cb<nth>, where it's the nth codeblock seen by stitch
+- cb\<nth\>, where it's the nth codeblock seen by stitch
 
 This is also used when generating an `id` for included results:
 
