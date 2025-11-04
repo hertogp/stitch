@@ -447,7 +447,7 @@ The list of options and default values:
 | Opt | Value                               | Description                                      |
 |:----|:------------------------------------|:-------------------------------------------------|
 | arg | ’’                                  | argument for the command line                    |
-| cid | ‘x’                                 | unique codeblock identifier (\*)                 |
+| cid | ‘x’                                 | unique codeblock identifier (!)                  |
 | dir | ‘.stitch’                           | Stitch’s working directory, relative to pandoc’s |
 | exe | ‘maybe’                             | execute codeblock (or not)                       |
 | fmt | ‘png’                               | intended graphic file format                     |
@@ -461,8 +461,9 @@ The list of options and default values:
 | art | ‘\#dir/#cid-#sha.#fmt’              | cmd output file template                         |
 | cmd | ‘\#cbx \#arg \#art 1\>#out 2\>#err’ | command line template                            |
 
-Table Stitch options (\*) assigned by stitch, unique across all
-codeblocks in the current doc
+Table Stitch options  
+\*\* (\*) assigned by stitch, unique across all codeblocks in the
+current doc\*\*
 
 #### `inc`-option specifies include directives
 
