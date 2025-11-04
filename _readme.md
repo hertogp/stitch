@@ -344,7 +344,7 @@ The `inc`-option is a csv/space separated list of directives, each of the form:
 
 *what*
 
-This part starts the directive and is the only one mandatory and refers to:
+This part starts the directive and is the only mandatory part and *must* refers to:
 
 * `cbx` the codeblock (either cb or the part saved on disk)
 * `art` usually contains graphical output (depends on `cmd` used)
