@@ -447,7 +447,7 @@ The list of options and default values:
 | Opt | Value                               | Description                                      |
 |:----|:------------------------------------|:-------------------------------------------------|
 | arg | ’’                                  | argument for the command line                    |
-| cid | ‘x’                                 | unique codeblock identifier (!)                  |
+| cid | ‘x’                                 | internal, unique codeblock id (\*)               |
 | dir | ‘.stitch’                           | Stitch’s working directory, relative to pandoc’s |
 | exe | ‘maybe’                             | execute codeblock (or not)                       |
 | fmt | ‘png’                               | intended graphic file format                     |
@@ -477,7 +477,7 @@ the form:
      `- one of {cbx, art, out, err} - mandatory
 
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
-     * `what` should start the directive, the other parts can be in any order
+     * `what` must start the directive, the other parts can be in any order
 
 *what*
 
@@ -494,7 +494,12 @@ to:
 The output denoted by `what` is first read and if `read` is specified,
 the data is read again using `pandoc.read()` producing a new pandoc doc.
 See [pandoc’s options](https://pandoc.org/MANUAL.html#general-options)
-for a list of available input formats to interpret the data.
+for a list of available input formats to interpret the data, simply run
+`pandoc --list-input-formats`.
+
+    ```{.stitch inc="cbx:fcb out!markdown"}
+    pandoc --list-input-formats | sed 's/^/- /'
+    ```
 
 *filter*
 
@@ -510,72 +515,29 @@ was used).
 Specifies how to include the result:
 
 - <none>, means going with the Stitch default
+
 - fcb, to include the result in a fenced codeblock
+
 - img, a pandoc.Image link to the file on disk for `what`
+
 - fig, same but using a pandoc.Figure element
 
-```` stitched
-``` {.stitch inc="cbx:fcb out!markdown"}
-pandoc --list-input-formats | sed 's/^/- /'
-```
-````
-
-- biblatex
-- bibtex
-- commonmark
-- commonmark_x
-- creole
-- csljson
-- csv
-- docbook
-- docx
-- dokuwiki
-- endnotexml
-- epub
-- fb2
-- gfm
-- haddock
-- html
-- ipynb
-- jats
-- jira
-- json
-- latex
-- man
-- markdown
-- markdown_github
-- markdown_mmd
-- markdown_phpextra
-- markdown_strict
-- mediawiki
-- muse
-- native
-- odt
-- opml
-- org
-- ris
-- rst
-- rtf
-- t2t
-- textile
-- tikiwiki
-- tsv
-- twiki
-- typst
-- vimwiki
-
-<!-- -->
-
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
+
 - exec bit is turned on
+
 - the `cbx` is either run as a system command or processed by another
   command
+
 - that produces one of more of:
+
   - stdout (text), redir to `#out`
   - stderr (text), redir to `err`
   - artifact (image), to `#art`
+
 - then the cb(x) and/or 1 or more results can be included as per `inc`
   option
+
 - `inc` = `what!reader@filter:how`, `what` is mandatory, the others are
   optional
 

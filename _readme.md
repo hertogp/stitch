@@ -359,7 +359,7 @@ The list of options and default values:
 Opt | Value                          | Description
 :---|:-------------------------------|:--------------------------------
 arg | ''                             | argument for the command line
-cid | 'x'                            | unique codeblock identifier (!)
+cid | 'x'                            | internal, unique codeblock id (*)
 dir | '.stitch'                      | Stitch's working directory, relative to pandoc's
 exe | 'maybe'                        | execute codeblock (or not)
 fmt | 'png'                          | intended graphic file format
@@ -377,7 +377,6 @@ Table Stitch options \
 *(\*) assigned by stitch, unique across all codeblocks in the current doc*
 
 
-
 #### `inc`-option specifies include directives
 
 The `inc`-option is a csv/space separated list of directives, each of the form:
@@ -389,7 +388,7 @@ The `inc`-option is a csv/space separated list of directives, each of the form:
      `- one of {cbx, art, out, err} - mandatory
 
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
-     * `what` should start the directive, the other parts can be in any order
+     * `what` must start the directive, the other parts can be in any order
 
 *what*
 
@@ -405,7 +404,12 @@ This part starts the directive and is the only mandatory part and refers to:
 The output denoted by `what` is first read and if `read` is specified, the
 data is read again using `pandoc.read()` producing a new pandoc doc.
 See [pandoc's options](https://pandoc.org/MANUAL.html#general-options) for
-a list of available input formats to interpret the data.
+a list of available input formats to interpret the data, simply run
+`pandoc --list-input-formats`.
+
+    ```{.stitch inc="cbx:fcb out!markdown"}
+    pandoc --list-input-formats | sed 's/^/- /'
+    ```
 
 *filter*
 
@@ -425,10 +429,6 @@ Specifies how to include the result:
 * fig, same but using a pandoc.Figure element
 
 
-
-```{.stitch inc="cbx:fcb out!markdown"}
-pandoc --list-input-formats | sed 's/^/- /'
-```
 
 - codeblock is saved on disk as `dir/<cid>-<hash>.cbx`
 - exec bit is turned on
