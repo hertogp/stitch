@@ -331,6 +331,18 @@ codeblock.  In case of the second codeblock example, stdout is redirect to
 `.stitch/dta/wheater.json` which is a path relative to the directory where the
 pandoc conversion command was given.
 
+*codeblock 'execution'*
+
+Processing a codeblock follows these steps:
+
+  1. resolve all options and expand them (once)
+  2. save `cb.text` to file given by `#cbx`-path (always)
+  3. check if anything has changed (1+ of the other artifacts exist)
+  4. conditionally run `os.execute(#cmd)` to produce new artifacts
+  5. check for old files and conditionally remove them
+  6. parse the `inc` option and include results in order (if any)
+
+In the face of errors, log messages and continue.
 
 ### Features
 
@@ -376,6 +388,55 @@ cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 Table Stitch options \
 *(\*) assigned by stitch, unique across all codeblocks in the current doc*
 
+Most options are straightforward:
+
+*arg* is used to optionally supply extra argument on the command line.
+Note that in a bash script, you can refer to cli-args by:
+
+- `${0}`     the script's name
+- `${n}`     the nth argument
+- `${@: -1}` the last argument
+
+
+*dir* is used in the expansion of the artifact filepaths, basically setting
+the working directory for stitch relative to the directory where pandoc was
+started.  Override the hardcoded `.stitch` default in one or more of:
+
+- `meta.stitch.defaults.dir`, to change it for all codeblocks
+- `meta.stitch.name.dir`, to override for all codeblocks linked to `name`
+- `cb.attributes.dir`, to override for a specific codeblock
+
+*exe* specifies whether a codeblock should actually run:
+
+- `yes`, always run the codeblock (new or unchanged)
+- `no`, do not run the codeblock, rest of processing still happens
+- `maybe`, run the codeblock if something changed
+
+Stitch calculates a sha-hash using alle option values (sorted by key),
+excluding the `exe`'s value plus the codeblock contents and with all
+spaces removed.  That fingerprint is then used (`#sha`) in filenames
+and allows for old/new file detection.
+
+So if `exe=maybe` and files exists for the newly calculated fingerprint
+the codeblock doesn't run again and previous results will be used instead.
+
+*fmt* is used as the extension in the `#art` template, which is usually
+the graphics format of the file produced.
+
+*log* is verbosity of logging, valid values are: `debug, info, warn, error,
+silent`.  Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug`
+to turn all all logging except for one codeblock where logging happens on the
+debug level.
+
+*old* old files are detected when their names end in `..-#sha.ext`.  If
+`old=purge` then old files will be removed.  Any other value will do to
+stop the purge.  To override the hardcoded default, set
+`meta.stitch.defaults.old` to some other value.
+
+*cbx, out, err, art* are (after expansion) simply filename to use as you
+see fit in the `cmd` string.  Usually `out, err` are used to redirect output
+on stdout and stder respectively.  `art` usually refers to some graphics file
+(or whatever) produced by the codeblock.
 
 #### `inc`-option specifies include directives
 
@@ -405,9 +466,9 @@ The output denoted by `what` is first read and if `read` is specified, the
 data is read again using `pandoc.read()` producing a new pandoc doc.
 See [pandoc's options](https://pandoc.org/MANUAL.html#general-options) for
 a list of available input formats to interpret the data, simply run
-`pandoc --list-input-formats`.
+`pandoc --list-input-formats`.  Example:
 
-    ```{.stitch inc="cbx:fcb out!markdown"}
+    ```{.st.ch inc="out!markdown"}
     pandoc --list-input-formats | sed 's/^/- /'
     ```
 
