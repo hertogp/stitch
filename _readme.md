@@ -461,14 +461,14 @@ csv/space separated list of directives, each of the form:
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
 
-Note that the same artificat can be included multiple times.  E.g. if you are
+Note that the same artifact can be included multiple times.  E.g. if you are
 wondering what the pandoc AST looks like for a snippet the following codeblock
-would reveal that for, eg., a table:
+would reveal that when reading some csv-file using `-f csv`:
 
 ```{#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe=no}
-opt,value,default
-arg, "", argument to be included on the cli
-exe, maybe, execute if something changed
+opt,value,description
+arg, "", cli-argument
+exe, maybe, execute
 ```
 
 

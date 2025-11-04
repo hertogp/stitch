@@ -553,22 +553,22 @@ order) via a csv/space separated list of directives, each of the form:
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
 
-Note that the same artificat can be included multiple times. E.g. if you
+Note that the same artifact can be included multiple times. E.g. if you
 are wondering what the pandoc AST looks like for a snippet the following
-codeblock would reveal that for, eg., a table:
+codeblock would reveal that when reading some csv-file using `-f csv`:
 
 ```` stitched
 ``` {#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe="no"}
-opt,value,default
-arg, "", argument to be included on the cli
-exe, maybe, execute if something changed
+opt,value,description
+arg, "", cli-argument
+exe, maybe, execute
 ```
 ````
 
-| opt | value | default                            |
-|-----|-------|------------------------------------|
-| arg |       | argument to be included on the cli |
-| exe | maybe | execute if something changed       |
+| opt | value | description  |
+|-----|-------|--------------|
+| arg |       | cli-argument |
+| exe | maybe | execute      |
 
 ``` stitched
 [ Table
@@ -599,7 +599,7 @@ exe, maybe, execute if something changed
                AlignDefault
                (RowSpan 1)
                (ColSpan 1)
-               [ Plain [ Str "default" ] ]
+               [ Plain [ Str "description" ] ]
            ]
        ])
     [ TableBody
@@ -621,22 +621,7 @@ exe, maybe, execute if something changed
                 AlignDefault
                 (RowSpan 1)
                 (ColSpan 1)
-                [ Plain
-                    [ Str "argument"
-                    , Space
-                    , Str "to"
-                    , Space
-                    , Str "be"
-                    , Space
-                    , Str "included"
-                    , Space
-                    , Str "on"
-                    , Space
-                    , Str "the"
-                    , Space
-                    , Str "cli"
-                    ]
-                ]
+                [ Plain [ Str "cli-argument" ] ]
             ]
         , Row
             ( "" , [] , [] )
@@ -657,16 +642,7 @@ exe, maybe, execute if something changed
                 AlignDefault
                 (RowSpan 1)
                 (ColSpan 1)
-                [ Plain
-                    [ Str "execute"
-                    , Space
-                    , Str "if"
-                    , Space
-                    , Str "something"
-                    , Space
-                    , Str "changed"
-                    ]
-                ]
+                [ Plain [ Str "execute" ] ]
             ]
         ]
     ]
