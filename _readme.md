@@ -152,7 +152,7 @@ diagrams and arrows. Revisiting the flowchart shown earlier with
 ``` {#cb04 stitch="cetz" caption="Stitch" fmt="svg"}
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #import fletcher.shapes: pill, parallelogram, diamond
-#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 #set text(10pt)
 #diagram(
   node-stroke: .1em,
@@ -189,7 +189,7 @@ diagrams and arrows. Revisiting the flowchart shown earlier with
 ### [Lilaq](https://lilaq.org/)
 
 Yet another [typst](https://typst.app/) package, this time for advanced data
-visualization.  Unfortunately, typst and its packages have no way of
+visualization.  Unfortunately, typst and its packages currently have no way of
 downloading data, so the following codeblock is used for side-effects only
 (well, its included here to show it's actually there and doing something)
 
@@ -204,7 +204,7 @@ which is then used in the following codeblock to create a graph.
 
 ```{#cb06 stitch=cetz caption="Temperature (C) today by Lilaq" fmt=svg exe=yes}
 #import "@preview/lilaq:0.5.0" as lq
-#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 #let dta = json("local-temperature.json")
 #let hour(str) = {
     return int(str.slice(11, count: 2))

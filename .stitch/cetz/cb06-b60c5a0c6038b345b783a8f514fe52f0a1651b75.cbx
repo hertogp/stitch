@@ -1,5 +1,5 @@
 #import "@preview/lilaq:0.5.0" as lq
-#set page( fill: none, width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 #let dta = json("local-temperature.json")
 #let hour(str) = {
     return int(str.slice(11, count: 2))
