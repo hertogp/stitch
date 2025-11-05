@@ -439,16 +439,33 @@ function I.xform(doc, filter)
   --  2. a regular module exporting 'func' (i.e mod.func != nil)
   local count = 0
   local ok, filters, tmp
+  local split = function(s)
+    if 'string' ~= type(s) then return end
+    local dot = s:find('%.[^%.]+$')
+    if not dot then return s end
+    return s:sub(1, dot - 1), s:sub(dot + 1)
+  end
+
   if #filter == 0 then return doc, count end
 
-  local mod, fun = filter:match('(%w+)%.?(%w*)') -- module.function
-  fun = #fun > 0 and fun or 'Pandoc' -- function default is Pandoc
-  ok, filters = pcall(require, mod)
-  if not ok then
-    I.log('warn', 'xform', 'skip @%s: module %s not found', filter, mod)
+  local mod, fun = split(filter) -- filter:match('(%w+)%.?(%w*)') -- module.function
+  fun = fun or 'Pandoc' -- function default is Pandoc
+
+  if not mod then
+    I.log('error', 'xform', 'skip @%s, cannot parse into mod & function', filter)
     return doc, count
-  elseif filters == true then
-    I.log('warn', 'xform', 'skip @%s: not a list of filters', filter)
+  end
+
+  I.log('info', 'xform', 'found mod %s, function %s', mod, fun)
+  -- require -> mod, [info] or true, nil|info
+  -- pcall -> true, org returns | false, errobj
+  local pkg, dta -- mod instance, loader data (if any)
+  ok, pkg, dta = pcall(require, mod)
+  if not ok then
+    I.log('warn', 'xform', 'skip @%s: requiring module failed %s', filter, mod, pkg or '')
+    return doc, count
+  elseif pkg == true then
+    I.log('warn', 'xform', 'skip @%s: module %s not found %s', filter, mod, dta or '')
     return doc, count
   end
 
@@ -457,7 +474,13 @@ function I.xform(doc, filter)
     doc.meta.stitch = pd.MetaMap(I.ctx)
   end
 
+  if 'table' == type(pkg) and pkg[fun] then
+    filters = { pkg }
+    I.log('debug', 'xform', '%s is regular module with fun %s %s', mod, fun, pkg[fun])
+  end
+
   for n, f in ipairs(filters) do
+    I.log('info', 'xform', 'trying filter %d, func %s', n, fun)
     if f[fun] then
       ok, tmp = pcall(f[fun], doc)
       if not ok then
@@ -470,6 +493,7 @@ function I.xform(doc, filter)
       I.log('warn', 'xform', "filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun)
     end
   end
+  I.log('info', 'xform', 'applied %d filters to given `doc`', count)
   return doc, count
 end
 
