@@ -518,7 +518,7 @@ arg, "", cli-argument
 exe, maybe, execute
 ```
 
-```{#filter .stitch inc="cbx:fcb cbx@pandoc.template.default" exe=no}
-markdown
+```{#filter .stitch inc="cbx:fcb cbx@pandoc.types:fcb" exe=no log=debug}
+2.19
 ```
 

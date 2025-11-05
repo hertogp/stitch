@@ -717,31 +717,13 @@ exe, maybe, execute
 ```
 
 ```` stitched
-``` {#filter .stitch inc="cbx:fcb cbx@pandoc.template.default" exe="no"}
-markdown
+``` {#filter .stitch inc="cbx:fcb cbx@pandoc.types:fcb" exe="no" log="debug"}
+2.19
 ```
 ````
 
-``` stitched
-$if(titleblock)$
-$titleblock$
-
-$endif$
-$for(header-includes)$
-$header-includes$
-
-$endfor$
-$for(include-before)$
-$include-before$
-
-$endfor$
-$if(toc)$
-$table-of-contents$
-
-$endif$
-$body$
-$for(include-after)$
-
-$include-after$
-$endfor$
+```` stitched
+``` {#filter .stitch inc="cbx:fcb cbx@pandoc.types:fcb" exe="no" log="debug"}
+2.19
 ```
+````

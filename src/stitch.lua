@@ -434,39 +434,38 @@ end
 ---@return string|table? doc the, possibly, modified doc
 ---@return number count the number of filters actually applied
 function I.xform(doc, filter)
-  -- TODO: allow for require"mod" to return:
-  --  1. a list of pandoc filters, each of which should have 'func'
-  --  2. a regular module exporting 'func' (i.e mod.func != nil)
   local count = 0
-  local ok, filters, tmp
-  local split = function(s)
-    if 'string' ~= type(s) then return end
-    local dot = s:find('%.[^%.]+$')
-    if not dot then return s end
-    return s:sub(1, dot - 1), s:sub(dot + 1)
+  local load -- due to recursion: tricky! probably better to put in I instead
+  load = function(m, f)
+    -- return module, module_name, function_name
+    if nil == m or 0 == #m then return nil, m, f end
+
+    local suc6, mod = pcall(require, m)
+    if false == suc6 or true == mod then
+      local dot = m:find('%.[^%.]+$')
+      if not dot then return nil, m, f end
+      local mm, ff = m:sub(1, dot - 1), m:sub(dot + 1)
+      -- ff = table.concat({ ff, f }, '.')
+      ff = (f and ff and ff .. '.' .. f) or ff
+      return load(mm, ff)
+    else
+      return mod, m, f
+    end
   end
 
-  if #filter == 0 then return doc, count end
-
-  local mod, fun = split(filter) -- filter:match('(%w+)%.?(%w*)') -- module.function
-  fun = fun or 'Pandoc' -- function default is Pandoc
-
+  -- filter == "" is a silent noop
+  if 'string' ~= type(filter) or #filter == 0 then return doc, count end
+  local mod, mname, fun = load(filter)
   if not mod then
-    I.log('error', 'xform', 'skip @%s, cannot parse into mod & function', filter)
+    I.log('error', 'xform', 'skip @%s, could not load filter', filter)
     return doc, count
   end
-
-  I.log('info', 'xform', 'found mod %s, function %s', mod, fun)
-  -- require -> mod, [info] or true, nil|info
-  -- pcall -> true, org returns | false, errobj
-  local pkg, dta -- mod instance, loader data (if any)
-  ok, pkg, dta = pcall(require, mod)
-  if not ok then
-    I.log('warn', 'xform', 'skip @%s: requiring module failed %s', filter, mod, pkg or '')
-    return doc, count
-  elseif pkg == true then
-    I.log('warn', 'xform', 'skip @%s: module %s not found %s', filter, mod, dta or '')
-    return doc, count
+  fun = fun or 'Pandoc' -- if filter is a module, default `Pandoc` function
+  I.log('debug', 'xform', '@%s, module %s loaded, assuming function %q', filter, mname, fun)
+  if mod[fun] then
+    I.log('debug', 'xform', 'module %s exports %q, using it as a single filter', mname, fun)
+  else
+    I.log('debug', 'xform', 'module %s does not export %q, using it as a list of filters', mname, fun)
   end
 
   if doc and 'Pandoc' == pd.utils.type(doc) then
@@ -474,26 +473,25 @@ function I.xform(doc, filter)
     doc.meta.stitch = pd.MetaMap(I.ctx)
   end
 
-  if 'table' == type(pkg) and pkg[fun] then
-    filters = { pkg }
-    I.log('debug', 'xform', '%s is regular module with fun %s %s', mod, fun, pkg[fun])
-  end
+  -- If mod exports fun, it is not a list of filters
+  -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
+  local filters = mod[fun] and { mod } or mod
+  if 0 == #filters then I.log('error', 'xform', 'skipping, no filters found exporting %s', fun) end
 
   for n, f in ipairs(filters) do
-    I.log('info', 'xform', 'trying filter %d, func %s', n, fun)
     if f[fun] then
-      ok, tmp = pcall(f[fun], doc)
+      local ok, tmp = pcall(f[fun], doc)
       if not ok then
-        I.log('warn', 'xform', "filter '%s[%s].%s', failed, filter ignored", mod, n, fun)
+        I.log('warn', 'xform', "skipping failed filter '%s[%s].%s'", mod, n, fun)
       else
         doc = tmp
         count = count + 1
       end
     else
-      I.log('warn', 'xform', "filter '%s[%d].%s', '%s' not found, filter ignored", mod, n, fun)
+      I.log('warn', 'xform', "skipping filter '%s[%d]', '%s' not exported", filter, n, fun)
     end
   end
-  I.log('info', 'xform', 'applied %d filters to given `doc`', count)
+  if #filters > 0 then I.log('info', 'xform', 'applied %d filters to given `doc`', count) end
   return doc, count
 end
 
