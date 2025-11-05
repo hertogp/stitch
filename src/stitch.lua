@@ -256,7 +256,7 @@ end
 ---@return boolean ok success indicator
 function I.fsave(doc, fname)
   if 'string' ~= type(doc) then
-    I.log('info', 'write', "%s, skip writing data of type '%s'", fname, type(doc))
+    I.log('info', 'write', "%s, skipped writing '%s'", fname, type(doc))
     return false
   end
 
@@ -491,7 +491,7 @@ function I.xform(doc, filter)
       I.log('warn', 'xform', "skipping filter '%s[%d]', '%s' not exported", filter, n, fun)
     end
   end
-  if #filters > 0 then I.log('info', 'xform', 'applied %d filters to given `doc`', count) end
+  if #filters > 0 then I.log('info', 'xform', 'applied %d filter(s) to given `doc`', count) end
   return doc, count
 end
 
