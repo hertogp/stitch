@@ -461,12 +461,7 @@ function I.xform(doc, filter)
     return doc, count
   end
   fun = fun or 'Pandoc' -- if filter is a module, default `Pandoc` function
-  I.log('debug', 'xform', '@%s, module %s loaded, assuming function %q', filter, mname, fun)
-  if mod[fun] then
-    I.log('debug', 'xform', 'module %s exports %q, using it as a single filter', mname, fun)
-  else
-    I.log('debug', 'xform', 'module %s does not export %q, using it as a list of filters', mname, fun)
-  end
+  I.log('debug', 'xform', '@%s, module %s is %sexporting %q', filter, mname, mod[fun] and '' or 'not ', fun)
 
   if doc and 'Pandoc' == pd.utils.type(doc) then
     -- add stitch context to a Pandoc doc

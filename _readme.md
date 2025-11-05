@@ -518,7 +518,7 @@ arg, "", cli-argument
 exe, maybe, execute
 ```
 
-```{#filter .stitch inc="cbx:fcb cbx@pandoc.types.Version:fcb" exe=no log=debug}
+```{#filter .stitch inc="cbx:fcb cbx@pandox.types:fcb" exe=no log=debug}
 2.19
 ```
 

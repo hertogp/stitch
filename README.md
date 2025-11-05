@@ -717,13 +717,13 @@ exe, maybe, execute
 ```
 
 ```` stitched
-``` {#filter .stitch inc="cbx:fcb cbx@pandoc.types.Version:fcb" exe="no" log="debug"}
+``` {#filter .stitch inc="cbx:fcb cbx@pandox.types:fcb" exe="no" log="debug"}
 2.19
 ```
 ````
 
 ```` stitched
-``` {#filter .stitch inc="cbx:fcb cbx@pandoc.types.Version:fcb" exe="no" log="debug"}
+``` {#filter .stitch inc="cbx:fcb cbx@pandox.types:fcb" exe="no" log="debug"}
 2.19
 ```
 ````
