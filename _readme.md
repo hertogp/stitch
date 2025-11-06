@@ -445,15 +445,16 @@ produced by the codeblock.
 
 
 _*cmd*_\
-is run via `os.execute(cmd)`, `cmd` is its expanded form.  The (hardcoded)
-default is to run the codeblock as a system command, provide `#arg` on the
-command line, `#art` as an intended output file name and redirect its stdout
-and stderr.  Ofcourse, it is up to the codeblock code to actually use the
-argument and/or the intended output filename.
+is expanded and run via `os.execute(cmd)`.  The (hardcoded) default is to run
+the codeblock as a system command, provide the expanded forms of `#arg` and
+`#art` on the command line (as argument & an intended output file).  Finally
+stdout and stderr are redirected to the expanded filenames given by `#out` and
+`#err`.  Ofcourse, it is up to the codeblock code to actually use the argument
+and/or the intended output filename.
 
 
 _*inc*_\
-is a bit more involved and specifies what to include (and in which order) via a
+is a bit more involved and specifies what to include, in which order, via a
 csv/space separated list of directives, each of the form:
 
     what!read@filter:how
@@ -480,8 +481,9 @@ This part starts the directive and is the only mandatory part and refers to:
 
 *read*
 
-The output denoted by `what` is first read and if `!read` is specified, the
-data is read again using `pandoc.read(data, <read>)` producing a new pandoc doc.
+The output file denoted by `what` is first read and if `!read` is specified,
+the data is read again using `pandoc.read(data, <read>)` producing a new pandoc
+doc.
 
 The value of `read` should be one of the `-f formats` values that pandoc
 understands, see [pandoc's options](https://pandoc.org/MANUAL.html#general-options)
@@ -505,16 +507,17 @@ or `art`) file data, which possibly is reread if `!read` is specified.
 Specifies how to include the final result (i.e. data) after reading, re-reading
 and possibly filtering.
 
-* \<none\>, means going with the Stitch default for what is being included:
+* *\<none\>*, means going with the Stitch default for what is being included:
+  + data is type `Pandoc` then its blocks are inserted, otherwise:
   + `art` is linked to as an pandoc.Image
   + `out` is included as the body of a pandoc.CodeBlock
   + `err` dito
   + `cbx` is included as a pandoc.CodeBlock
-* fcb, to include the result in a fenced codeblock
+* *fcb*, to include the result in a fenced codeblock
   + if data is a pandoc element -> cb content = `pandoc.write(data, native)`
   + otherwise, data is included as-is in the codeblock contents
-* img, a pandoc.Image link to the file on disk for `what`
-* fig, same but using pandoc.Figure
+* *img*, a pandoc.Image link to the file on disk for `what`
+* *fig*, same but using pandoc.Figure
 
 
 *putting it together*
