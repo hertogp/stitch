@@ -1,4 +1,4 @@
--- Example filter to demonstrate Stitch processing a codeblock
+-- Example code to process some doc, called by Stitch via inc-directive: @src.suture.header
 
 local increase = 0
 

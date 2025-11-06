@@ -3,18 +3,8 @@
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
--- [x] drop the class 'stitch', use stitch="" or stitch="section"
---     that way we can also drop cfg="section"
--- [ ] asciichart uses ANSI esc for colors, how to fix (use aha tool?)
---
---  default
---  OTHER PROJECTS:
---  * `:Open https://github.com/jgm/pandoc/blob/main/doc/extras.md`
---  * `:Open https://github.com/LaurentRDC/pandoc-plot/tree/master`
---  * `:Open https://github.com/pandoc/lua-filters` (older repo)
 
 local I = {} -- Stitch's Implementation; for testing
-I.input_idx = 0
 
 I.ctx = {} -- this doc's context (= meta.stitch)
 I.opts = { log = 'info' } --> for initial logging, is reset for each cb
