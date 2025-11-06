@@ -357,8 +357,8 @@ err | '#dir/#cid-#sha.err'           | stderr file capture template
 art | '#dir/#cid-#sha.#fmt'          | cmd file output template
 cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 
-Table Stitch options\
-*(\*) either the codeblock's id or a generated one, should be unique per codeblock
+: Table Stitch options
+*(\*) either the codeblock's id or a generated one, should be unique per codeblock*
 
 _*cid*_\
 is an internal codeblock attribute set to either:
