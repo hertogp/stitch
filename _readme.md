@@ -297,7 +297,7 @@ and the meta section looks something like this:
     ...
 
 The `#<opt>`'s are expanded by stitch using the option-set for the current
-codeblock.  In case of the second codeblock example, stdout is redirect to
+codeblock.  In case of the second codeblock example, stdout is redirected to
 `.stitch/dta/wheater.json` which is a path relative to the directory where the
 pandoc conversion command was given.
 
@@ -338,27 +338,27 @@ Stitch options are resolved in the following, most to least, specific order:
   3. the meta `defaults` section
   4. hardcoded Stitch defaults
 
-The list of options and default values:
+The list of options and default valuesi are:
 
 Opt | Value                          | Description
 :---|:-------------------------------|:--------------------------------
 arg | ''                             | argument for the command line
-cid | 'x'                            | internal, unique codeblock id (*)
+cid | 'x'                            | the codeblock's id, if absent it is generated
 dir | '.stitch'                      | Stitch's working directory, relative to pandoc's
 exe | 'maybe'                        | execute codeblock (or not)
 fmt | 'png'                          | intended graphic file format
 log | 'info'                         | log verbosity
-old | 'purge'                        | what to do with old residue files
+old | 'purge'                        | what to do with old residual files
 inc | 'cbx:fcb out art:img err'      | what to include in which order
 --- | --- expandables ---            | ---
 cbx | '#dir/#cid-#sha.cbx'           | codeblock file template
 out | '#dir/#cid-#sha.out'           | stdout file capture template
 err | '#dir/#cid-#sha.err'           | stderr file capture template
-art | '#dir/#cid-#sha.#fmt'          | cmd output file template
+art | '#dir/#cid-#sha.#fmt'          | cmd file output template
 cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 
-Table Stitch options \
-*(\*) assigned by stitch, unique across all codeblocks in the current doc*
+: Table Stitch options \
+*(\*) either the codeblock's id or a generated one, should be unique per codeblock
 
 _*cid*_\
 is an internal codeblock attribute set to either:
