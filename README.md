@@ -626,14 +626,18 @@ re-reading and possibly filtering.
 
 If you are wondering what the pandoc AST looks like for a snippet the
 following codeblock would reveal that when reading some csv-file using
-`-f csv`. The codeblock is:
+`-f csv`. The attributes say:
 
-1.  inserted as-is inside another codeblock, revealing the entire
-    codeblock
-2.  inserted as the markdown produced by pandoc after reading the csv
-    with `-f csv`
-3.  inserted as the AST as produced in step 2., serialized as `native`
-    output
+- `.stitch` use the defaults for options not specified in these
+  attributes
+- `exe=no` don’t run the codeblock (`cmd` won’t be executed)
+- `inc="cbx:fcb cbx!csv cbx!csv:fcb"`
+  - include the codeblock as-is in a new fenced codeblock, including its
+    attributes
+  - include the codeblock’s data after reading it as pandoc `-f csv`
+    format which means the doc’s blocks are inserted
+  - same, but put it inside a new fenced codeblock for which the doc is
+    first serialized using its `native` output format.
 
 ```` stitched
 ``` {#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe="no"}
