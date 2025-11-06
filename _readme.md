@@ -564,7 +564,3 @@ says:
 The highlight of the today was ...
 EOF
 ```
-
-```{#tmp .stitch inc=out!markdown}
-tldr pandoc | col -bx
-```
