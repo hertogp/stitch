@@ -43,11 +43,11 @@ upon converting the document using [pandoc](https://pandoc.org/).
 
 *security*
 
-`Stitch.lua` is, like any lua-filter, totally insecure and any CISO's
-nightmare.  Before running an externally supplied document through the
-`stitch.lua` filter, be sure you have vetted each and every codeblock that is
-marked for stitching since it basically runs a pletora of system commands on
-your machine, potentially causing chaos and/or harm.
+`Stitch.lua` is, like any lua-filter that executes codeblocks, totally insecure
+and any CISO's nightmare.  Before running an externally supplied document
+through the `stitch.lua` filter, be sure you have vetted each and every
+codeblock that is marked for stitching since it probably runs a pletora of
+system commands on your machine, potentially causing chaos and/or harm.
 
 ## Examples
 
