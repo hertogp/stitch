@@ -563,7 +563,7 @@ order) via a csv/space separated list of directives, each of the form:
 
 Note that the same artifact can be included multiple times.
 
-**what**
+***what***
 
 This part starts the directive and is the only mandatory part and refers
 to:
