@@ -457,8 +457,9 @@ The list of options and default valuesi are:
 | art | ‘\#dir/#cid-#sha.#fmt’              | cmd file output template                         |
 | cmd | ‘\#cbx \#arg \#art 1\>#out 2\>#err’ | command line template                            |
 
-Table Stitch options \*(\*) either the codeblock’s id or a generated
-one, should be unique per codeblock
+Table Stitch options  
+\*(\*) either the codeblock’s id or a generated one, should be unique
+per codeblock
 
 **cid**  
 is an internal codeblock attribute set to either:
