@@ -360,26 +360,29 @@ cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 : Table Stitch options\
 *(\*) either the codeblock's id or a generated one, should be unique per codeblock*
 
+
 _*cid*_\
-is an internal codeblock attribute set to either:
+is an internal, unique, codeblock identifier set to either:
 
 - cb.attr.identifier, or
 - cb\<nth\>, where it's the nth codeblock seen by stitch
 
-When generating `id` to assign to included elements, `id=cid-nth-what` is
+When generating an `id` to assign to included elements, `id=cid-nth-what` is
 used, where `nth` is the nth directive of the `inc`-option being inserted and the
-`what` is the part being honored.
+`what` is the part being included (one of `cbx`, `out`, `err` or `art`).
 
 So `csv-3-err` is the id for the element inserted for a codeblock with:\
 - identifier `csv`, and\
-- its because of the 3rd directive in its `inc` option, where\
-- the `err` artificat is to be included.
+- where the 3rd directive in its `inc` option includes an artifact and where\
+- `err` is the artificat to be included
 
 Most options are straightforward:
 
+
 _*arg*_\
 is used to optionally supply an extra argument on the command line. It is a string
-and may contain spaces and it is simply interpolated in the `cmd` expansion.
+and may contain spaces and it is simply interpolated in the `cmd` expansion via
+an `os.execute(cmd)`.  So `arg=""` won't show up on the command line.
 
 Just as a gentle reminder to myself: in a shell script, you can refer to arguments by:
 
@@ -397,12 +400,13 @@ started.  Override the hardcoded `.stitch` default in one or more of:
 - `meta.stitch.name.dir`, to override for all codeblocks linked to `name`
 - `cb.attributes.dir`, to override for a specific codeblock
 
+
 _*exe*_\
 specifies whether a codeblock should actually run:
 
 - `yes`, always run the codeblock (new or not)
 - `no`, do not run the codeblock even if new, rest of processing still happens
-- `maybe`, run the codeblock if something changed
+- `maybe`, run the codeblock if something changed (the default)
 
 Stitch calculates a sha-hash using all option values (sorted by key),
 excluding the `exe`'s value plus the codeblock contents and with all spaces
@@ -411,10 +415,13 @@ unique names as well as old/new file detection.
 
 So if `exe=maybe` and files exists for the newly calculated fingerprint
 the codeblock doesn't run again and previous results will be used instead.
+Swapping `exe` to a different value won't affect the sha-fingerprint.
+
 
 _*fmt*_\
 is used as the extension in the `#art` template, which is usually the graphics
 format of the file produced.
+
 
 _*log*_\
 is verbosity of logging, valid values are: `debug, info, warn, error, silent`.
@@ -422,11 +429,13 @@ Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
 off all logging except for one codeblock where logging happens on the debug
 level.
 
+
 _*old*_\
 old files are detected when their names end in `..-#sha.ext`.  If `old=purge`
 then old files will be removed.  Any other value will prevent the purge.  To
 override the hardcoded default, set `meta.stitch.defaults.old` to some other
 value.
+
 
 _*cbx, out, err, art*_\
 are (after expansion) simply filenames to use as you see fit in the `cmd`
@@ -434,8 +443,10 @@ string.  Usually `out, err` are used to redirect output on stdout and stderr
 respectively.  `art` usually refers to some graphics file (or whatever)
 produced by the codeblock.
 
+
 _*cmd*_\
 is run via `os.execute(cmd)`, `cmd` is its expanded form.
+
 
 _*inc*_\
 is a bit more involved and specifies what to include (and in which order) via a
@@ -443,7 +454,7 @@ csv/space separated list of directives, each of the form:
 
     what!read@filter:how
      |    |     |     `- one of {<none>, fcb, img, fig} - optional
-     |    |     `------- mod.func, list of filters w/ func to call
+     |    |     `------- mod[.func], filter(s) w/ func to call - optional
      |    `------------- one of the pandoc `from` formats - optional
      `------------------ one of {cbx, art, out, err} - mandatory
 
@@ -453,7 +464,7 @@ csv/space separated list of directives, each of the form:
 Note that the same artifact can be included multiple times.
 
 
-*what*
+**what**
 
 This part starts the directive and is the only mandatory part and refers to:
 
