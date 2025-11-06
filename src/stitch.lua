@@ -306,7 +306,7 @@ function I.fkill()
       for _, fold in ipairs(pd.system.list_directory(dir)) do
         fold = pd.path.join({ dir, fold })
         if fold:match(pat) and fold ~= fnew then
-          local ok, err = os.remove(fold) -- pd.system.remove version >=3.7.1 :(
+          local ok, err = os.remove(fold) -- pd.system.remove needs >=version 3.7.1
           if not ok then
             I.log('error', 'files', 'unable to remove: %s (%s)', fold, err)
           else
@@ -457,36 +457,37 @@ function I.xform(doc, filter)
   if 'string' ~= type(filter) or #filter == 0 then return doc, count end
   local mod, mname, fun = load(filter)
   if not mod then
-    I.log('error', 'xform', 'skip @%s, could not load filter', filter)
+    I.log('error', 'xform', '@%s skipped, could not load filter', filter)
     return doc, count
   end
   fun = fun or 'Pandoc' -- if filter is a module, default `Pandoc` function
   I.log('debug', 'xform', '@%s, module %s is %sexporting %q', filter, mname, mod[fun] and '' or 'not ', fun)
 
   if doc and 'Pandoc' == pd.utils.type(doc) then
-    -- add stitch context to a Pandoc doc
-    doc.meta.stitch = pd.MetaMap(I.ctx)
+    -- add current codeblock's stitch context to a Pandoc doc
+    -- doc.meta.stitch = pd.MetaMap(I.ctx)
+    doc.meta.stitched = { cb_attr = pd.MetaMap(I.opts), context = pd.MetaMap(I.ctx) }
   end
 
   -- If mod exports fun, it is not a list of filters
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
   local filters = mod[fun] and { mod } or mod
-  if 0 == #filters then I.log('error', 'xform', 'skipping, no filters found exporting %s', fun) end
+  if 0 == #filters then I.log('error', 'xform', '@%s, skipped, no filters found exporting %s', filter, fun) end
 
   for n, f in ipairs(filters) do
     if f[fun] then
       local ok, tmp = pcall(f[fun], doc)
       if not ok then
-        I.log('warn', 'xform', "skipping failed filter '%s[%s].%s'", mod, n, fun)
+        I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, mod, n, fun)
       else
         doc = tmp
         count = count + 1
       end
     else
-      I.log('warn', 'xform', "skipping filter '%s[%d]', '%s' not exported", filter, n, fun)
+      I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, mod, n, fun)
     end
   end
-  if #filters > 0 then I.log('info', 'xform', 'applied %d filter(s) to given `doc`', count) end
+  if #filters > 0 then I.log('info', 'xform', '@%s, applied %d filter(s) to given `doc`', filter, count) end
   return doc, count
 end
 
@@ -504,7 +505,7 @@ function I.result(cb)
       local doc = I.fread(fname, format) -- format maybe "" (just reads fname)
       doc, count = I.xform(doc, filter)
       if count > 0 then
-        -- a filter was actually applied, so save altered doc
+        -- a filter was actually applied, so save altered doc (if applicable)
         I.fsave(doc, fname)
       end
 
@@ -704,5 +705,5 @@ local Stitch = {
 
 -- just `return Stitch` requires pandoc 3.5 (single filter instead of list of filters)
 return {
-  Stitch, -- bare return of Stitch requires version >=3.5
+  Stitch, -- bare return of Stitch requires pandoc >=version 3.5
 }
