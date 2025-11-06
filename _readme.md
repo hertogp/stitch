@@ -566,5 +566,5 @@ EOF
 ```
 
 ```{#tmp .stitch inc=out!markdown}
-tldr pandoc
+tldr pandoc | col -bx
 ```
