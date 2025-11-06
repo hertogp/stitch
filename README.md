@@ -773,3 +773,23 @@ output will be processed due to the directive: which says:
 ### Today’s highlights
 
 The highlight of the today was …
+
+pandoc Convert documents between various formats. More information:
+https://pandoc.org/MANUAL.html. - Convert a Markdown file to PDF using
+\[3mpdflatex\[23m (the formats are determined by file extensions):
+pandoc path/to/input.md –output path/to/output.pdf - Convert the output
+from another command to PDF, using a specific PDF engine: command \|
+pandoc –from input_format –pdf-engine tectonic\|weasyprint\|typst\|…
+–output path/to/output.pdf - Convert to a standalone file with the
+appropriate headers/footers (for LaTeX, HTML, etc.): pandoc
+path/to/input.md –standalone –output path/to/output.html - Manually
+specify formats (overriding automatic format detection using the
+filename extension, or when there is no extension): pandoc –from docx\|…
+path/to/input –to pdf\|… –output path/to/output - Transform a document
+using a Lua script (see <https://pandoc.org/lua-filters.html> for more
+information): pandoc path/to/input –lua-filter path/to/filter.lua
+–output path/to/output - Convert a remote HTML file to markdown and
+print the result to \[3mstdout\[23m: pandoc –from html –to markdown
+https://example.com - List all supported input formats: pandoc
+–list-input-formats - List all supported output formats: pandoc
+–list-output-formats
