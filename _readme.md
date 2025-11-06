@@ -445,7 +445,11 @@ produced by the codeblock.
 
 
 _*cmd*_\
-is run via `os.execute(cmd)`, `cmd` is its expanded form.
+is run via `os.execute(cmd)`, `cmd` is its expanded form.  The (hardcoded)
+default is to run the codeblock as a system command, provide `#arg` on the
+command line, `#art` as an intended output file name and redirect its stdout
+and stderr.  Ofcourse, it is up to the codeblock code to actually use the
+argument and/or the intended output filename.
 
 
 _*inc*_\

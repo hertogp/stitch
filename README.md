@@ -546,7 +546,11 @@ and stderr respectively. `art` usually refers to some graphics file (or
 whatever) produced by the codeblock.
 
 **cmd**  
-is run via `os.execute(cmd)`, `cmd` is its expanded form.
+is run via `os.execute(cmd)`, `cmd` is its expanded form. The
+(hardcoded) default is to run the codeblock as a system command, provide
+`#arg` on the command line, `#art` as an intended output file name and
+redirect its stdout and stderr. Ofcourse, it is up to the codeblock code
+to actually use the argument and/or the intended output filename.
 
 **inc**  
 is a bit more involved and specifies what to include (and in which
@@ -563,7 +567,7 @@ order) via a csv/space separated list of directives, each of the form:
 
 Note that the same artifact can be included multiple times.
 
-***what***
+*what*
 
 This part starts the directive and is the only mandatory part and refers
 to:
