@@ -358,8 +358,7 @@ err | '#dir/#cid-#sha.err'           | stderr file capture template
 art | '#dir/#cid-#sha.#fmt'          | cmd file output template
 cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 
-: Table Stitch options\
-*(\*) either the codeblock's id or a generated one, should be unique per codeblock*
+: Table Stitch options
 
 
 #### cid
@@ -386,8 +385,8 @@ So `csv-3-err` is the id for the element inserted for a codeblock with:\
 _*arg*_ is used to optionally supply extra argument(s) on the command line.
 
 It is a string and may contain spaces and it is simply interpolated in the
-`cmd` expansion via an `os.execute(cmd)`.  So `arg=""` won't show up on the
-command line.
+`cmd` expansion which will be executed via an `os.execute(cmd)`.  So `arg=""`
+won't show up on the command line.
 
 The example below shows how a bash script sees its arguments when the `#arg` is
 a multi word string in the codeblock's attributes.  There is no output on
@@ -474,7 +473,7 @@ template doesn't end in `-#sha.ext` then Stitch cannot detect old
 files and manual clean up will be necessary.
 
 
-#### artificat file templates
+#### artifact templates
 
 _*cbx, out, err, art*_ are simply filename templates.
 
@@ -566,6 +565,10 @@ be an actual Pandoc document produced by `!read`.
 However, it could be any module that simply accepts the data as acquired by
 reading the `what`-file.
 
+If no module was found an error is logged and processing continues.
+
+
+
 
 *:how*
 
@@ -629,3 +632,4 @@ says:
 The highlight of the today was ...
 EOF
 ```
+

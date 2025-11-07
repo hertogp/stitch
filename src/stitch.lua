@@ -91,7 +91,7 @@ function I.parse(inc)
   return directives
 end
 
--- translate specific data from ast elements to lua table(s)
+-- translate specific ast elements to lua table(s)
 ---@param elm any either `doc.blocks`, `doc.meta` or a `CodeBlock`
 ---@return any regular table holding the metadata as lua values
 function I.xlate(elm)
@@ -427,19 +427,18 @@ end
 ---@return number count the number of filters actually applied
 function I.xform(doc, filter)
   local count = 0
-  local load -- due to recursion: tricky! probably better to put in I instead
-  load = function(m, f)
-    -- return module, module_name, function_name
+  local find -- due to recursion: tricky! probably better to put in I instead
+  find = function(m, f)
+    -- return module, module_name, function_name (may be nil)
     if nil == m or 0 == #m then return nil, m, f end
 
     local suc6, mod = pcall(require, m)
     if false == suc6 or true == mod then
-      local dot = m:find('%.[^%.]+$')
-      if not dot then return nil, m, f end
-      local mm, ff = m:sub(1, dot - 1), m:sub(dot + 1)
-      -- ff = table.concat({ ff, f }, '.')
-      ff = (f and ff and ff .. '.' .. f) or ff
-      return load(mm, ff)
+      local last_dot = m:find('%.[^%.]+$')
+      if not last_dot then return nil, m, f end
+      local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
+      if ff and f then ff = ff .. '.' .. f end
+      return find(mm, ff)
     else
       return mod, m, f
     end
@@ -447,7 +446,7 @@ function I.xform(doc, filter)
 
   -- filter == "" is a silent noop
   if 'string' ~= type(filter) or #filter == 0 then return doc, count end
-  local mod, mname, fun = load(filter)
+  local mod, mname, fun = find(filter)
   if not mod then
     I.log('error', 'xform', '@%s skipped, could not load filter', filter)
     return doc, count
@@ -500,6 +499,10 @@ function I.result(cb)
         -- a filter was actually applied, so save altered doc (if applicable)
         I.fsave(doc, fname)
       end
+
+      -- TODO: if count > 0 we cannot assume the filter actually returns
+      -- either data or a pandoc doc.  Could be a table, userdata or even
+      -- a function (!).  @_G.load -> would load cbx as a chunk
 
       local fcb = I.mkfcb(cb) -- need fcb per inclusion(!)
       fcb.attr.identifier = string.format('%s-%d-%s', I.opts.cid, idx, what)
@@ -630,14 +633,6 @@ function I.mkctx(doc)
   for section, map in pairs(I.ctx) do
     I.ctx[section] = I.check(section, map)
   end
-
-  -- tmp/debug
-  for section, _ in pairs(I.ctx) do
-    for k, _ in pairs(I.hardcoded) do
-      I.log('info', 'meta', '%s.%s = %q', section, k, I.ctx[section][k])
-    end
-  end
-  -- /tmp
 
   return I.ctx
 end

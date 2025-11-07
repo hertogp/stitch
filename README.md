@@ -457,9 +457,7 @@ The list of options and default valuesi are:
 | art | ‘\#dir/#cid-#sha.#fmt’              | cmd file output template                         |
 | cmd | ‘\#cbx \#arg \#art 1\>#out 2\>#err’ | command line template                            |
 
-Table Stitch options  
-*(\*) either the codeblock’s id or a generated one, should be unique per
-codeblock*
+Table Stitch options
 
 #### cid
 
@@ -488,8 +486,8 @@ where
 line.
 
 It is a string and may contain spaces and it is simply interpolated in
-the `cmd` expansion via an `os.execute(cmd)`. So `arg=""` won’t show up
-on the command line.
+the `cmd` expansion which will be executed via an `os.execute(cmd)`. So
+`arg=""` won’t show up on the command line.
 
 The example below shows how a bash script sees its arguments when the
 `#arg` is a multi word string in the codeblock’s attributes. There is no
@@ -588,7 +586,7 @@ new filename except for the last `-#sha.ext` part. If a filename
 template doesn’t end in `-#sha.ext` then Stitch cannot detect old files
 and manual clean up will be necessary.
 
-#### artificat file templates
+#### artifact templates
 
 **cbx, out, err, art** are simply filename templates.
 
@@ -678,6 +676,8 @@ data to be an actual Pandoc document produced by `!read`.
 
 However, it could be any module that simply accepts the data as acquired
 by reading the `what`-file.
+
+If no module was found an error is logged and processing continues.
 
 *:how*
 
