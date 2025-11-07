@@ -491,30 +491,36 @@ It is a string and may contain spaces and it is simply interpolated in
 the `cmd` expansion via an `os.execute(cmd)`. So `arg=""` won’t show up
 on the command line.
 
+The example below shows how a bash script sees its arguments when the
+`#arg` is a multi word string in the codeblock’s attributes. There is no
+output on stderr so the redirect does not create a file and the output
+file argument is ignored by the script.
+
 ```` stitched
-``` {#arg .stitch inc="cbx:fcb out err" arg="two words"}
+``` {#arg .stitch inc="cbx:fcb out" arg="two words"}
 #!/usr/bin/env bash
-echo "------------"
-echo "all args   :  ${@}"
-echo "script name:  ${0}"
-echo "1st arg    :  ${1}"
-echo "2nd arg    :  ${2}"
-echo "last arg   :  ${@: -1}"
-echo "------------"
+echo "--------------"
+echo "script name  :  ${0}"
+echo "nr of args   :  ${#}"
+echo "all args     :  ${@}"
+echo "1st arg      :  ${1}"
+echo "2nd arg      :  ${2}"
+echo "last arg     :  ${@: -1}"
+echo "alt last arg :  ${@:$#}"
+echo "--------------"
 ```
 ````
 
 ``` stitched
-------------
-all args   :  two words .stitch/readme/arg-c5158c7cde39c69d41c14c366e5e5da6a9a31765.png
-script name:  .stitch/readme/arg-c5158c7cde39c69d41c14c366e5e5da6a9a31765.cbx
-1st arg    :  two
-2nd arg    :  words
-last arg   :  .stitch/readme/arg-c5158c7cde39c69d41c14c366e5e5da6a9a31765.png
-------------
-```
-
-``` stitched
+--------------
+script name  :  .stitch/readme/arg-7a81194509fcf053f3169313eb42278109c48801.cbx
+nr of args   :  3
+all args     :  two words .stitch/readme/arg-7a81194509fcf053f3169313eb42278109c48801.png
+1st arg      :  two
+2nd arg      :  words
+last arg     :  .stitch/readme/arg-7a81194509fcf053f3169313eb42278109c48801.png
+alt last arg :  .stitch/readme/arg-7a81194509fcf053f3169313eb42278109c48801.png
+--------------
 ```
 
 **dir**  

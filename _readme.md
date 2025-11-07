@@ -389,15 +389,23 @@ It is a string and may contain spaces and it is simply interpolated in the
 `cmd` expansion via an `os.execute(cmd)`.  So `arg=""` won't show up on the
 command line.
 
-```{#arg .stitch inc="cbx:fcb out err" arg="two words"}
+The example below shows how a bash script sees its arguments when the `#arg` is
+a multi word string in the codeblock's attributes.  There is no output on
+stderr so the redirect does not create a file and the output file argument is
+ignored by the script.
+
+
+```{#arg .stitch inc="cbx:fcb out" arg="two words"}
 #!/usr/bin/env bash
-echo "------------"
-echo "all args   :  ${@}"
-echo "script name:  ${0}"
-echo "1st arg    :  ${1}"
-echo "2nd arg    :  ${2}"
-echo "last arg   :  ${@: -1}"
-echo "------------"
+echo "--------------"
+echo "script name  :  ${0}"
+echo "nr of args   :  ${#}"
+echo "all args     :  ${@}"
+echo "1st arg      :  ${1}"
+echo "2nd arg      :  ${2}"
+echo "last arg     :  ${@: -1}"
+echo "alt last arg :  ${@:$#}"
+echo "--------------"
 ```
 
 
