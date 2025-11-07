@@ -363,7 +363,8 @@ cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 
 
 #### cid
-is an internal, unique, codeblock identifier set to either:
+
+_*cid*_ is an internal, unique, codeblock identifier set to either:
 
 - cb.attr.identifier, or
 - cb\<nth\>, where it's the nth codeblock seen by stitch
@@ -380,10 +381,12 @@ So `csv-3-err` is the id for the element inserted for a codeblock with:\
 Most options are straightforward:
 
 
-_*arg*_\
-is used to optionally supply an extra argument on the command line. It is a string
-and may contain spaces and it is simply interpolated in the `cmd` expansion via
-an `os.execute(cmd)`.  So `arg=""` won't show up on the command line.
+#### `arg`
+
+_*arg*_ is used to optionally supply an extra argument on the command line. It
+is a string and may contain spaces and it is simply interpolated in the `cmd`
+expansion via an `os.execute(cmd)`.  So `arg=""` won't show up on the command
+line.
 
 Just as a gentle reminder to myself: in a shell script, you can refer to arguments by:
 

@@ -463,7 +463,7 @@ codeblock*
 
 #### cid
 
-is an internal, unique, codeblock identifier set to either:
+**cid** is an internal, unique, codeblock identifier set to either:
 
 - cb.attr.identifier, or
 - cb\<nth\>, where it’s the nth codeblock seen by stitch
@@ -482,11 +482,12 @@ where
 
 Most options are straightforward:
 
-**arg**  
-is used to optionally supply an extra argument on the command line. It
-is a string and may contain spaces and it is simply interpolated in the
-`cmd` expansion via an `os.execute(cmd)`. So `arg=""` won’t show up on
-the command line.
+#### `arg`
+
+**arg** is used to optionally supply an extra argument on the command
+line. It is a string and may contain spaces and it is simply
+interpolated in the `cmd` expansion via an `os.execute(cmd)`. So
+`arg=""` won’t show up on the command line.
 
 Just as a gentle reminder to myself: in a shell script, you can refer to
 arguments by:
