@@ -389,17 +389,15 @@ It is a string and may contain spaces and it is simply interpolated in the
 `cmd` expansion via an `os.execute(cmd)`.  So `arg=""` won't show up on the
 command line.
 
-Just as a gentle reminder to myself: in a shell script, you can refer to arguments by:
-
-- `${0}`     the script's name
-- `${n}`     the nth argument
-- `${@: -1}` the last argument
-
-```{#arg .stitch inc="cbx:fcb out" arg="multiple words"}
-echo "all args " ${@}
-echo "script name" ${0}
-echo "arg        : " ${1}
-echo "last arg   : "${@: -1}
+```{#arg .stitch inc="cbx:fcb out err" arg="two words"}
+#!/usr/bin/env bash
+echo "------------"
+echo "all args   :  ${@}"
+echo "script name:  ${0}"
+echo "1st arg    :  ${1}"
+echo "2nd arg    :  ${2}"
+echo "last arg   :  ${@: -1}"
+echo "------------"
 ```
 
 

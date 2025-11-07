@@ -660,8 +660,9 @@ function I.cbexe(cb)
       I.log('info', 'execute', "running codeblock (exe='%s')", I.opts.exe)
       local ok, code, nr = os.execute(I.opts.cmd)
       if not ok then
+        -- complain and carry on
         I.log('error', 'execute', 'codeblock failed with %s(%s)', code, nr)
-        return nil
+        -- return nil
       end
       I.log('info', 'execute', '%s, codeblock ran successfully', I.opts.cid)
     end
