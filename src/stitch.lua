@@ -3,6 +3,7 @@
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
+-- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 
 local I = {} -- Stitch's Implementation; for testing
 
@@ -25,7 +26,8 @@ I.optvalues = {
   inc_how = { '', 'fcb', 'img', 'fig' },
 }
 
-I.cbc = 0 -- cb counted as they are seen by Stitch.codeblock(cb)
+I.cbc = 0 -- codeblock counter
+
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
   cid = 'x', -- TODO: MUST be unique for each cb so old file detectinon is possible
@@ -33,11 +35,12 @@ I.hardcoded = {
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
   fmt = 'png', -- format for images (if any)
-  log = 'info', -- debug, error, warn, info, silent
-  exe = 'maybe', -- yes, no, maybe
-  old = 'purge', -- keep, purge
-  -- inc = "what:type!format[+extensions]@filter[.func], .." (csv/space separated)
-  -- * what (mandatory) {cbx, out, err, art}, type {fcb, img, fig}
+  log = 'info', -- {debug, error, warn, info, silent}
+  exe = 'maybe', -- {yes, no, maybe}
+  old = 'purge', -- {keep, purge}
+  -- inc = "what:type!format[+extensions]@filter[.func] .."
+  -- * what is one of {cbx, out, err, art},
+  -- * type is one of {"", fcb, img, fig}
   inc = 'cbx:fcb out:fcb art:img err:fcb',
   -- expandable filenames
   cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
@@ -45,7 +48,6 @@ I.hardcoded = {
   err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
   art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
   cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
-  -- bash: $@ is list of args, ${@: -1} is last argument
 }
 
 --[[ helpers ]]
@@ -82,8 +84,8 @@ function I.parse(inc)
   end
 
   -- no validity checking:
-  -- an invalid what-value will be skipped by I.result
-  -- an invalid how-value will
+  -- * an invalid what-value will be skipped by I.result
+  -- * an invalid how-value will be ignored
   I.log('debug', 'include', "include found %s inc's in '%s'", #directives, inc)
 
   return directives

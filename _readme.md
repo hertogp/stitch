@@ -362,7 +362,7 @@ cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
 *(\*) either the codeblock's id or a generated one, should be unique per codeblock*
 
 
-_*cid*_\
+#### cid
 is an internal, unique, codeblock identifier set to either:
 
 - cb.attr.identifier, or
@@ -412,10 +412,13 @@ specifies whether a codeblock should actually run:
 Stitch calculates a sha-hash using all option values (sorted by key),
 excluding the `exe`'s value plus the codeblock contents and with all spaces
 removed.  That fingerprint is then used (`#sha`) in filenames and allows for
-unique names as well as old/new file detection.
+unique names as well as old/new file detection.  Files that match the path
+of the current codeblock's new files, except for the `-#sha.ext` part, are
+considered old and candidates for removal (see _*old*_).
 
 So if `exe=maybe` and files exists for the newly calculated fingerprint
 the codeblock doesn't run again and previous results will be used instead.
+
 Swapping `exe` to a different value won't affect the sha-fingerprint.
 
 
