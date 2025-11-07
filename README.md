@@ -463,12 +463,14 @@ codeblock*
 
 #### cid
 
-**cid** is an internal, unique, codeblock identifier set to either:
+**cid** is a unique, codeblock identifier, used in file templates.
+
+It is set to either:
 
 - cb.attr.identifier, or
 - cb\<nth\>, where it’s the nth codeblock seen by stitch
 
-When generating an `id` to assign to included elements,
+When generating an element `id` to assign to included elements,
 `id=cid-nth-what` is used, where `nth` is the nth directive of the
 `inc`-option being inserted and the `what` is the part being included
 (one of `cbx`, `out`, `err` or `art`).
@@ -480,11 +482,9 @@ with:
 where  
 - `err` is the artificat to be included
 
-Most options are straightforward:
-
 #### arg
 
-**arg** is used to optionally supply an extra argument on the command
+**arg** is used to optionally supply extra argument(s) on the command
 line.
 
 It is a string and may contain spaces and it is simply interpolated in
@@ -523,18 +523,24 @@ alt last arg :  .stitch/readme/arg-7a81194509fcf053f3169313eb42278109c48801.png
 --------------
 ```
 
-**dir**  
-is used in the expansion of the artifact filepaths, basically setting
-the working directory for stitch relative to the directory where pandoc
-was started. Override the hardcoded `.stitch` default in one or more of:
+#### dir
+
+**dir** is used in the expansion of the artifact filepaths.
+
+This effectively sets the working directory for stitch relative to the
+directory where pandoc was started. Override the hardcoded `.stitch`
+default in one or more of:
 
 - `meta.stitch.defaults.dir`, to change it for all codeblocks
 - `meta.stitch.name.dir`, to override for all codeblocks linked to
   `name`
 - `cb.attributes.dir`, to override for a specific codeblock
 
-**exe**  
-specifies whether a codeblock should actually run:
+#### exe
+
+**exe** specifies whether a codeblock should actually run.
+
+Valid values are:
 
 - `yes`, always run the codeblock (new or not)
 - `no`, do not run the codeblock even if new, rest of processing still
@@ -555,41 +561,68 @@ instead.
 
 Swapping `exe` to a different value won’t affect the sha-fingerprint.
 
-**fmt**  
-is used as the extension in the `#art` template, which is usually the
-graphics format of the file produced.
+#### fmt
 
-**log**  
-is verbosity of logging, valid values are:
-`debug, info, warn, error, silent`. Use
-`meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
-off all logging except for one codeblock where logging happens on the
-debug level.
+**fmt** is used as the extension in the `#art` template.
 
-**old**  
-old files are detected when their names end in `..-#sha.ext`. If
-`old=purge` then old files will be removed. Any other value will prevent
-the purge. To override the hardcoded default, set
-`meta.stitch.defaults.old` to some other value.
+An easy way to set the intended graphics format on the codeblock level
+without touching the `art` template.
 
-**cbx, out, err, art**  
-are (after expansion) simply filenames to use as you see fit in the
-`cmd` string. Usually `out, err` are used to redirect output on stdout
-and stderr respectively. `art` usually refers to some graphics file (or
-whatever) produced by the codeblock.
+#### log
 
-**cmd**  
-is expanded and run via `os.execute(cmd)`. The (hardcoded) default is to
-run the codeblock as a system command, provide the expanded forms of
-`#arg` and `#art` on the command line (as argument & an intended output
-file). Finally stdout and stderr are redirected to the expanded
-filenames given by `#out` and `#err`. Ofcourse, it is up to the
-codeblock code to actually use the argument and/or the intended output
-filename.
+**log** is verbosity of logging, one of
+`debug, info, warn, error, silent`.
 
-**inc**  
-is a bit more involved and specifies what to include, in which order,
-via a csv/space separated list of directives, each of the form:
+Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to
+turn off all logging except for one codeblock where logging happens on
+the debug level.
+
+#### old
+
+**old** says what to do with old files during a pandoc conversion run.
+
+If `old=purge`, old files are deleted. Anything else means `keep`.
+
+Old files of an artificat are detected when their filenames match the
+new filename except for the last `-#sha.ext` part. If a filename
+template doesn’t end in `-#sha.ext` then Stitch cannot detect old files
+and manual clean up will be necessary.
+
+#### artificat file templates
+
+**cbx, out, err, art** are simply filename templates.
+
+These are primarily used in the `cmd` template during the expansion to
+the full command to run on the command line. Depending on how the `cmd`
+template is set, these may or may not be actually used.
+
+Usually `out, err` are for redirecting output on stdout and stderr
+respectively. Normally, `art` refers to some graphics file (or whatever)
+produced by the codeblock or a cli tools called by `cmd`. However, it
+can be anything you like, it just provides a way to capture output to
+file.
+
+#### cmd
+
+**cmd** is expanded and run via `os.execute(cmd)`.
+
+The (hardcoded) default is to:
+
+- run the codeblock as a system command,
+- provide the expanded forms of `#arg` and `#art` as arguments, and
+- redirect stdout & stderr to `#out` and `err` respectively.
+
+Ofcourse, it is up to the codeblock code to actually use its argument
+and/or the intended output filename.
+
+#### inc
+
+**inc** contains 0 or more directives on what to include and how.
+
+It is a single string containing comma or space separated directives. A
+directive must start with the `what` and may be followed by three other
+types of mechanisms (in any order) which are defined by their leading
+character.
 
     what!read@filter:how
      |    |     |     `- one of {<none>, fcb, img, fig} - optional
@@ -600,7 +633,15 @@ via a csv/space separated list of directives, each of the form:
      * if a part is omitted, so is its leading marker (`!`, `@` or `:`).
      * `what` must start the directive, the other parts can be in any order
 
-Note that the same artifact can be included multiple times.
+Note that the same artifact can be included multiple times. Regardless
+of the order of those 3 mechanisms, they are always evaluated in this
+order:
+
+1.  `!read` the artifact’s data using `pandoc.read(data, read)` – if
+    applicable
+2.  `@filter` the data or doc (if re-read)
+3.  `:how` include the result in a specific manner in the master
+    document
 
 *what*
 
@@ -612,34 +653,36 @@ to:
 - `out`, usually contains the output on stdout (depends on `cmd` used)
 - `err`, usually contains the output on stderr (depends on `cmd` used)
 
-*read*
+*!read*
 
-The output file denoted by `what` is first read and if `!read` is
-specified, the data is read again using `pandoc.read(data, <read>)`
-producing a new pandoc doc.
+After the `what`’s output file has been read, `!read` says the data must
+be re-read by pandoc using `pandoc.read(data, <read>)`. Note:
 
-The value of `read` should be one of the `-f formats` values that pandoc
-understands, see [pandoc’s
-options](https://pandoc.org/MANUAL.html#general-options) or
-`% pandoc --list-input-formats` for possible values for `read`. So
+- `read`’s value should be one of pandoc’s `-f xx` formats
+- `!read` converts the data to a Pandoc document
+
+See [pandoc’s options](https://pandoc.org/MANUAL.html#general-options)
+or `% pandoc --list-input-formats` for possible values for `read`. So
 something like `!markdown`, `!csv` or some other value on that list.
 
-*filter*
+*@filter*
 
 After the `what` has been read (and possibly reread using pandoc.read),
 it can be processed further by listing a filter in the form of
-`mod.func`. Stitch will require `mod` which is supposed to return a list
-of filters. For each filter in that list, `func(data)` is called if
-exported by that filter.
+`mod.func`. Stitch will require `mod` which could be a regular module
+`mod` exporting `func` or another pandoc-lua filter.
 
-Note that `data` is the result of reading the artificat’s (`cbx`, `out`,
-`err` or `art`) file data, which possibly is reread if `!read` is
-specified.
+If a module could be loaded which is actually named `mod.func`, then it
+is supposed to export a `Pandoc` function. Such a module requires the
+data to be an actual Pandoc document produced by `!read`.
 
-*how*
+However, it could be any module that simply accepts the data as acquired
+by reading the `what`-file.
 
-Specifies how to include the final result (i.e. data) after reading,
-re-reading and possibly filtering.
+*:how*
+
+Specifies how to include the final result (i.e. data or doc) after
+reading, re-reading and possibly filtering.
 
 - *\<none\>*, means going with the Stitch default for what is being
   included:
