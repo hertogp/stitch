@@ -381,18 +381,26 @@ So `csv-3-err` is the id for the element inserted for a codeblock with:\
 Most options are straightforward:
 
 
-#### `arg`
+#### arg
 
-_*arg*_ is used to optionally supply an extra argument on the command line. It
-is a string and may contain spaces and it is simply interpolated in the `cmd`
-expansion via an `os.execute(cmd)`.  So `arg=""` won't show up on the command
-line.
+_*arg*_ is used to optionally supply an extra argument on the command line.
+
+It is a string and may contain spaces and it is simply interpolated in the
+`cmd` expansion via an `os.execute(cmd)`.  So `arg=""` won't show up on the
+command line.
 
 Just as a gentle reminder to myself: in a shell script, you can refer to arguments by:
 
 - `${0}`     the script's name
 - `${n}`     the nth argument
 - `${@: -1}` the last argument
+
+```{#arg .stitch inc="cbx:fcb out" arg="multiple words"}
+echo "all args " ${@}
+echo "script name" ${0}
+echo "arg        : " ${1}
+echo "last arg   : "${@: -1}
+```
 
 
 _*dir*_\
