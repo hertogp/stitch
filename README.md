@@ -104,8 +104,12 @@ if ("stitch?") {
 
 ### [youplot](https://github.com/red-data-tools/YouPlot)
 
-Or a bit more dynamic: today’s local temperature (well, at the time of
-writing anyway).
+Or a bit more dynamic: today’s local temperature (well, at the last time
+of compiling this readme anyway). The codeblock pulls in a csv file from
+`api.open-meteo.com`, cuts the output down to what is needed and
+modifies the first field keeping only the hours of the day. That output
+is then processed by
+[youplot](https://github.com/red-data-tools/YouPlot)
 
 ```
                   Temperature (˚C) Today
