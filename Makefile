@@ -18,6 +18,10 @@ default: show
 readme:
 	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md
 
+readme.pdf:
+	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf
+
+
 ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
 

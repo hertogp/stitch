@@ -1,6 +1,4 @@
 ---
-author: hertogp <git.hertogp@gmail.com>
-title: stitch
 monofont: "DejaVu Sans Mono"
 stitch:
   defaults:
@@ -33,8 +31,12 @@ stitch:
 ...
 
 ```{#preface stitch=doc}
-figlet -w 60 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
+figlet -w 50 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 ```
+
+\
+\
+\
 
 ## A pandoc lua-filter, turning codeblocks into works of art
 
@@ -42,9 +44,11 @@ If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
 upon converting the document using [pandoc](https://pandoc.org/).
 
-*security*
+\newpage
 
-`Stitch.lua` is, like any lua-filter that executes codeblocks, totally insecure
+## *security*
+
+`stitch.lua` is, like any lua-filter that executes codeblocks, totally insecure
 and any CISO's nightmare.  Before running an externally supplied document
 through the `stitch.lua` filter, be sure you have vetted each and every
 codeblock that is marked for stitching since it probably runs a pletora of
@@ -57,6 +61,8 @@ Each work of 'art' is followed by the codeblock that generated it.  Most
 examples use a configuration section `stitch=tool_name` in order to minimize
 the clutter in a codeblock's attributes.  See the [documentation](#documentation)
 section for how to configure `Stitch`.
+
+\newpage
 
 ### [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
@@ -82,6 +88,8 @@ if ("stitch?") {
 "CONTINUE"
 ```
 
+\newpage
+
 ### [youplot](https://github.com/red-data-tools/YouPlot)
 
 Or a bit more dynamic: today's local temperature  (well, at the last time of
@@ -97,6 +105,8 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
+
+\newpage
 
 ### [Cetz](https://typst.app/universe/package/cetz)
 
@@ -148,6 +158,8 @@ universe for plotting, charts & tree layout.
 })
 ```
 
+\newpage
+
 ### [Fletcher](https://typst.app/universe/package/fletcher)
 
 Another package from the [typst](https://typst.app/) universe, for drawing
@@ -191,6 +203,8 @@ diagrams and arrows. Revisiting the flowchart shown earlier with
 
 ```
 
+\newpage
+
 ### [Lilaq](https://lilaq.org/)
 
 Yet another [typst](https://typst.app/) package, this time for advanced data
@@ -224,6 +238,8 @@ which is then used in the following codeblock to create a graph.
 )
 ```
 
+\newpage
+
 ### [Gnuplot](https://gnuplot.sourceforge.net)
 
 Another example using the trusty `gnuplot`.
@@ -243,6 +259,8 @@ set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
 splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
 ```
+
+\newpage
 
 ## Documentation
 
