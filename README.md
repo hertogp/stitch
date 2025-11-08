@@ -163,7 +163,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 
 Or go more graphical with
 [Cetz](https://typst.app/universe/package/cetz), one of many packages in
-the [typst](https://typst.app/universe/search/?kind=packages) universe
+the [typst](https://typst.app/universe/search/?kind=packages) universe,
 for plotting, charts & tree layout.
 
 <figure id="cb03-1-art" data-stitch="cetz"
@@ -453,7 +453,7 @@ order:
 3.  the meta `defaults` section
 4.  hardcoded Stitch defaults
 
-The list of options and default valuesi are:
+The list of options and default values are:
 
 | Opt | Value                               | Description                                      |
 |:----|:------------------------------------|:-------------------------------------------------|

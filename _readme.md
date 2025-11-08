@@ -115,7 +115,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 
 Or go more graphical with [Cetz](https://typst.app/universe/package/cetz), one
 of many packages in the [typst](https://typst.app/universe/search/?kind=packages)
-universe for plotting, charts & tree layout.
+universe, for plotting, charts & tree layout.
 
 ```{#cb03 stitch=cetz caption="Karl's picture"}
 #import "@preview/cetz:0.4.2"
@@ -368,7 +368,7 @@ Stitch options are resolved in the following, most to least, specific order:
   3. the meta `defaults` section
   4. hardcoded Stitch defaults
 
-The list of options and default valuesi are:
+The list of options and default values are:
 
 Opt | Value                          | Description
 :---|:-------------------------------|:--------------------------------
@@ -616,6 +616,7 @@ re-reading and possibly filtering.
 * *img*, a pandoc.Image link to the file on disk for `what`
 * *fig*, same but using pandoc.Figure
 
+\newpage
 
 *putting it together*
 
@@ -637,6 +638,8 @@ opt,value,description
 arg, "", cli-argument
 exe, maybe, execute
 ```
+
+\newpage
 
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
