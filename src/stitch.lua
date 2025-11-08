@@ -374,7 +374,7 @@ I.mkelm = {
     local cid = fcb.attr.identifier
     I.log('debug', 'include', "cb.'%s', '%s', no type specified (using default)", cid, what)
     if 'Pandoc' == pd.utils.type(doc) then
-      if doc and doc.blocks[1].attr then
+      if doc and doc.blocks and doc.blocks[1] and doc.blocks[1].attr then
         doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
       end
       I.log('info', 'include', "cb.'%s', '%s', merging %d pandoc.Block's", cid, what, #doc.blocks)
@@ -420,6 +420,24 @@ function I.mkfcb(cb)
   return clone
 end
 
+local function xload(m, f)
+  -- return module, module_name, function_name (may be nil)
+  I.log('debug', 'xload', 'trying mod m=%q', m)
+  if nil == m or 0 == #m then return nil, m, f end
+
+  local suc6, mod = pcall(require, m)
+  if false == suc6 or true == mod then
+    local last_dot = m:find('%.[^%.]+$')
+    if not last_dot then return nil, m, f end
+    local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
+    if ff and f then ff = ff .. '.' .. f end
+    return xload(mm, ff)
+  else
+    I.log('debug', 'xload', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
+    return mod, m, f
+  end
+end
+
 -- run doc through lua filter(s), count how many were actually applied
 ---@param doc any file data, pandoc ast or nil
 ---@param filter string name of lua mod.fun to run (if any)
@@ -446,7 +464,8 @@ function I.xform(doc, filter)
 
   -- filter == "" is a silent noop
   if 'string' ~= type(filter) or #filter == 0 then return doc, count end
-  local mod, mname, fun = find(filter)
+  -- local mod, mname, fun = find(filter)
+  local mod, mname, fun = xload(filter)
   if not mod then
     I.log('error', 'xform', '@%s skipped, could not load filter', filter)
     return doc, count
@@ -456,11 +475,11 @@ function I.xform(doc, filter)
 
   if doc and 'Pandoc' == pd.utils.type(doc) then
     -- add current codeblock's stitch context to a Pandoc doc
-    -- doc.meta.stitch = pd.MetaMap(I.ctx)
-    doc.meta.stitched = { cb_attr = pd.MetaMap(I.opts), context = pd.MetaMap(I.ctx) }
+    -- doc.meta.stitched = { opts = pd.MetaMap(I.opts), pd.MetaMap(I.ctx) }
+    doc.meta.stitched = { opts = I.opts, ctx = I.ctx } -- recursing, so lua tables are ok
   end
 
-  -- If mod exports fun, it is not a list of filters
+  -- If mod exports fun, it is THE filter, not a list of filters
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
   local filters = mod[fun] and { mod } or mod
   if 0 == #filters then I.log('error', 'xform', '@%s, skipped, no filters found exporting %s', filter, fun) end
@@ -471,7 +490,7 @@ function I.xform(doc, filter)
       if not ok then
         I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, mod, n, fun)
       else
-        doc = tmp
+        doc = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
         count = count + 1
       end
     else
@@ -676,22 +695,30 @@ function I.cbexe(cb)
 end
 
 --[[ filter ]]
-
 -- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
 --  + Pandoc 3.0 introduces pandoc.Figure element
+
 I.log('info', 'check', string.format('running on %s', pd.system.os))
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 
 local Stitch = {
-  _ = I, -- Stitch's implementation: for testing only
+  _ = I, -- Stitch's implementation, for testing
 
   Pandoc = function(doc)
+    print('stitch invoked')
+    local d = require 'dump'
+    print('ctx.defaults.log', I.ctx, I.ctx.defaults, I.ctx.defaults and I.ctx.defaults.log)
     I.mkctx(doc)
+    print('I.ctx and I.ctx.__index()', d(I.ctx), d(getmetatable(I.ctx).__index()))
+    print('I.ctx.xxx.header', I.ctx.xxx.header)
+    print('I.opts', d(I.opts))
+    print('doc.meta', d(doc.meta))
     return doc:walk({ CodeBlock = I.cbexe })
   end,
 }
 
--- just `return Stitch` requires pandoc 3.5 (single filter instead of list of filters)
+-- simply returning `Stitch` requires pandoc >=version 3.5
+-- (i.e. single filter instead of list of filters)
 return {
-  Stitch, -- bare return of Stitch requires pandoc >=version 3.5
+  Stitch,
 }
