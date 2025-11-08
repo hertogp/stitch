@@ -44,6 +44,16 @@ If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
 upon converting the document using [pandoc](https://pandoc.org/).
 
+The main features of [`stitch`](https://github.com/hertogp/stitch) include:
+
+- running a codeblock as a system command to produce `data`
+- use the codeblock itself (its text) as `data`
+- read the `data` to convert it, and/or
+- run the `data` through another filter before including
+- include the result as an image, figure, codeblock or partial doc
+
+See [features](#features) for a more complete list.
+
 \newpage
 
 ## Security
@@ -95,11 +105,12 @@ if ("stitch?") {
 
 ### [youplot](https://github.com/red-data-tools/YouPlot)
 
-Or a bit more dynamic: today's local temperature  (well, at the last time of
-compiling this readme anyway).  The codeblock pulls in a csv file from
-`api.open-meteo.com`, cuts the output down to what is needed and modifies the
-first field keeping only the hours of the day.  That output is then processed
-by [youplot](https://github.com/red-data-tools/YouPlot)
+Or a bit more dynamic: today's local temperature  (well, the last time the
+codeblock was changed before compiling this readme anyway).  The codeblock
+pulls in a csv file from `api.open-meteo.com`, cuts the output down to what is
+needed and modifies the first field keeping only the hours of the day.  That
+output is then processed by
+[youplot](https://github.com/red-data-tools/YouPlot)
 
 
 ```{#cb02 stitch=youplot}
