@@ -91,11 +91,13 @@ function I.parse(inc)
   return directives
 end
 
--- translate specific ast elements to lua table(s)
----@param elm any either `doc.blocks`, `doc.meta` or a `CodeBlock`
----@return any regular table holding the metadata as lua values
+-- translate metadata-like AST elements into lua table(s)
+---@param elm any either `doc.meta`, a `CodeBlock` or lua table
+---@return any regular table with lua key,values-pairs
 function I.xlate(elm)
   -- note: xlate(doc.blocks) -> list of cb tables.
+  -- `:Open https://pandoc.org/MANUAL.html#extension-fenced_code_attributes`
+  -- `:Open https://pandoc.org/MANUAL.html#extension-fenced_code_blocks`
   local ptype = pd.utils.type(elm)
   if 'Meta' == ptype or 'table' == ptype or 'AttributeList' == ptype then
     local t = {}
@@ -132,7 +134,7 @@ function I.xlate(elm)
       attr = I.xlate(elm.attr),
     }
   else
-    I.log('error', 'meta', "option unknown type '%s'? for %s", ptype, tostring(elm))
+    I.log('warn', 'xlate', "skipping unknown type '%s'? for %s", ptype, tostring(elm))
     return nil
   end
 end
@@ -705,13 +707,19 @@ local Stitch = {
   _ = I, -- Stitch's implementation, for testing
 
   Pandoc = function(doc)
-    print('stitch invoked')
-    local d = require 'dump'
-    print('doc.meta', d(doc.meta))
     I.mkctx(doc)
-    print('post I.ctx', d(I.ctx))
-    print('I.opts', d(I.opts))
-    return doc:walk({ CodeBlock = I.cbexe })
+    local header
+
+    -- doc.meta.stitched ~= nil -> doc is nested markdown
+    -- 1) doc.meta.stitched.opts -- the opts of the codeblock causing the nesting
+    -- 2) doc.meta.stitched.ctx -- the context of doc causing the nesting
+    local hdr = doc.meta.stitched and doc.meta.stitched.opts.hdr
+    if hdr then header = function(h)
+      h.level = h.level + math.floor(tonumber(hdr) or 0)
+      return h
+    end end
+
+    return doc:walk({ CodeBlock = I.cbexe, Header = header })
   end,
 }
 
