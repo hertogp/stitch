@@ -287,8 +287,7 @@ id="cb04-1-art-img" />
 Yet another [typst](https://typst.app/) package, this time for advanced
 data visualization. Unfortunately, typst and its packages currently have
 no way of downloading data, so the following codeblock is used for
-side-effects only (well, its included here to show it’s actually there
-and doing something)
+side-effects only
 
 ````
 ``` {#cb05 stitch="download" arg="local-temperature.json"}
@@ -315,11 +314,8 @@ id="cb06-1-art-img" />
 #import "@preview/lilaq:0.5.0" as lq
 #set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
 #let dta = json("local-temperature.json")
-#let hour(str) = {
-    return int(str.slice(11, count: 2))
-}
+#let hour(str) = { return int(str.slice(11, count: 2))}
 #let hours = dta.hourly.time.map(hour)
-
 #lq.diagram(
   title: [GPS (#dta.latitude, #dta.longitude)\ source: api.open-meteo.com],
   xlabel: [hour\ (#dta.timezone)],
@@ -745,14 +741,14 @@ following codeblock would reveal that when reading some csv-file using
 ``` {#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe="no"}
 opt,value,description
 arg, "", cli-argument
-exe, maybe, execute
+exe, maybe, execute?
 ```
 ````
 
 | opt | value | description  |
 |-----|-------|--------------|
 | arg |       | cli-argument |
-| exe | maybe | execute      |
+| exe | maybe | execute?     |
 
 ``` stitched
 [ Table
@@ -826,7 +822,7 @@ exe, maybe, execute
                 AlignDefault
                 (RowSpan 1)
                 (ColSpan 1)
-                [ Plain [ Str "execute" ] ]
+                [ Plain [ Str "execute?" ] ]
             ]
         ]
     ]
