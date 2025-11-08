@@ -658,7 +658,7 @@ stitch:
 
 This could be some report created by a command line tool, producing
 a markdown report on some topic.  Here, it's just the text as printed
-by lua.  Its codeblock's can also be processed by stitch.
+by lua.  Any (nested) codeblocks can also be processed by stitch.
 
 ```{#redo2 .stitch inc="cbx!csv" log=debug exe=no}
 day,count
