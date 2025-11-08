@@ -635,12 +635,10 @@ EOF
 
 # TEMP
 
-
-```{#redo .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" header="2"}
+```{.lua #redo .stitch inc="cbx:fcb out!markdown@stitch" log="debug" header="2"}
 #! /usr/bin/env lua
 
-local report = ([[
-\---
+print [[---
 author: redo
 stitch:
   defaults:
@@ -662,8 +660,7 @@ tue,2
 
 Even more blah blah blah
 
-]]):gsub("^\\", "")
+]]
 
-print(report)
 ```
 
