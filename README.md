@@ -29,7 +29,7 @@ line, stitch will help you do the same from within a codeblock and
 include its result upon converting the document using
 [pandoc](https://pandoc.org/).
 
-## *security*
+## Security
 
 `stitch.lua` is, like any lua-filter that executes codeblocks, totally
 insecure and any CISO’s nightmare. Before running an externally supplied
@@ -45,6 +45,10 @@ used. Each work of ‘art’ is followed by the codeblock that generated it.
 Most examples use a configuration section `stitch=tool_name` in order to
 minimize the clutter in a codeblock’s attributes. See the
 [documentation](#documentation) section for how to configure `Stitch`.
+
+See the other
+[examples](https://github.com/hertogp/stitch/tree/main/examples) which
+also contain some information on installing the command line tools used.
 
 ### [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
