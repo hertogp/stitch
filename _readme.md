@@ -53,6 +53,10 @@ system commands on your machine, potentially causing chaos and/or harm.
 ## Examples
 
 A few examples, mostly taken from the repo's of the command line tools used.
+Each work of 'art' is followed by the codeblock that generated it.  Most
+examples use a configuration section `stitch=tool_name` in order to minimize
+the clutter in a codeblock's attributes.  See [#documentation](documentation)
+for how to configure `Stitch`.
 
 ### [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
