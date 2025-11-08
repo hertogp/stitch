@@ -707,12 +707,10 @@ local Stitch = {
   Pandoc = function(doc)
     print('stitch invoked')
     local d = require 'dump'
-    print('ctx.defaults.log', I.ctx, I.ctx.defaults, I.ctx.defaults and I.ctx.defaults.log)
-    I.mkctx(doc)
-    print('I.ctx and I.ctx.__index()', d(I.ctx), d(getmetatable(I.ctx).__index()))
-    print('I.ctx.xxx.header', I.ctx.xxx.header)
-    print('I.opts', d(I.opts))
     print('doc.meta', d(doc.meta))
+    I.mkctx(doc)
+    print('post I.ctx', d(I.ctx))
+    print('I.opts', d(I.opts))
     return doc:walk({ CodeBlock = I.cbexe })
   end,
 }

@@ -853,8 +853,40 @@ The highlight of the today was …
 
 # TEMP
 
-\`\`\`{#redo .stitch inc=“cbx out!markdown@stitch” log=“debug”
-xxx={header=“2”}} cat \<\< ‘EOF’ \# Blah’s report
+```` lua
+``` {#redo .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" header="2"}
+#! /usr/bin/env lua
+
+local report = ([[
+\---
+author: redo
+stitch:
+  defaults:
+    dir: ".stitch/nested"
+...
+
+# Blah's report
+
+Since this codeblock echo's its contents, the nested codeblock
+below uses tildes instead of backticks.
+
+~~~{#redo2 .stitch inc="cbx!csv err" log=debug exe=no}
+day,count
+mon,1
+tue,2
+~~~
+
+## Blah Blah
+
+Even more blah blah blah
+
+]]):gsub("^\\", "")
+
+print(report)
+```
+````
+
+# Blah’s report
 
 Since this codeblock echo’s its contents, the nested codeblock below
 uses tildes instead of backticks.
@@ -867,5 +899,3 @@ uses tildes instead of backticks.
 ## Blah Blah
 
 Even more blah blah blah
-
-EOF \`\`\`

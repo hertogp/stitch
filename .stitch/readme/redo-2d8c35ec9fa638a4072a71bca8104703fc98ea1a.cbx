@@ -1,9 +1,11 @@
-cat << 'EOF'
----
+#! /usr/bin/env lua
+
+local report = ([[
+\---
 author: redo
 stitch:
-  suture:
-    header: "+1"
+  defaults:
+    dir: ".stitch/nested"
 ...
 
 # Blah's report
@@ -21,4 +23,6 @@ tue,2
 
 Even more blah blah blah
 
-EOF
+]]):gsub("^\\", "")
+
+print(report)

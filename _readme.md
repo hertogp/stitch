@@ -636,8 +636,17 @@ EOF
 # TEMP
 
 
-```{#redo .stitch inc="cbx out!markdown@stitch" log="debug" xxx={header="2"}}
-cat << 'EOF'
+```{#redo .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" header="2"}
+#! /usr/bin/env lua
+
+local report = ([[
+\---
+author: redo
+stitch:
+  defaults:
+    dir: ".stitch/nested"
+...
+
 # Blah's report
 
 Since this codeblock echo's its contents, the nested codeblock
@@ -653,6 +662,8 @@ tue,2
 
 Even more blah blah blah
 
-EOF
+]]):gsub("^\\", "")
+
+print(report)
 ```
 
