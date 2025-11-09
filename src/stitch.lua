@@ -484,7 +484,7 @@ function I.xform(dta, filter)
   assert(nil ~= dta, 'expected dta to be non-nil!')
   if 0 == #filter then return dta, count end -- "" means silent noop
 
-  local mod, mname, fun = I.xload(filter)
+  local mod, name, fun = I.xload(filter)
   if not mod then
     I.log('error', 'xform', '@%s skipped, could not require filter', filter)
     return dta, count
@@ -492,9 +492,9 @@ function I.xform(dta, filter)
 
   fun = fun or 'Pandoc' -- default to `Pandoc` function if `filter` was a module itself
   if mod[fun] then
-    I.log('debug', 'xform', '@%s, loaded mod %s is exporting %s', filter, mod, fun)
+    I.log('debug', 'xform', '@%s, loaded mod %s is exporting %s', filter, name, fun)
   else
-    I.log('warn', 'xform', '@%s, loaded mod %s, not exporting %s, assuming it is a list of filters', filter, mod, fun)
+    I.log('warn', 'xform', '@%s, loaded mod %s, not exporting %s, assuming it is a list of filters', filter, name, fun)
   end
 
   -- ensure filters is a *list* of filters (as expected by pandoc version <3.5)
@@ -518,17 +518,17 @@ function I.xform(dta, filter)
       tail[#tail] = nil
 
       if not ok then
-        I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, mod, n, fun)
+        I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
       else
         dta = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
         count = count + 1
-        I.log('debug', 'xform', '@%s[%d].%s, ok, got a %s (%s)', mod, n, fun, type(dta), pd.utils.type(dta))
+        I.log('debug', 'xform', '@%s[%d].%s, ok, got a %s (%s)', name, n, fun, type(dta), pd.utils.type(dta))
       end
     else
-      I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, mod, n, fun)
+      I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, name, n, fun)
     end
   end
-  if #filters > 0 then I.log('info', 'xform', '@%s, applied %d filter(s) to given `doc`', filter, count) end
+  I.log('info', 'xform', '@%s, applied %d filter(s) to given `dta`', filter, count)
   return dta, count
 end
 

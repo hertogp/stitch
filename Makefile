@@ -21,7 +21,7 @@ readme: readme.pdf
 
 readme.pdf:
 	echo "creating examples/README.pdf"
-	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 tee scr/stitch-readme.log
+	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 | tee scr/stitch-readme.log
 
 
 ex%:
