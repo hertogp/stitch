@@ -606,13 +606,14 @@ meta data is augmented with a `stitched` section that contains:
 
 - `opts`, a lua table with all the options of the current codeblock
 - `ctx`, a lua table with all the `stitch` related meta data of the current doc
-- `mta`, a lua table with *all* the meta data of the current doc
 
 However, it could be any module that simply accepts the data as acquired by
 reading the `what`-file.
 
 If no module was found an error is logged and processing continues.
 
+TODO: add documentation of cb's attr `hdr` that will shift header levels
+of a pandoc doc to be included.
 
 
 
