@@ -853,7 +853,6 @@ stitch itself.
 ````` lua
 ```` {#nested .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="2"}
 #! /usr/bin/env lua
-
 print [[---
 author: nested
 stitch:
@@ -883,7 +882,6 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
-
 ]]
 ````
 `````

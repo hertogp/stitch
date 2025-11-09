@@ -380,7 +380,9 @@ I.mkelm = {
   end,
 
   img = function(fcb, _, _, what)
-    -- pandoc.Para type Block wrapper, since pandoc.Image is type Inline
+    -- wrap pandoc.Image (type Inline) in a pandoc.Para (type Block)
+    -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
+    --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
     local title = fcb.attributes.title or ''
     local caption = fcb.attributes.caption
     I.log('info', 'include', "cb.'#%s', '%s:img', pandoc.Image", fcb.attr.identifier, what)
@@ -388,9 +390,7 @@ I.mkelm = {
   end,
 
   fig = function(fcb, _, _, what)
-    -- pandoc.Figure (type Block) version >=3.0
-    -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
-    --  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
+    --  pandoc.Figure element (type Block), since pandoc version >=3.0
     local img = pd.Image({}, I.opts[what], '', {})
     img.attr.identifier = fcb.attr.identifier .. '-img'
     I.log('info', 'include', "cb.'#%s', '%s:fig', pandoc.Figure", fcb.attr.identifier, what)
@@ -490,32 +490,25 @@ function I.xform(dta, filter)
     return dta, count
   end
 
-  fun = fun or 'Pandoc' -- default to `Pandoc` function if `filter` was a module itself
+  fun = fun or 'Pandoc' -- in case `filter` was a module itself
   if mod[fun] then
-    I.log('debug', 'xform', '@%s, loaded mod %s is exporting %s', filter, name, fun)
+    I.log('debug', 'xform', '@%s, found %s.%s', filter, name, fun)
   else
-    I.log('warn', 'xform', '@%s, loaded mod %s, not exporting %s, assuming it is a list of filters', filter, name, fun)
+    I.log('warn', 'xform', '@%s, found mod %s, presumably a list of filters', filter, name)
+  end
+
+  -- push (a *copy* of) our current state before calling any filter(s)
+  tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
+  if dta and 'Pandoc' == pd.utils.type(dta) then
+    dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- pass in, current cb opts & context
   end
 
   -- ensure filters is a *list* of filters (as expected by pandoc version <3.5)
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
-  if dta and 'Pandoc' == pd.utils.type(dta) then
-    -- dta is a doc, so add context for filter
-    dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- no need to pd.MetaMap(..) these
-  end
-
   local filters = mod[fun] and { mod } or mod
   for n, f in ipairs(filters) do
     if f[fun] then
-      -- push (a *copy* of) current state
-      tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
-
       local ok, tmp = pcall(f[fun], dta)
-
-      -- restore state
-      I.opts = tail[#tail].opts
-      I.ctx = tail[#tail].ctx
-      tail[#tail] = nil
 
       if not ok then
         I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
@@ -528,6 +521,12 @@ function I.xform(dta, filter)
       I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, name, n, fun)
     end
   end
+
+  -- restore state after filter(s) are done
+  I.opts = tail[#tail].opts
+  I.ctx = tail[#tail].ctx
+  tail[#tail] = nil
+
   I.log('info', 'xform', '@%s, applied %d filter(s) to given `dta`', filter, count)
   return dta, count
 end
@@ -688,8 +687,6 @@ function I.mkctx(doc)
 end
 
 --[[ filter ]]
--- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
---  + Pandoc 3.0 introduces pandoc.Figure element
 
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
@@ -724,31 +721,30 @@ function I.CodeBlock(cb)
   return I.result(cb)
 end
 
+-- add a delta to header levels as specified in a caller's codeblock hdr-option
+--- @param elm any a header from document being walked
+--- @return any elm same header with possibly updated `header.level`
+function I.Header(elm)
+  local delta = math.floor(tonumber(#tail > 0 and tail[#tail].opts.hdr) or 0)
+  elm.level = elm.level + delta
+  return elm
+end
+
 local Stitch = {
   _ = I, -- Stitch's implementation, for testing
 
   Pandoc = function(doc)
     I.mkctx(doc)
-    local header
 
-    -- doc.meta.stitched ~= nil -> doc is nested markdown
-    -- 1) doc.meta.stitched.opts -- the opts of the codeblock causing the nesting
-    -- 2) doc.meta.stitched.ctx -- the context of doc causing the nesting
-    local hdr = doc.meta.stitched and doc.meta.stitched.opts.hdr
-    if hdr then header = function(h)
-      h.level = h.level + math.floor(tonumber(hdr) or 0)
-      return h
-    end end
+    local hdr = #tail > 0 and tail[#tail].opts.hdr or nil -- no hdr, no Header
 
-    local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
-
-    I.log('info', 'stitch', 'all done')
+    local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = hdr and I.Header })
+    I.log('info', 'stitch', '.. done')
 
     return rv
   end,
 }
 
 -- simply returning `Stitch` requires pandoc version >=3.5
--- (hence the return of a list of 1 filter)
-package.loaded.stitch = { Stitch } -- claim our spot
+package.loaded.stitch = { Stitch } -- claim our spot in case we need to require ourself later
 return package.loaded.stitch
