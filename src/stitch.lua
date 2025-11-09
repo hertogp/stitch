@@ -5,6 +5,9 @@
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
 -- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 
+-- ensure we're loaded only once (pandoc seems to do `f = loadfile(path)()`
+if package.loaded.stitch then return package.loaded.stitch end
+
 local I = {} -- Stitch's Implementation; for testing
 local tail = {}
 
@@ -59,8 +62,8 @@ local pd = require('pandoc')
 function I.log(lvl, action, msg, ...)
   -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
   if (I.level[I.opts.log] or 1) >= I.level[lvl] then
-    local fmt = '[stitch %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
-    local text = string.format(fmt, lvl, I.opts.cid or 'mod', action, ...)
+    local fmt = '[stitch[%d] %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
+    local text = string.format(fmt, #tail, lvl, I.opts.cid or 'mod', action, ...)
     io.stderr:write(text)
   end
 end
@@ -148,15 +151,9 @@ end
 ---@return string sha1 hash of option values and codeblock content
 function I.mksha(cb)
   -- for repeatable fingerprints: keys are sorted, whitespace removed
-  -- TODO: remove other opts not affecting the cb-resulst
-  -- [x] exe -- flip exe at will, should not trigger re-exe
-  -- [ ] log -- changing logging level should not trigger re-exe
-  -- [ ] old -- keep/delete old files should not trigger re-exe
   local hardcoded_keys = {}
-  local skip_keys = 'exe old log'
+  local skip_keys = 'exe old log' -- these don't change cb-results
   for key in pairs(I.hardcoded) do
-    -- toggle'ing exe=yes/no should not effect fingerprint
-    -- if 'exe' ~= key then hardcoded_keys[#hardcoded_keys + 1] = key end
     if not skip_keys:match(key) then hardcoded_keys[#hardcoded_keys + 1] = key end
   end
   table.sort(hardcoded_keys) -- sorts inplace
@@ -430,10 +427,12 @@ function I.mkfcb(cb)
   return clone
 end
 
-local function xload(m, f)
+function I.xload(m, f)
   -- return module, module_name, function_name (may be nil)
   I.log('debug', 'xload', 'trying mod m=%q', m)
   if nil == m or 0 == #m then return nil, m, f end
+
+  I.log('info', 'xload', 'pkg.loaded[%s]=%s', m, package.loaded[m])
 
   local suc6, mod = pcall(require, m)
   if false == suc6 or true == mod then
@@ -441,7 +440,7 @@ local function xload(m, f)
     if not last_dot then return nil, m, f end
     local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
     if ff and f then ff = ff .. '.' .. f end
-    return xload(mm, ff)
+    return I.xload(mm, ff)
   else
     I.log('debug', 'xload', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
     return mod, m, f
@@ -455,27 +454,27 @@ end
 ---@return number count the number of filters actually applied
 function I.xform(doc, filter)
   local count = 0
-  local find -- due to recursion: tricky! probably better to put in I instead
-  find = function(m, f)
-    -- return module, module_name, function_name (may be nil)
-    if nil == m or 0 == #m then return nil, m, f end
-
-    local suc6, mod = pcall(require, m)
-    if false == suc6 or true == mod then
-      local last_dot = m:find('%.[^%.]+$')
-      if not last_dot then return nil, m, f end
-      local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
-      if ff and f then ff = ff .. '.' .. f end
-      return find(mm, ff)
-    else
-      return mod, m, f
-    end
-  end
+  -- local find -- due to recursion: tricky! probably better to put in I instead
+  -- find = function(m, f)
+  --   -- return module, module_name, function_name (may be nil)
+  --   if nil == m or 0 == #m then return nil, m, f end
+  --
+  --   local suc6, mod = pcall(require, m)
+  --   if false == suc6 or true == mod then
+  --     local last_dot = m:find('%.[^%.]+$')
+  --     if not last_dot then return nil, m, f end
+  --     local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
+  --     if ff and f then ff = ff .. '.' .. f end
+  --     return find(mm, ff)
+  --   else
+  --     return mod, m, f
+  --   end
+  -- end
 
   -- filter == "" is a silent noop
   if 'string' ~= type(filter) or #filter == 0 then return doc, count end
   -- local mod, mname, fun = find(filter)
-  local mod, mname, fun = xload(filter)
+  local mod, mname, fun = I.xload(filter)
   if not mod then
     I.log('error', 'xform', '@%s skipped, could not load filter', filter)
     return doc, count
@@ -715,8 +714,6 @@ local Stitch = {
     local header
     local dump = require 'dump' -- tmp
 
-    -- print('pre dump(tail)', dump(tail)) -- tmp
-
     -- doc.meta.stitched ~= nil -> doc is nested markdown
     -- 1) doc.meta.stitched.opts -- the opts of the codeblock causing the nesting
     -- 2) doc.meta.stitched.ctx -- the context of doc causing the nesting
@@ -730,12 +727,14 @@ local Stitch = {
 
     -- print('post dump(tail)', dump(tail)) -- tmp
 
+    tail[#tail] = nil -- remove ourselves from history
+    I.log('info', 'stitch', 'all done')
+
     return rv
   end,
 }
 
 -- simply returning `Stitch` requires pandoc >=version 3.5
--- (i.e. single filter instead of list of filters)
-return {
-  Stitch,
-}
+-- (hence the return of a list of 1 filter)
+package.loaded.stitch = { Stitch } -- claim our spot
+return package.loaded.stitch
