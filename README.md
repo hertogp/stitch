@@ -359,7 +359,8 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 # Documentation
 
-This lua-filter requires pandoc version \>= 2.19. Some stuff in here is
+This lua-filter requires pandoc version \>= 2.19, or \>= 3.0 if you want
+to use `pandoc.Figure` to include results. Some stuff in here is
 probably not Windows friendly, but any \*nix should be fine.
 
 ## Installation
