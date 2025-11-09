@@ -15,9 +15,11 @@ ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
 # make any ex(ample) converting markdown -> html
 default: show
 
-readme:
+readme: readme.pdf
 	echo "creating README.md"
 	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md
+
+readme.pdf:
 	echo "creating examples/README.pdf"
 	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 tee scr/stitch-readme.log
 

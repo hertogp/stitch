@@ -10,8 +10,12 @@ if package.loaded.stitch then return package.loaded.stitch end
 
 local I = {} -- Stitch's Implementation; for testing
 local tail = {}
+local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
 
-I.ctx = {} -- this doc's context (= meta.stitch)
+_ENV.PANDOC_VERSION:must_be_at_least('3.0')
+
+--[[ helpers ]]
+
 I.opts = { log = 'info' } --> for initial logging, is reset for each cb
 I.level = {
   silent = 0,
@@ -21,6 +25,36 @@ I.level = {
   debug = 4,
 }
 
+function I.log(lvl, action, msg, ...)
+  -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
+  if (I.level[I.opts.log] or 1) >= I.level[lvl] then
+    local fmt = '[stitch:%d %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
+    local text = string.format(fmt, #tail, lvl, I.opts.cid or 'stitch', action, ...)
+    io.stderr:write(text)
+  end
+end
+
+-- return a semi-deep copy of table t
+function I.dcopy(t, seen)
+  seen = seen or {}
+  if 'table' ~= type(t) then return t end
+  if seen[t] then return seen[t] end
+
+  local tt = {}
+  seen[t] = tt
+  for k, v in pairs(t) do
+    tt[I.dcopy(k, seen)] = I.dcopy(v, seen)
+  end
+  setmetatable(tt, I.dcopy(getmetatable(t), seen))
+  return tt
+end
+
+--[[ stitch data ]]
+
+I.cbc = 0 -- codeblock counter
+I.log('info', 'init', 'loading STITCH, init cbc to %d', I.cbc)
+
+I.ctx = {} -- this doc's context (= meta.stitch)
 I.optvalues = {
   -- valid option values
   exe = { 'yes', 'no', 'maybe' },
@@ -29,9 +63,6 @@ I.optvalues = {
   inc_what = { 'cbx', 'art', 'out', 'err' },
   inc_how = { '', 'fcb', 'img', 'fig' },
 }
-
-I.cbc = 0 -- codeblock counter
-print('loading S T I T C H, cbc is', I.cbc)
 
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
@@ -54,19 +85,6 @@ I.hardcoded = {
   art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
   cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
 }
-
---[[ helpers ]]
-
-local pd = require('pandoc')
-
-function I.log(lvl, action, msg, ...)
-  -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
-  if (I.level[I.opts.log] or 1) >= I.level[lvl] then
-    local fmt = '[stitch:%d %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
-    local text = string.format(fmt, #tail, lvl, I.opts.cid or 'mod', action, ...)
-    io.stderr:write(text)
-  end
-end
 
 --[[ options ]]
 
@@ -496,17 +514,22 @@ function I.xform(doc, filter)
   for n, f in ipairs(filters) do
     if f[fun] then
       -- push state
-      tail[#tail + 1] = { opts = I.opts, ctx = I.ctx, mta = I.xlate(doc.meta) }
+      -- TODO: this should be a (deep) copy
+      tail[#tail + 1] = { opts = I.opts, ctx = I.ctx, meta = I.xlate(doc.meta) }
+
       local ok, tmp = pcall(f[fun], doc)
+
       -- restore state
-      I.opts = tail[#tail].opts
+      I.opts = tail[#tail].opts -- restore state
       I.ctx = tail[#tail].ctx
       tail[#tail] = nil
+
       if not ok then
         I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, mod, n, fun)
       else
         doc = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
         count = count + 1
+        I.log('debug', 'xform', '@%s[%d].%s, ok, got a %s (%s)', mod, n, fun, type(doc), pd.utils.type(doc))
       end
     else
       I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, mod, n, fun)
@@ -671,9 +694,13 @@ function I.mkctx(doc)
   return I.ctx
 end
 
+--[[ filter ]]
+-- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
+--  + Pandoc 3.0 introduces pandoc.Figure element
+
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
-function I.cbexe(cb)
+function I.CodeBlock(cb)
   I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
 
   if not (cb.attributes.stitch or cb.classes:find('stitch')) then return nil end
@@ -704,20 +731,12 @@ function I.cbexe(cb)
   return I.result(cb)
 end
 
---[[ filter ]]
--- `:Open https://github.com/jgm/pandoc/blob/main/changelog.md#pandoc-30-2023-01-18`
---  + Pandoc 3.0 introduces pandoc.Figure element
-
-I.log('info', 'check', string.format('running on %s', pd.system.os))
-_ENV.PANDOC_VERSION:must_be_at_least('3.0')
-
 local Stitch = {
   _ = I, -- Stitch's implementation, for testing
 
   Pandoc = function(doc)
     I.mkctx(doc)
     local header
-    local dump = require 'dump' -- tmp
 
     -- doc.meta.stitched ~= nil -> doc is nested markdown
     -- 1) doc.meta.stitched.opts -- the opts of the codeblock causing the nesting
@@ -728,9 +747,7 @@ local Stitch = {
       return h
     end end
 
-    local rv = doc:walk({ CodeBlock = I.cbexe, Header = header })
-
-    -- print('post dump(tail)', dump(tail)) -- tmp
+    local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
 
     I.log('info', 'stitch', 'all done')
 
