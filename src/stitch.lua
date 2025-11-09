@@ -448,19 +448,23 @@ function I.mkfcb(cb)
   return clone
 end
 
+-- find and load module given by `m`, dropping labels during search
+--- @param m string module name, with or without path and or function labels
+--- @param f string? collects labels that are stripped while searching `m`
+--- @return any mod the result of requiring a module, or nil otherwise
+--- @return string? name the name that was required as a module, nil otherwise
+--- @return string? func the stripped labels (on the right) while searching, or nil
 function I.xload(m, f)
   -- return module, module_name, function_name (may be nil)
-  I.log('debug', 'xload', 'trying mod m=%q', m)
   if nil == m or 0 == #m then return nil, m, f end
-
-  I.log('info', 'xload', 'pkg.loaded[%s]=%s', m, package.loaded[m])
+  I.log('debug', 'xload', 'trying module %q', m)
 
   local suc6, mod = pcall(require, m)
   if false == suc6 or true == mod then
     local last_dot = m:find('%.[^%.]+$')
     if not last_dot then return nil, m, f end
     local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
-    if ff and f then ff = ff .. '.' .. f end
+    if ff and f then ff = string.format('%s.%s', ff, f) end
     return I.xload(mm, ff)
   else
     I.log('debug', 'xload', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
