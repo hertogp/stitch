@@ -4,8 +4,11 @@
 -- [o] add mediabag to store files related to cb's
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
 -- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
+-- [ ] check all pd.<f>'s used and establish oldest version possible
 
--- ensure we're loaded only once (pandoc seems to do `f = loadfile(path)()`
+-- ensure we're loaded only once (pandoc seems to do `f = loadfile(path)()`,
+-- which runs this module but does not register in package.loaded)
+
 if package.loaded.stitch then return package.loaded.stitch end
 
 local I = {} -- Stitch's Implementation; for testing
@@ -323,7 +326,7 @@ function I.fkill()
       for _, fold in ipairs(pd.system.list_directory(dir)) do
         fold = pd.path.join({ dir, fold })
         if fold:match(pat) and fold ~= fnew then
-          local ok, err = os.remove(fold) -- pd.system.remove needs >=version 3.7.1
+          local ok, err = os.remove(fold) -- pd.system.remove needs version >=3.7.1
           if not ok then
             I.log('error', 'files', 'unable to remove: %s (%s)', fold, err)
           else
@@ -343,7 +346,7 @@ end
 -- says whether cb-executable file and 1 or more outputs already exist or not
 ---@return boolean deja_vu true or false
 function I.recur()
-  -- if cbx exist with 1 or more ouputs, we were here before
+  -- if cbx exist with 1 or more outputs, we were here before
 
   if I.freal(I.opts.cbx) then
     if I.freal(I.opts.out) or I.freal(I.opts.err) or I.freal(I.opts.art) then return true end
@@ -385,7 +388,7 @@ I.mkelm = {
   end,
 
   fig = function(fcb, _, _, what)
-    -- pandoc.Figure (type Block) >=version 3.0
+    -- pandoc.Figure (type Block) version >=3.0
     -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
     --  * TODO: PD_VERSION < 3 -> title := fig:title, then pandoc treats it as a Figure
     local img = pd.Image({}, I.opts[what], '', {})
@@ -475,36 +478,34 @@ function I.xform(doc, filter)
 
   -- filter == "" is a silent noop
   if 'string' ~= type(filter) or #filter == 0 then return doc, count end
-  -- local mod, mname, fun = find(filter)
+
   local mod, mname, fun = I.xload(filter)
   if not mod then
     I.log('error', 'xform', '@%s skipped, could not load filter', filter)
     return doc, count
   end
-  fun = fun or 'Pandoc' -- if filter is a module, default `Pandoc` function
-  I.log('debug', 'xform', '@%s, module %s is %sexporting %q', filter, mname, mod[fun] and '' or 'not ', fun)
 
+  fun = fun or 'Pandoc' -- filter is actually the module, so default to `Pandoc` function
+  I.log('debug', 'xform', '@%s, module %s is %sexporting %q', filter, mname, mod[fun] and '' or 'not ', fun)
   if doc and 'Pandoc' == pd.utils.type(doc) then
-    -- add current codeblock's stitch context to a Pandoc doc
-    -- doc.meta.stitched = { opts = pd.MetaMap(I.opts), pd.MetaMap(I.ctx) }
+    -- context for mod[fun], in case that's stitch, it'll use I.opts.hdr (if any)
     doc.meta.stitched = { opts = I.opts, ctx = I.ctx } -- recursing, so lua tables are ok
   end
 
-  -- If mod exports fun, it is THE filter, not a list of filters
+  -- ensure filters is a *list* of filters (for pandoc version <3.5)
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
   local filters = mod[fun] and { mod } or mod
   if 0 == #filters then I.log('error', 'xform', '@%s, skipped, no filters found exporting %s', filter, fun) end
 
   for n, f in ipairs(filters) do
     if f[fun] then
-      -- push state
-      -- TODO: this should be a (deep) copy
-      tail[#tail + 1] = { opts = I.opts, ctx = I.ctx, meta = I.xlate(doc.meta) }
+      -- push (a *copy* of) current state
+      tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(doc.meta) }
 
       local ok, tmp = pcall(f[fun], doc)
 
       -- restore state
-      I.opts = tail[#tail].opts -- restore state
+      I.opts = tail[#tail].opts
       I.ctx = tail[#tail].ctx
       tail[#tail] = nil
 
@@ -739,7 +740,7 @@ local Stitch = {
   end,
 }
 
--- simply returning `Stitch` requires pandoc >=version 3.5
+-- simply returning `Stitch` requires pandoc version >=3.5
 -- (hence the return of a list of 1 filter)
 package.loaded.stitch = { Stitch } -- claim our spot
 return package.loaded.stitch
