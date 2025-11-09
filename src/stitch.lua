@@ -1,4 +1,5 @@
 --[[ stitch ]]
+
 -- TODO:
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
@@ -604,7 +605,7 @@ function I.mkopt(cb)
   I.opts = I.check('cb.attr', I.opts)
   -- setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
   setmetatable(I.opts, { __index = I.ctx[I.opts.stitch] })
-  I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%03d', I.cbc)
+  I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%02d', I.cbc)
   I.opts.sha = I.mksha(cb) -- derived only
 
   -- expand filenames for this codeblock (cmd is expanded as exe later)
@@ -718,6 +719,10 @@ local Stitch = {
       h.level = h.level + math.floor(tonumber(hdr) or 0)
       return h
     end end
+
+    -- /tmp
+    local dump = require 'dump'
+    print('dump(doc.meta)', dump(I.xlate(doc.meta)))
 
     return doc:walk({ CodeBlock = I.cbexe, Header = header })
   end,

@@ -22,7 +22,7 @@
   
   
 
-## A pandoc lua-filter, turning codeblocks into works of art
+# A pandoc lua-filter, turning codeblocks into works of art
 
 If you can generate output (be it text or graphics) from the command
 line, stitch will help you do the same from within a codeblock and
@@ -32,11 +32,12 @@ include its result upon converting the document using
 The main features of [`stitch`](https://github.com/hertogp/stitch)
 include:
 
-- running a codeblock as a system command to produce `data`
-- use the codeblock itself (its text) as `data`
-- read the `data` to convert it, and/or
-- run the `data` through another filter before including
-- include the result as an image, figure, codeblock or partial doc
+- run a codeblock as a system command to produce `data`
+- or use the codeblock itself (its text) as `data`
+- optionally have pandoc read the `data` to convert it to a pandoc `doc`
+- optionally run the `data` or `doc` through another lua program
+- include the result as an image, figure, codeblock or insert as a doc
+  fragment
 
 See [features](#features) for a more complete list.
 
@@ -49,7 +50,7 @@ and every codeblock that is marked for stitching since it probably runs
 a pletora of system commands on your machine, potentially causing chaos
 and/or harm.
 
-## Examples
+# Examples
 
 A few examples, mostly taken from the repo’s of the command line tools
 used. Each work of ‘art’ is followed by the codeblock that generated it.
@@ -61,7 +62,7 @@ See the other
 [examples](https://github.com/hertogp/stitch/tree/main/examples) which
 also contain some information on installing the command line tools used.
 
-### [Diagon](https://github.com/ArthurSonzogni/Diagon)
+## [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
 If you were there for the dawn of the Internet, you might appreciate the
 simplicity of ascii output.
@@ -121,7 +122,7 @@ if ("stitch?") {
 ```
 ````
 
-### [youplot](https://github.com/red-data-tools/YouPlot)
+## [youplot](https://github.com/red-data-tools/YouPlot)
 
 Or a bit more dynamic: today’s local temperature (well, the last time
 the codeblock was changed before compiling this readme anyway). The
@@ -170,7 +171,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 ```
 ````
 
-### [Cetz](https://typst.app/universe/package/cetz)
+## [Cetz](https://typst.app/universe/package/cetz)
 
 Or go more graphical with
 [Cetz](https://typst.app/universe/package/cetz), one of many packages in
@@ -231,7 +232,7 @@ id="cb03-1-art-img" />
 ```
 ````
 
-### [Fletcher](https://typst.app/universe/package/fletcher)
+## [Fletcher](https://typst.app/universe/package/fletcher)
 
 Another package from the [typst](https://typst.app/) universe, for
 drawing diagrams and arrows. Revisiting the flowchart shown earlier with
@@ -282,7 +283,7 @@ id="cb04-1-art-img" />
 ```
 ````
 
-### [Lilaq](https://lilaq.org/)
+## [Lilaq](https://lilaq.org/)
 
 Yet another [typst](https://typst.app/) package, this time for advanced
 data visualization. Unfortunately, typst and its packages currently have
@@ -325,7 +326,7 @@ id="cb06-1-art-img" />
 ```
 ````
 
-### [Gnuplot](https://gnuplot.sourceforge.net)
+## [Gnuplot](https://gnuplot.sourceforge.net)
 
 Another example using the trusty `gnuplot`.
 
@@ -353,12 +354,12 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 ```
 ````
 
-## Documentation
+# Documentation
 
 This lua-filter requires pandoc version \>= 2.19. Some stuff in here is
 probably not Windows friendly, but any \*nix should be fine.
 
-### Installation
+## Installation
 
 Installation is pretty straightforward:
 
@@ -366,7 +367,7 @@ Installation is pretty straightforward:
   `~/.local/share/pandoc/filters`)
 - add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
 
-### Usage
+## Usage
 
 `% pandoc --lua-filter stitch.lua doc.md -t doc.pdf`
 
@@ -434,7 +435,7 @@ Processing a codeblock follows these steps:
 
 In the face of errors, just complain and carry on.
 
-### Features
+## Features
 
 Stitch provides a few features that make converting codeblocks easy:
 
@@ -450,7 +451,7 @@ Stitch provides a few features that make converting codeblocks easy:
   possible
 - unique id is also assigned and transferred if possible
 
-### Options
+## Options
 
 Stitch options are resolved in the following, most to least, specific
 order:
@@ -481,9 +482,9 @@ The list of options and default values are:
 
 Table Stitch options
 
-#### cid
+### cid
 
-**cid** is a unique, codeblock identifier, used in file templates.
+**`cid`** is a unique, codeblock identifier, used in file templates.
 
 It is set to either:
 
@@ -502,7 +503,7 @@ with:
 where  
 - `err` is the artificat to be included
 
-#### arg
+### arg
 
 **arg** is used to optionally supply extra argument(s) on the command
 line.
@@ -543,7 +544,7 @@ alt last arg :  .stitch/readme/arg-7a81194509fcf053f3169313eb42278109c48801.png
 --------------
 ```
 
-#### dir
+### dir
 
 **dir** is used in the expansion of the artifact filepaths.
 
@@ -556,7 +557,7 @@ default in one or more of:
   `name`
 - `cb.attributes.dir`, to override for a specific codeblock
 
-#### exe
+### exe
 
 **exe** specifies whether a codeblock should actually run.
 
@@ -575,20 +576,20 @@ match the path of the current codeblock’s new files, except for the
 `-#sha.ext` part, are considered old and candidates for removal (see
 **old**).
 
-So if `exe=maybe` and files exists for the newly calculated fingerprint
+So if `exe=maybe` and files exists for the newly calculated fingerprint,
 the codeblock doesn’t run again and previous results will be used
 instead.
 
 Swapping `exe` to a different value won’t affect the sha-fingerprint.
 
-#### fmt
+### fmt
 
 **fmt** is used as the extension in the `#art` template.
 
-An easy way to set the intended graphics format on the codeblock level
-without touching the `art` template.
+It allows for easily setting the intended graphics format on the
+codeblock level without touching the `art` template.
 
-#### log
+### log
 
 **log** is verbosity of logging, one of
 `debug, info, warn, error, silent`.
@@ -597,7 +598,7 @@ Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to
 turn off all logging except for one codeblock where logging happens on
 the debug level.
 
-#### old
+### old
 
 **old** says what to do with old files during a pandoc conversion run.
 
@@ -608,7 +609,7 @@ new filename except for the last `-#sha.ext` part. If a filename
 template doesn’t end in `-#sha.ext` then Stitch cannot detect old files
 and manual clean up will be necessary.
 
-#### artifact templates
+### artifact templates
 
 **cbx, out, err, art** are simply filename templates.
 
@@ -622,7 +623,7 @@ produced by the codeblock or a cli tools called by `cmd`. However, it
 can be anything you like, it just provides a way to capture output to
 file.
 
-#### cmd
+### cmd
 
 **cmd** is expanded and run via `os.execute(cmd)`.
 
@@ -635,7 +636,7 @@ The (hardcoded) default is to:
 Ofcourse, it is up to the codeblock code to actually use its argument
 and/or the intended output filename.
 
-#### inc
+### inc
 
 **inc** contains 0 or more directives on what to include and how.
 
@@ -696,6 +697,14 @@ If a module could be loaded which is actually named `mod.func`, then it
 is supposed to export a `Pandoc` function. Such a module requires the
 data to be an actual Pandoc document produced by `!read`.
 
+Before calling, stitch inspects the `data` and if it has type `Pandoc`,
+its meta data is augmented with a `stitched` section that contains:
+
+- `opts`, a lua table with all the options of the current codeblock
+- `ctx`, a lua table with all the `stitch` related meta data of the
+  current doc
+- `mta`, a lua table with *all* the meta data of the current doc
+
 However, it could be any module that simply accepts the data as acquired
 by reading the `what`-file.
 
@@ -720,7 +729,9 @@ reading, re-reading and possibly filtering.
 - *img*, a pandoc.Image link to the file on disk for `what`
 - *fig*, same but using pandoc.Figure
 
-*putting it together*
+# More examples
+
+## Dump a pandoc AST fragment
 
 If you are wondering what the pandoc AST looks like for a snippet the
 following codeblock would reveal that when reading some csv-file using
@@ -830,12 +841,14 @@ exe, maybe, execute?
 ]
 ```
 
+## Nested doc
+
 As a final example, here’s how to run a codeblock’s output through a
 filter after re-reading it as markdown. In this case, the filter is
 stitch itself.
 
 ````` lua
-```` {#nested .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="1"}
+```` {.lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="2"}
 #! /usr/bin/env lua
 
 print [[---
@@ -870,7 +883,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 ````
 `````
 
-## Nested report
+### Nested report
 
 This could be some report created by a command line tool, producing a
 markdown report on some topic. Here, it’s just the text as printed by
@@ -881,7 +894,7 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 | mon | 1     |
 | tue | 2     |
 
-### The weather today
+#### The weather today
 
 ``` stitched
                   Temperature (˚C) Today
