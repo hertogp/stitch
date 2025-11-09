@@ -472,22 +472,6 @@ end
 ---@return number count the number of filters actually applied
 function I.xform(doc, filter)
   local count = 0
-  -- local find -- due to recursion: tricky! probably better to put in I instead
-  -- find = function(m, f)
-  --   -- return module, module_name, function_name (may be nil)
-  --   if nil == m or 0 == #m then return nil, m, f end
-  --
-  --   local suc6, mod = pcall(require, m)
-  --   if false == suc6 or true == mod then
-  --     local last_dot = m:find('%.[^%.]+$')
-  --     if not last_dot then return nil, m, f end
-  --     local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
-  --     if ff and f then ff = ff .. '.' .. f end
-  --     return find(mm, ff)
-  --   else
-  --     return mod, m, f
-  --   end
-  -- end
 
   -- filter == "" is a silent noop
   if 'string' ~= type(filter) or #filter == 0 then return doc, count end
