@@ -858,6 +858,8 @@ stitch:
     dir: ".stitch/readme/nested"
 ...
 
+\newpage
+
 # Nested report
 
 This could be some report created by a command line tool, producing

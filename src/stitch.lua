@@ -487,7 +487,6 @@ function I.xform(doc, filter)
     -- doc.meta.stitched = { opts = pd.MetaMap(I.opts), pd.MetaMap(I.ctx) }
     doc.meta.stitched = { opts = I.opts, ctx = I.ctx } -- recursing, so lua tables are ok
   end
-  tail[#tail + 1] = { opts = I.opts, ctx = I.ctx, mta = I.xlate(doc.meta) }
 
   -- If mod exports fun, it is THE filter, not a list of filters
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
@@ -496,7 +495,13 @@ function I.xform(doc, filter)
 
   for n, f in ipairs(filters) do
     if f[fun] then
+      -- push state
+      tail[#tail + 1] = { opts = I.opts, ctx = I.ctx, mta = I.xlate(doc.meta) }
       local ok, tmp = pcall(f[fun], doc)
+      -- restore state
+      I.opts = tail[#tail].opts
+      I.ctx = tail[#tail].ctx
+      tail[#tail] = nil
       if not ok then
         I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, mod, n, fun)
       else
@@ -727,7 +732,6 @@ local Stitch = {
 
     -- print('post dump(tail)', dump(tail)) -- tmp
 
-    tail[#tail] = nil -- remove ourselves from history
     I.log('info', 'stitch', 'all done')
 
     return rv

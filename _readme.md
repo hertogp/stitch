@@ -38,7 +38,7 @@ figlet -w 50 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 \
 \
 
-# A pandoc lua-filter, turning codeblocks into works of art
+# Turning codeblocks into works of art
 
 If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
@@ -50,7 +50,7 @@ The main features of [`stitch`](https://github.com/hertogp/stitch) include:
 - or use the codeblock itself (its text) as `data`
 - optionally have pandoc read the `data` to convert it to a pandoc `doc`
 - optionally run the `data` or `doc` through another lua program
-- include the result as an image, figure, codeblock or insert as a doc fragment
+- include 0 or more results (as image, figure, codeblock or doc fragment)
 
 See [features](#features) for a more complete list.
 
@@ -58,7 +58,7 @@ See [features](#features) for a more complete list.
 
 ## Security
 
-`stitch.lua` is, like any lua-filter that executes codeblocks, totally insecure
+`stitch.lua` is, like any lua-filter that executes codeblocks, totally _insecure_
 and any CISO's nightmare.  Before running an externally supplied document
 through the `stitch.lua` filter, be sure you have vetted each and every
 codeblock that is marked for stitching since it probably runs a pletora of
@@ -67,13 +67,14 @@ system commands on your machine, potentially causing chaos and/or harm.
 # Examples
 
 A few examples, mostly taken from the repo's of the command line tools used.
+
 Each work of 'art' is followed by the codeblock that generated it.  Most
-examples use a configuration section `stitch=tool_name` in order to minimize
-the clutter in a codeblock's attributes.  See the [documentation](#documentation)
-section for how to configure `Stitch`.
+examples use a configuration section `stitch='tool_name'` in order to minimize
+the clutter in a codeblock's attributes and keep its files organized.
 
 See the other [examples](https://github.com/hertogp/stitch/tree/main/examples)
-which also contain some information on installing the command line tools used.
+in [stitch's repository](https://github.com/hertogp/stitch), which also contain
+some information on installing the command line tools used.
 
 \newpage
 
@@ -672,6 +673,8 @@ stitch:
   defaults:
     dir: ".stitch/readme/nested"
 ...
+
+\newpage
 
 # Nested report
 
