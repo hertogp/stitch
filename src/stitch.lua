@@ -468,41 +468,45 @@ function I.xload(m, f)
   end
 end
 
--- run doc through lua filter(s), count how many were actually applied
----@param doc any file data, pandoc ast or nil
----@param filter string name of lua mod.fun to run (if any)
+-- run (a new) doc through lua filter(s), count how many were actually applied
+---@param dta any file data, pandoc ast or nil
+---@param filter string name of lua mod[.fun] to run (if any)
 ---@return string|table? doc the, possibly, modified doc
 ---@return number count the number of filters actually applied
-function I.xform(doc, filter)
+function I.xform(dta, filter)
   local count = 0
 
-  -- filter == "" is a silent noop
-  if 'string' ~= type(filter) or #filter == 0 then return doc, count end
+  assert('string' == type(filter), 'expected filter to be a string, got "%s"', type(filter))
+  assert(nil ~= dta, 'expected dta to be non-nil!')
+  if 0 == #filter then return dta, count end -- "" means silent noop
 
   local mod, mname, fun = I.xload(filter)
   if not mod then
-    I.log('error', 'xform', '@%s skipped, could not load filter', filter)
-    return doc, count
+    I.log('error', 'xform', '@%s skipped, could not require filter', filter)
+    return dta, count
   end
 
-  fun = fun or 'Pandoc' -- filter is actually the module, so default to `Pandoc` function
-  I.log('debug', 'xform', '@%s, module %s is %sexporting %q', filter, mname, mod[fun] and '' or 'not ', fun)
-  if doc and 'Pandoc' == pd.utils.type(doc) then
-    -- context for mod[fun], in case that's stitch, it'll use I.opts.hdr (if any)
-    doc.meta.stitched = { opts = I.opts, ctx = I.ctx } -- recursing, so lua tables are ok
+  fun = fun or 'Pandoc' -- default to `Pandoc` function if `filter` was a module itself
+  if mod[fun] then
+    I.log('debug', 'xform', '@%s, loaded mod %s is exporting %s', filter, mod, fun)
+  else
+    I.log('warn', 'xform', '@%s, loaded mod %s, not exporting %s, assuming it is a list of filters', filter, mod, fun)
   end
 
-  -- ensure filters is a *list* of filters (for pandoc version <3.5)
+  -- ensure filters is a *list* of filters (as expected by pandoc version <3.5)
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
-  local filters = mod[fun] and { mod } or mod
-  if 0 == #filters then I.log('error', 'xform', '@%s, skipped, no filters found exporting %s', filter, fun) end
+  if dta and 'Pandoc' == pd.utils.type(dta) then
+    -- dta is a doc, so add context for filter
+    dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- no need to pd.MetaMap(..) these
+  end
 
+  local filters = mod[fun] and { mod } or mod
   for n, f in ipairs(filters) do
     if f[fun] then
       -- push (a *copy* of) current state
-      tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(doc.meta) }
+      tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
 
-      local ok, tmp = pcall(f[fun], doc)
+      local ok, tmp = pcall(f[fun], dta)
 
       -- restore state
       I.opts = tail[#tail].opts
@@ -512,16 +516,16 @@ function I.xform(doc, filter)
       if not ok then
         I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, mod, n, fun)
       else
-        doc = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
+        dta = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
         count = count + 1
-        I.log('debug', 'xform', '@%s[%d].%s, ok, got a %s (%s)', mod, n, fun, type(doc), pd.utils.type(doc))
+        I.log('debug', 'xform', '@%s[%d].%s, ok, got a %s (%s)', mod, n, fun, type(dta), pd.utils.type(dta))
       end
     else
       I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, mod, n, fun)
     end
   end
   if #filters > 0 then I.log('info', 'xform', '@%s, applied %d filter(s) to given `doc`', filter, count) end
-  return doc, count
+  return dta, count
 end
 
 -- create doc element(s) per codeblock's inc-attribute
