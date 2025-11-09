@@ -663,7 +663,7 @@ exe, maybe, execute?
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
 
-````{.lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="2"}
+````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="2"}
 #! /usr/bin/env lua
 
 print [[---
@@ -679,7 +679,7 @@ This could be some report created by a command line tool, producing
 a markdown report on some topic.  Here, it's just the text as printed
 by lua.  Any (nested) codeblocks can also be processed by stitch.
 
-```{#redo2 .stitch inc="cbx!csv" log=debug exe=no}
+```{.stitch inc="cbx!csv" log=debug exe=no}
 day,count
 mon,1
 tue,2
@@ -687,7 +687,7 @@ tue,2
 
 ## The weather today
 
-```{#cb02 .stitch inc="out"}
+```{.stitch inc="out"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \

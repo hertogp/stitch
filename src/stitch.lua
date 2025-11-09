@@ -1,5 +1,4 @@
 --[[ stitch ]]
-
 -- TODO:
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
@@ -7,6 +6,7 @@
 -- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 
 local I = {} -- Stitch's Implementation; for testing
+local tail = {}
 
 I.ctx = {} -- this doc's context (= meta.stitch)
 I.opts = { log = 'info' } --> for initial logging, is reset for each cb
@@ -28,6 +28,7 @@ I.optvalues = {
 }
 
 I.cbc = 0 -- codeblock counter
+print('loading S T I T C H, cbc is', I.cbc)
 
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
@@ -147,10 +148,16 @@ end
 ---@return string sha1 hash of option values and codeblock content
 function I.mksha(cb)
   -- for repeatable fingerprints: keys are sorted, whitespace removed
+  -- TODO: remove other opts not affecting the cb-resulst
+  -- [x] exe -- flip exe at will, should not trigger re-exe
+  -- [ ] log -- changing logging level should not trigger re-exe
+  -- [ ] old -- keep/delete old files should not trigger re-exe
   local hardcoded_keys = {}
+  local skip_keys = 'exe old log'
   for key in pairs(I.hardcoded) do
     -- toggle'ing exe=yes/no should not effect fingerprint
-    if 'exe' ~= key then hardcoded_keys[#hardcoded_keys + 1] = key end
+    -- if 'exe' ~= key then hardcoded_keys[#hardcoded_keys + 1] = key end
+    if not skip_keys:match(key) then hardcoded_keys[#hardcoded_keys + 1] = key end
   end
   table.sort(hardcoded_keys) -- sorts inplace
 
@@ -481,6 +488,7 @@ function I.xform(doc, filter)
     -- doc.meta.stitched = { opts = pd.MetaMap(I.opts), pd.MetaMap(I.ctx) }
     doc.meta.stitched = { opts = I.opts, ctx = I.ctx } -- recursing, so lua tables are ok
   end
+  tail[#tail + 1] = { opts = I.opts, ctx = I.ctx, mta = I.xlate(doc.meta) }
 
   -- If mod exports fun, it is THE filter, not a list of filters
   -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
@@ -685,11 +693,6 @@ function I.cbexe(cb)
     end
   end
 
-  -- do not remove old files if exe=no (if that was added, the cb changed and
-  -- so did the cb's sha fingerprint(!): TODO: remove exe from fingerprint.
-  -- if 'no' == I.opts.exe then
-  --   I.log('info', 'files', 'not removing any old files (exe=%s)', I.opts.exe)
-  -- else
   local count = I.fkill()
   I.log('info', 'files', '%d old files removed', count)
   -- end
@@ -710,6 +713,9 @@ local Stitch = {
   Pandoc = function(doc)
     I.mkctx(doc)
     local header
+    local dump = require 'dump' -- tmp
+
+    -- print('pre dump(tail)', dump(tail)) -- tmp
 
     -- doc.meta.stitched ~= nil -> doc is nested markdown
     -- 1) doc.meta.stitched.opts -- the opts of the codeblock causing the nesting
@@ -720,11 +726,11 @@ local Stitch = {
       return h
     end end
 
-    -- /tmp
-    local dump = require 'dump'
-    print('dump(doc.meta)', dump(I.xlate(doc.meta)))
+    local rv = doc:walk({ CodeBlock = I.cbexe, Header = header })
 
-    return doc:walk({ CodeBlock = I.cbexe, Header = header })
+    -- print('post dump(tail)', dump(tail)) -- tmp
+
+    return rv
   end,
 }
 
