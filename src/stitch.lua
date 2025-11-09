@@ -62,7 +62,7 @@ local pd = require('pandoc')
 function I.log(lvl, action, msg, ...)
   -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
   if (I.level[I.opts.log] or 1) >= I.level[lvl] then
-    local fmt = '[stitch[%d] %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
+    local fmt = '[stitch:%d %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
     local text = string.format(fmt, #tail, lvl, I.opts.cid or 'mod', action, ...)
     io.stderr:write(text)
   end

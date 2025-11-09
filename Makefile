@@ -16,10 +16,10 @@ ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
 default: show
 
 readme:
+	echo "creating README.md"
 	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md
-
-readme.pdf:
-	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf
+	echo "creating examples/README.pdf"
+	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 tee scr/stitch-readme.log
 
 
 ex%:
