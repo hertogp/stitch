@@ -30,7 +30,9 @@ I.level = {
 
 function I.log(lvl, action, msg, ...)
   -- log format: [stitch:recursLevel logLevel] tag< >action | msg
-  if (I.level[I.opts.log] or 1) >= I.level[lvl] then
+  local level = I.level[I.opts.log or I.ctx.stitch.log] or 0
+  -- if (I.level[I.opts.log] or 0) >= I.level[lvl] then
+  if level >= I.level[lvl] then
     local tag = I.opts.cid or 'stitch'
     local fmt = string.format('[stitch:%d %5s] %-7s:%7s| %s\n', #tail, lvl, tag, action, msg)
     io.stderr:write(string.format(fmt, ...))
@@ -287,7 +289,7 @@ function I.fread(name, format)
   if format and #format > 0 then
     ok, dta = pcall(pd.read, dta, format)
     if ok then
-      I.log('info', 'read', 'pandoc.read as %s succeeded (type=%s)', format, pd.utils.type(dta))
+      I.log('info', 'read', 'pandoc.read as %s succeeded (got type %s)', format, pd.utils.type(dta))
       return dta
     else
       I.log('error', 'read', 'pandoc.read as %s failed: %s', format, dta)
@@ -599,6 +601,7 @@ function I.result(cb)
     end
   end
 
+  I.opts = {} -- codeblock is finished, reset I.opts
   return elms
 end
 
@@ -699,8 +702,6 @@ function I.CodeBlock(cb)
 
   local count = I.fkill()
   I.log('info', 'files', '%d old files removed', count)
-  -- end
-
   return I.result(cb)
 end
 
@@ -723,18 +724,24 @@ local Stitch = {
   _ = I, -- Stitch's implementation, for testing
 
   Pandoc = function(doc)
+    -- if #tail > 0, doc is being included in an outer doc.
     I.mkctx(doc)
+    local cbc = I.cbc
 
-    -- Shifting headers can be indicated in two ways:
-    -- * by tail[#tail].opts.header, or
-    -- * by I.ctx.stitch.header
     local s = I.ctx.stitch -- shorthand
-    s.header = #tail > 0 and tail[#tail].opts.hdr or s.header
+    if #tail > 0 then
+      -- adopt some settings from caller's cb / doc
+      s.header = s.header or tail[#tail].opts.hdr
+      s.log = s.log or tail[#tail].opts.log
+    end
+
     s.header = math.floor(tonumber(s.header) or 0)
     local header = 0 ~= s.header and I.Header
+    local msg = 'walking CodeBlocks' .. (header and ' and Headers' or '')
+    I.log('info', 'stitch', msg)
 
     local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
-    I.log('info', 'stitch', '.. done')
+    I.log('info', 'stitch', '%d codeblocks done', I.cbc - cbc)
 
     return rv
   end,
