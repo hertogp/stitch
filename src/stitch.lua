@@ -5,19 +5,8 @@
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
 -- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 -- [ ] check all pd.<f>'s used and establish oldest version possible
+-- [ ] make stitch also shift headers based on doc.meta.stitch.xxx.hdr
 -- [ ] REVIEW: add stitch classes list to treat as stichable
---     * allows for stitching cb's that are not stitch-aware ...
---     * config the class in a section:
---     * or simply treat each named section as class-tag as well?
---       ---
---       stitch:
---         classes:
---           class1:
---             opt1: ...
---         tool-or-class:
---           opt1: ...
---       ...
---
 
 -- ensure we're loaded only once (see notes on module's return statement)
 if package.loaded.stitch then return package.loaded.stitch end
@@ -69,13 +58,14 @@ I.cbc = 0 -- codeblock counter
 I.log('info', 'init', 'loading STITCH, init cbc to %d', I.cbc)
 
 I.ctx = {} -- this doc's context (= meta.stitch)
+
 I.optvalues = {
-  -- valid option values
+  -- valid option,value-pairs
   exe = { 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'info', 'debug' },
   old = { 'keep', 'purge' },
   inc_what = { 'cbx', 'art', 'out', 'err' },
-  inc_how = { '', 'fcb', 'img', 'fig' },
+  inc_how = { '', 'any', 'fcb', 'img', 'fig' },
 }
 
 I.hardcoded = {
@@ -102,6 +92,22 @@ I.hardcoded = {
 
 --[[ options ]]
 
+-- check pre-defined option,value-pairs, removing those that are not valid
+---@param section string name of config section to check
+---@param opts table single, flat, k,v store of options (v's are strings)
+---@return table opts same table with illegal option,values removed
+function I.check(section, opts)
+  for k, _ in pairs(I.optvalues) do
+    local val = opts[k]
+    local ok, err = I.vouch(k, val)
+    if val and not ok then
+      opts[k] = nil
+      I.log('error', 'check', 'in ' .. section .. ': ' .. err)
+    end
+  end
+  return opts
+end
+
 -- parse `I.opts.inc` into list: {{what, format, filter, how}, ..}
 ---@param inc string the I.opts.inc string with include directives
 ---@return table directives list of 4-element lists of strings
@@ -126,6 +132,24 @@ function I.parse(inc)
   I.log('debug', 'include', "include found %s inc's in '%s'", #directives, inc)
 
   return directives
+end
+
+-- checks if `name`,`value` is a valid pair
+---@param name string the name of the option
+---@param value any the value of the option
+---@return boolean ok true if `value` is valid for given, valid, `name`, false otherwise
+---@return string? err message in case of invalid `name` or `value`, nil otherwise
+function I.vouch(name, value)
+  local values = I.optvalues[name]
+  if not values then return false, string.format("'%s' is not a known option", name) end
+
+  for _, v in ipairs(values) do
+    if value == v then return true, nil end
+  end
+
+  local err = "option '%s' expects one of {%s}, got '%s'"
+  err = string.format(err, name, table.concat(values, ', '), value)
+  return false, err
 end
 
 -- translate metadata-like AST elements into lua table(s)
@@ -501,6 +525,7 @@ function I.xform(dta, filter)
   tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
     dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- pass in, current cb opts & context
+    I.opts = {} -- reset to prevent current cb's opts to carry over in recursion
   end
 
   -- ensure filters is a *list* of filters (as expected by pandoc version <3.5)
@@ -579,50 +604,6 @@ end
 
 --[[ options (meta/cb) ]]
 
--- checks if `name`,`value` is a valid pair
----@param name string the name of the option
----@param value any the value of the option
----@return boolean ok true if `value` is valid for given, valid, `name`, false otherwise
----@return string? err message in case of invalid `name` or `value`, nil otherwise
-function I.vouch(name, value)
-  local values = I.optvalues[name]
-  if not values then return false, string.format("'%s' is not a known option", name) end
-
-  for _, v in ipairs(values) do
-    if value == v then return true, nil end
-  end
-
-  local err = "option '%s' expects one of {%s}, got '%s'"
-  err = string.format(err, name, table.concat(values, ', '), value)
-  return false, err
-end
-
--- check known option,value-pairs, removing those that are not valid
----@param section string name of config section to check
----@param opts table single, flat, k,v store of options (v's are strings)
----@return table opts same table with illegal option,values removed
-function I.check(section, opts)
-  for k, _ in pairs(I.optvalues) do
-    local val = opts[k]
-    local ok, err = I.vouch(k, val)
-    if val and not ok then
-      opts[k] = nil
-      I.log('error', 'check', 'in ' .. section .. ': ' .. err)
-    end
-  end
-  return opts
-
-  -- for k, valid in pairs(I.optvalues) do
-  --   local v = opts[k]
-  --   if v and #v > 0 and not pd.List.includes(valid, v, 1) then
-  --     local need = table.concat(valid, ', ')
-  --     opts[k] = nil
-  --     I.log('error', 'check', "%s.%s='%s' ignored, need one of: %s", section, k, v, need)
-  --   end
-  -- end
-  -- return opts
-end
-
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
@@ -660,23 +641,25 @@ end
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function I.mkctx(doc)
   -- pickup named cfg sections in meta.stitch, resolution order:
-  -- I.opts (cb) -> I.ctx (stitch[cb.cfg]) -> defaults -> hardcoded
-  I.ctx = I.xlate(doc.meta.stitch or {}) or {} -- REVIEW: last or {} needed?
+  -- I.opts (cb) -> stitch[section] -> defaults -> hardcoded
+  I.ctx = I.xlate(doc.meta.stitch or {})
 
   -- defaults -> hardcoded
   local defaults = I.ctx.defaults or {}
   setmetatable(defaults, { __index = I.hardcoded })
-  I.ctx.defaults = nil
+  I.ctx.defaults = nil -- will be metatable, not a section
+  I.ctx.stitch = I.ctx.stitch or {}
 
   -- sections -> defaults -> hardcoded
-  for _, attr in pairs(I.ctx) do
-    setmetatable(attr, { __index = defaults })
+  for _, options in pairs(I.ctx) do
+    setmetatable(options, { __index = defaults })
   end
 
-  -- missing I.ctx keys also fallback to defaults -> hardcoded
+  -- missing sections (I.ctx keys) also fallback to defaults -> hardcoded
   setmetatable(I.ctx, {
     __index = function() return defaults end,
   })
+  setmetatable(I.ctx.stitch, nil) -- no metable for stitch section
 
   defaults = I.check('defaults', defaults)
   for section, map in pairs(I.ctx) do
@@ -725,8 +708,14 @@ end
 --- @param elm any a header from document being walked
 --- @return any elm same header with possibly updated `header.level`
 function I.Header(elm)
-  local delta = math.floor(tonumber(#tail > 0 and tail[#tail].opts.hdr) or 0)
-  elm.level = elm.level + delta
+  local level = elm.level + math.floor(tonumber(I.ctx.stitch.header) or 0)
+  if level ~= elm.level then
+    level = level > 0 and level or 0
+    local hid = elm.identifier
+    hid = #hid > 0 and 'id ' .. hid .. ': ' or hid
+    I.log('info', 'header', '%sshifting level from %d to %d', hid, elm.level, level)
+    elm.level = level
+  end
   return elm
 end
 
@@ -736,9 +725,15 @@ local Stitch = {
   Pandoc = function(doc)
     I.mkctx(doc)
 
-    local hdr = #tail > 0 and tail[#tail].opts.hdr or nil -- no hdr, no Header
+    -- Shifting headers can be indicated in two ways:
+    -- * by tail[#tail].opts.header, or
+    -- * by I.ctx.stitch.header
+    local s = I.ctx.stitch -- shorthand
+    s.header = #tail > 0 and tail[#tail].opts.hdr or s.header
+    s.header = math.floor(tonumber(s.header) or 0)
+    local header = 0 ~= s.header and I.Header
 
-    local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = hdr and I.Header })
+    local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
     I.log('info', 'stitch', '.. done')
 
     return rv

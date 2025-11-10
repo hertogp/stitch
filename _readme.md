@@ -1,6 +1,11 @@
 ---
 monofont: "DejaVu Sans Mono"
 stitch:
+  stitch:
+    log: debug
+    classes:
+      - diagon
+      - graphviz
   defaults:
     inc: "out cbx:fcb"
     dir: ".stitch/readme"
@@ -701,3 +706,16 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 
 ````
 
+\newpage
+
+## Gotcha's
+
+If `stitch` isn't behaving as expected:
+
+```{.stitch exe=no inc="cbx!csv"}
+#,gotcha,description
+1,no quotes,most values are strings and without quotes only the first word remains
+2,no section,rememer: stitch falls back to hardcoded options if none are speficied
+3,no result,a 0-byte artifact file may result in an empty element
+4,wrong art,if output is absent check the right `what` is in `inc`
+```
