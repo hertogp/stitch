@@ -347,15 +347,11 @@ function I.fkill()
   return count
 end
 
--- says whether cb-executable file and 1 or more outputs already exist or not
----@return boolean deja_vu true or false
-function I.recur()
-  -- if cbx exist with 1 or more outputs, we were here before
-
-  if I.freal(I.opts.cbx) then
-    if I.freal(I.opts.out) or I.freal(I.opts.err) or I.freal(I.opts.art) then return true end
-  end
-  return false
+-- says whether this cb was seen before (2+ artifacts already exist)
+---@return boolean deja_vu true iff cb's `cbx` & 1+ artifacts exist, false otherwise
+function I.deja_vu()
+  -- don't collapse this
+  return I.freal(I.opts.cbx) and (I.freal(I.opts.out) or I.freal(I.opts.err) or I.freal(I.opts.art))
 end
 
 --[[ AST elements ]]
@@ -704,7 +700,7 @@ function I.CodeBlock(cb)
   if I.mkopt(cb) and I.mkcmd(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
-    elseif I.recur() and 'maybe' == I.opts.exe then
+    elseif I.deja_vu() and 'maybe' == I.opts.exe then
       I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
     else
       I.log('info', 'execute', "running codeblock (exe='%s')", I.opts.exe)
