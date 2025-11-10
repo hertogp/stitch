@@ -6,9 +6,7 @@
 -- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 -- [ ] check all pd.<f>'s used and establish oldest version possible
 
--- ensure we're loaded only once (pandoc seems to do `f = loadfile(path)()`,
--- which runs this module but does not register in package.loaded)
-
+-- ensure we're loaded only once (see notes on module's return statement)
 if package.loaded.stitch then return package.loaded.stitch end
 
 local I = {} -- Stitch's Implementation; for testing
@@ -227,17 +225,10 @@ function I.mkcmd(cb)
   return true
 end
 
--- says whether given `filename` is real on disk or not
+-- return true if `filename` exists, false otherwise
 ---@param filename string path to a file
 ---@return boolean exists true or false
-function I.freal(filename)
-  local f = io.open(filename, 'r')
-  if f then
-    f:close()
-    return true
-  end
-  return false
-end
+function I.freal(filename) return true == os.rename(filename, filename) end
 
 -- read file `name` and, possibly, convert to pandoc ast using `format`
 ---@param name string file to read
@@ -745,6 +736,10 @@ local Stitch = {
   end,
 }
 
--- simply returning `Stitch` requires pandoc version >=3.5
-package.loaded.stitch = { Stitch } -- claim our spot in case we need to require ourself later
+-- Notes:
+-- * cannot simply return `Stitch` => requires pandoc version >=3.5
+-- * pandoc does f = loadfile(..)(), hence no package.loaded['stitch'] entry
+-- * when stitch recurses on a codeblock, it requires itself
+-- * stitch must be loaded once (I.cbc), so register as a loaded package
+package.loaded.stitch = { Stitch }
 return package.loaded.stitch

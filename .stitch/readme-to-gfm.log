@@ -1,0 +1,136 @@
+[stitch:0  info] stitch  init   | loading STITCH, init cbc to 0
+[stitch:0  info] preface expand | cmd template '#cbx 1>#out'
+[stitch:0  info] preface expand | .stitch/readme/preface-5800b4b7705b48fca7677ab4221a82eeab86b680.cbx 1>.stitch/readme/preface-5800b4b7705b48fca7677ab4221a82eeab86b680.out
+[stitch:0  info] preface execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] preface files  | looking for old files ..
+[stitch:0  info] preface files  | 0 old files removed
+[stitch:0  info] preface include| cb.'#preface-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb01    expand | cmd template 'diagon #arg <#cbx 1>#out'
+[stitch:0  info] cb01    expand | diagon Flowchart <.stitch/diagon/cb01-37d3c512fa99b6937c1cfa33abcd836ef3e1bc78.cbx 1>.stitch/diagon/cb01-37d3c512fa99b6937c1cfa33abcd836ef3e1bc78.out
+[stitch:0  info] cb01    execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] cb01    files  | looking for old files ..
+[stitch:0  info] cb01    files  | 0 old files removed
+[stitch:0  info] cb01    include| cb.'#cb01-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb01    include| cb.'#cb01-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb02    expand | cmd template '#cbx 1>#out'
+[stitch:0  info] cb02    expand | .stitch/youplot/cb02-fd072761be716138eb6c3027e57a5b49e7773c2f.cbx 1>.stitch/youplot/cb02-fd072761be716138eb6c3027e57a5b49e7773c2f.out
+[stitch:0  info] cb02    execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] cb02    files  | looking for old files ..
+[stitch:0  info] cb02    files  | 0 old files removed
+[stitch:0  info] cb02    include| cb.'#cb02-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb02    include| cb.'#cb02-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb03    expand | cmd template 'typst #arg #cbx #art'
+[stitch:0  info] cb03    expand | typst compile .stitch/cetz/cb03-de68638e00c2626df454084299617cc9fc3b0ceb.cbx .stitch/cetz/cb03-de68638e00c2626df454084299617cc9fc3b0ceb.png
+[stitch:0  info] cb03    execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] cb03    files  | looking for old files ..
+[stitch:0  info] cb03    files  | 0 old files removed
+[stitch:0  info] cb03    include| cb.'#cb03-1-art', 'art:fig', pandoc.Figure
+[stitch:0  info] cb03    include| cb.'#cb03-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb04    expand | cmd template 'typst #arg #cbx #art'
+[stitch:0  info] cb04    expand | typst compile .stitch/cetz/cb04-5e87b0bebe01ef19c55ff5fdf4013745e2fe1f86.cbx .stitch/cetz/cb04-5e87b0bebe01ef19c55ff5fdf4013745e2fe1f86.svg
+[stitch:0  info] cb04    execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] cb04    files  | looking for old files ..
+[stitch:0  info] cb04    files  | 0 old files removed
+[stitch:0  info] cb04    include| cb.'#cb04-1-art', 'art:fig', pandoc.Figure
+[stitch:0  info] cb04    include| cb.'#cb04-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb05    expand | cmd template '#cbx #arg #art 1>#out 2>#err'
+[stitch:0  info] cb05    expand | .stitch/cetz/cb05-6fc54eb377106ee5f2f6a5004cbf8cd6a88ef1b1.cbx local-temperature.json .stitch/cetz/cb05-6fc54eb377106ee5f2f6a5004cbf8cd6a88ef1b1.png 1>.stitch/cetz/local-temperature.json 2>.stitch/cetz/cb05-6fc54eb377106ee5f2f6a5004cbf8cd6a88ef1b1.err
+[stitch:0  info] cb05    execute| running codeblock (exe='yes')
+[stitch:0  info] cb05    execute| cb05, codeblock ran successfully
+[stitch:0  info] cb05    files  | looking for old files ..
+[stitch:0  warn] cb05    files  | `#out` template without `#sha` (6fc54eb377106ee5f2f6a5004cbf8cd6a88ef1b1), unable to detect old files
+[stitch:0  info] cb05    files  | 0 old files removed
+[stitch:0  info] cb05    include| cb.'#cb05-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb06    expand | cmd template 'typst #arg #cbx #art'
+[stitch:0  info] cb06    expand | typst compile .stitch/cetz/cb06-0ce52749832f4f7a86c91024d020b6da6c67b87e.cbx .stitch/cetz/cb06-0ce52749832f4f7a86c91024d020b6da6c67b87e.svg
+[stitch:0  info] cb06    execute| running codeblock (exe='yes')
+[stitch:0  info] cb06    execute| cb06, codeblock ran successfully
+[stitch:0  info] cb06    files  | looking for old files ..
+[stitch:0  info] cb06    files  | 0 old files removed
+[stitch:0  info] cb06    include| cb.'#cb06-1-art', 'art:fig', pandoc.Figure
+[stitch:0  info] cb06    include| cb.'#cb06-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb07    expand | cmd template 'gnuplot #cbx 1>#art 2>#err'
+[stitch:0  info] cb07    expand | gnuplot .stitch/gnuplot/cb07-487e12972a2051d2e5f0a8ae28ba814c134d5d54.cbx 1>.stitch/gnuplot/cb07-487e12972a2051d2e5f0a8ae28ba814c134d5d54.png 2>.stitch/gnuplot/cb07-487e12972a2051d2e5f0a8ae28ba814c134d5d54.err
+[stitch:0  info] cb07    execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] cb07    files  | looking for old files ..
+[stitch:0  info] cb07    files  | 0 old files removed
+[stitch:0  info] cb07    include| cb.'#cb07-1-art', 'art:fig', pandoc.Figure
+[stitch:0  info] cb07    include| cb.'#cb07-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] arg     expand | cmd template '#cbx #arg #art 1>#out 2>#err'
+[stitch:0  info] arg     expand | .stitch/readme/arg-873dcf6c3fa35102ef1cfc63aa1feb69650f3fec.cbx two words .stitch/readme/arg-873dcf6c3fa35102ef1cfc63aa1feb69650f3fec.png 1>.stitch/readme/arg-873dcf6c3fa35102ef1cfc63aa1feb69650f3fec.out 2>.stitch/readme/arg-873dcf6c3fa35102ef1cfc63aa1feb69650f3fec.err
+[stitch:0  info] arg     execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] arg     files  | looking for old files ..
+[stitch:0  info] arg     files  | 0 old files removed
+[stitch:0  info] arg     include| cb.'#arg-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] arg     include| cb.'#arg-2-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] csv     expand | cmd template '#cbx #arg #art 1>#out 2>#err'
+[stitch:0  info] csv     expand | .stitch/readme/csv-87081641d8f50a6fba42e6c792d447f6129a8b2b.cbx  .stitch/readme/csv-87081641d8f50a6fba42e6c792d447f6129a8b2b.png 1>.stitch/readme/csv-87081641d8f50a6fba42e6c792d447f6129a8b2b.out 2>.stitch/readme/csv-87081641d8f50a6fba42e6c792d447f6129a8b2b.err
+[stitch:0  info] csv     execute| skipped (exe='no')
+[stitch:0  info] csv     files  | looking for old files ..
+[stitch:0  info] csv     files  | 0 old files removed
+[stitch:0  info] csv     include| cb.'#csv-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] csv     read   | pandoc.read as csv succeeded (type=Pandoc)
+[stitch:0  info] csv     include| cb.'csv-2-cbx', 'cbx', merging 1 pandoc.Block's
+[stitch:0  info] csv     read   | pandoc.read as csv succeeded (type=Pandoc)
+[stitch:0  info] csv     include| cb.'#csv-3-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0 debug] nested  option | inc = "cbx:fcb out!markdown@stitch"
+[stitch:0 debug] nested  option | dir = ".stitch/readme"
+[stitch:0 debug] nested  option | cmd = "#cbx #arg #art 1>#out 2>#err"
+[stitch:0 debug] nested  option | log = "debug"
+[stitch:0 debug] nested  option | fmt = "png"
+[stitch:0 debug] nested  option | err = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.err"
+[stitch:0 debug] nested  option | art = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.png"
+[stitch:0 debug] nested  option | old = "purge"
+[stitch:0 debug] nested  option | out = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out"
+[stitch:0 debug] nested  option | cbx = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.cbx"
+[stitch:0 debug] nested  option | arg = ""
+[stitch:0 debug] nested  option | exe = "maybe"
+[stitch:0 debug] nested  option | cid = "nested"
+[stitch:0  info] nested  expand | cmd template '#cbx #arg #art 1>#out 2>#err'
+[stitch:0  info] nested  expand | .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.cbx  .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.png 1>.stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out 2>.stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.err
+[stitch:0  info] nested  execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] nested  files  | looking for old files ..
+[stitch:0  info] nested  files  | 0 old files removed
+[stitch:0 debug] nested  include| include found 2 inc's in 'cbx:fcb out!markdown@stitch'
+[stitch:0 debug] nested  read   | .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.cbx, 677 bytes
+[stitch:0  info] nested  include| cb.'#nested-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0 debug] nested  read   | .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out, 648 bytes
+[stitch:0  info] nested  read   | pandoc.read as markdown succeeded (type=Pandoc)
+[stitch:0 debug] nested  xload  | trying module "stitch"
+[stitch:0 debug] nested  xload  | found module "stitch", pkg.loaded=table: 0x4516b6f0
+[stitch:0  warn] nested  xform  | @stitch, found mod stitch, presumably a list of filters
+[stitch:1 debug] cb16    option | inc = "cbx!csv"
+[stitch:1 debug] cb16    option | dir = ".stitch/readme/nested"
+[stitch:1 debug] cb16    option | cmd = "#cbx #arg #art 1>#out 2>#err"
+[stitch:1 debug] cb16    option | log = "debug"
+[stitch:1 debug] cb16    option | fmt = "png"
+[stitch:1 debug] cb16    option | err = ".stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.err"
+[stitch:1 debug] cb16    option | art = ".stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.png"
+[stitch:1 debug] cb16    option | old = "purge"
+[stitch:1 debug] cb16    option | out = ".stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.out"
+[stitch:1 debug] cb16    option | cbx = ".stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.cbx"
+[stitch:1 debug] cb16    option | arg = ""
+[stitch:1 debug] cb16    option | exe = "no"
+[stitch:1 debug] cb16    option | cid = "cb16"
+[stitch:1  info] cb16    expand | cmd template '#cbx #arg #art 1>#out 2>#err'
+[stitch:1  info] cb16    expand | .stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.cbx  .stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.png 1>.stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.out 2>.stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.err
+[stitch:1  info] cb16    execute| skipped (exe='no')
+[stitch:1  info] cb16    files  | looking for old files ..
+[stitch:1  info] cb16    files  | 0 old files removed
+[stitch:1 debug] cb16    include| include found 1 inc's in 'cbx!csv'
+[stitch:1 debug] cb16    read   | .stitch/readme/nested/cb16-972f03d3b5c8eb9a08b80cf78df3082c970232e2.cbx, 21 bytes
+[stitch:1  info] cb16    read   | pandoc.read as csv succeeded (type=Pandoc)
+[stitch:1 debug] cb16    include| cb.'cb16-1-cbx', 'cbx', no type specified (using default)
+[stitch:1  info] cb16    include| cb.'cb16-1-cbx', 'cbx', merging 1 pandoc.Block's
+[stitch:1  info] cb17    expand | cmd template '#cbx #arg #art 1>#out 2>#err'
+[stitch:1  info] cb17    expand | .stitch/readme/nested/cb17-9994ecb3d27bfea2ca7cc361d0a959ced76f7e4b.cbx  .stitch/readme/nested/cb17-9994ecb3d27bfea2ca7cc361d0a959ced76f7e4b.png 1>.stitch/readme/nested/cb17-9994ecb3d27bfea2ca7cc361d0a959ced76f7e4b.out 2>.stitch/readme/nested/cb17-9994ecb3d27bfea2ca7cc361d0a959ced76f7e4b.err
+[stitch:1  info] cb17    execute| skipped, output files exist (exe='maybe')
+[stitch:1  info] cb17    files  | looking for old files ..
+[stitch:1  info] cb17    files  | 0 old files removed
+[stitch:1  info] cb17    include| cb.'#cb17-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:1  info] cb17    stitch | .. done
+[stitch:0  info] nested  xform  | @stitch, applied 1 filter(s) to given `dta`
+[stitch:0  info] nested  write  | .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out, skipped writing 'userdata'
+[stitch:0 debug] nested  include| cb.'nested-2-out', 'out', no type specified (using default)
+[stitch:0  info] nested  include| cb.'nested-2-out', 'out', merging 6 pandoc.Block's
+[stitch:0  info] nested  stitch | .. done

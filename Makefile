@@ -11,17 +11,19 @@ ENGINE   = --pdf-engine=xelatex
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
 ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
+PDFLOGS  = $(ST_DIR)/readme-to-pdf.log
+GFMLOGS  = $(ST_DIR)/readme-to-gfm.log
 
 # make any ex(ample) converting markdown -> html
 default: show
 
 readme: readme.pdf
-	echo "creating README.md"
-	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md
+	@echo "creating README.md, logging to $(GFMLOGS)"
+	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md 2>&1 | tee $(GFMLOGS)
 
 readme.pdf:
-	echo "creating examples/README.pdf"
-	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 | tee scr/stitch-readme.log
+	@echo "creating examples/README.pdf, logging to $(PDFLOGS)"
+	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 | tee $(PDFLOGS)
 
 
 ex%:
