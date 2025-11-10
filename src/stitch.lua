@@ -5,6 +5,19 @@
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
 -- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 -- [ ] check all pd.<f>'s used and establish oldest version possible
+-- [ ] REVIEW: add stitch classes list to treat as stichable
+--     * allows for stitching cb's that are not stitch-aware ...
+--     * config the class in a section:
+--     * or simply treat each named section as class-tag as well?
+--       ---
+--       stitch:
+--         classes:
+--           class1:
+--             opt1: ...
+--         tool-or-class:
+--           opt1: ...
+--       ...
+--
 
 -- ensure we're loaded only once (see notes on module's return statement)
 if package.loaded.stitch then return package.loaded.stitch end
@@ -103,7 +116,7 @@ function I.parse(inc)
       p:match('^' .. part) or '', -- what to include
       p:match('!' .. part) or '', -- read as type
       p:match('@' .. part) or '', -- filter
-      p:match(':' .. part) or '', -- how to include (type of element)
+      p:match(':' .. part) or 'any', -- how to include (type of element)
     }
   end
 
@@ -347,81 +360,81 @@ end
 
 --[[ AST elements ]]
 
-I.mkelm = {
-  -- functions result should be either type Block or type Blocks
-  fcb = function(fcb, cb, doc, what)
-    -- pandoc.CodeBlock type is Block
-
-    if 'Pandoc' == pd.utils.type(doc) then
-      -- doc converted to pandoc native form, attr copied if possible
-      if doc and doc.blocks[1].attr then
-        doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
-      end
-      fcb.text = pd.write(doc, 'native')
-    elseif 'cbx' == what then
-      -- doc discarded, org cb included (in markdown format)
-      fcb.text = pd.write(pd.Pandoc({ cb }, {}), 'markdown')
-    else
-      -- doc used as-is for out, err
-      fcb.text = doc
-    end
-    I.log('info', 'include', "cb.'#%s', '%s:fcb', fenced pandoc.CodeBlock", fcb.attr.identifier, what)
-
-    return fcb
-  end,
-
-  img = function(fcb, _, _, what)
-    -- wrap pandoc.Image (type Inline) in a pandoc.Para (type Block)
-    -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
-    --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
-    local title = fcb.attributes.title or ''
-    local caption = fcb.attributes.caption
-    I.log('info', 'include', "cb.'#%s', '%s:img', pandoc.Image", fcb.attr.identifier, what)
-    return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
-  end,
-
-  fig = function(fcb, _, _, what)
-    --  pandoc.Figure element (type Block), since pandoc version >=3.0
-    local img = pd.Image({}, I.opts[what], '', {})
-    img.attr.identifier = fcb.attr.identifier .. '-img'
-    I.log('info', 'include', "cb.'#%s', '%s:fig', pandoc.Figure", fcb.attr.identifier, what)
-    return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
-  end,
-
-  [''] = function(fcb, cb, doc, what)
-    -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
-    local cid = fcb.attr.identifier
-    I.log('debug', 'include', "cb.'%s', '%s', no type specified (using default)", cid, what)
-    if 'Pandoc' == pd.utils.type(doc) then
-      if doc and doc.blocks and doc.blocks[1] and doc.blocks[1].attr then
-        doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
-      end
-      I.log('info', 'include', "cb.'%s', '%s', merging %d pandoc.Block's", cid, what, #doc.blocks)
-      return doc.blocks
-    elseif 'art' == what then
-      return I.mkelm.fig(fcb, cb, doc, what)
-    elseif 'cbx' == what then
-      fcb.text = doc
-      I.log('info', 'include', "cb.'%s', id %s, plain pandoc.CodeBlock", cid, what)
-      return fcb
-    else
-      return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
-    end
-  end,
-}
-
+I.mkelm = {}
 setmetatable(I.mkelm, {
   __index = function(t, how)
     local keys = {}
     for k, _ in pairs(t) do
       keys[#keys + 1] = string.format('%q', k)
     end
+    table.sort(keys)
     local valid = table.concat(keys, ', ')
-    local msg = string.format("howto: expected one of {%s}, got '%s'", valid, how)
+    local msg = string.format("expected `how` to be one of {%s}, got '%s'", valid, how)
     I.log('error', 'include', msg)
     return function() return {} end
   end,
 })
+
+-- functions result should be either type Block or type Blocks
+function I.mkelm.fcb(fcb, cb, doc, what)
+  -- pandoc.CodeBlock type is Block
+
+  if 'Pandoc' == pd.utils.type(doc) then
+    -- doc converted to pandoc native form, attr copied if possible
+    if doc and doc.blocks[1].attr then
+      doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
+    end
+    fcb.text = pd.write(doc, 'native')
+  elseif 'cbx' == what then
+    -- doc discarded, org cb included (in markdown format)
+    fcb.text = pd.write(pd.Pandoc({ cb }, {}), 'markdown')
+  else
+    -- doc used as-is for out, err
+    fcb.text = doc
+  end
+  I.log('info', 'include', "cb.'#%s', '%s:fcb', fenced pandoc.CodeBlock", fcb.attr.identifier, what)
+
+  return fcb
+end
+
+function I.mkelm.img(fcb, _, _, what)
+  -- wrap pandoc.Image (type Inline) in a pandoc.Para (type Block)
+  -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
+  --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
+  local title = fcb.attributes.title or ''
+  local caption = fcb.attributes.caption
+  I.log('info', 'include', "cb.'#%s', '%s:img', pandoc.Image", fcb.attr.identifier, what)
+  return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
+end
+
+function I.mkelm.fig(fcb, _, _, what)
+  --  pandoc.Figure element (type Block), since pandoc version >=3.0
+  local img = pd.Image({}, I.opts[what], '', {})
+  img.attr.identifier = fcb.attr.identifier .. '-img'
+  I.log('info', 'include', "cb.'#%s', '%s:fig', pandoc.Figure", fcb.attr.identifier, what)
+  return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
+end
+
+function I.mkelm.any(fcb, cb, doc, what)
+  -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
+  local cid = fcb.attr.identifier
+  I.log('debug', 'include', "cb.'%s', '%s', no type specified (using default)", cid, what)
+  if 'Pandoc' == pd.utils.type(doc) then
+    if doc and doc.blocks and doc.blocks[1] and doc.blocks[1].attr then
+      doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
+    end
+    I.log('info', 'include', "cb.'%s', '%s', merging %d pandoc.Block's", cid, what, #doc.blocks)
+    return doc.blocks
+  elseif 'art' == what then
+    return I.mkelm.fig(fcb, cb, doc, what)
+  elseif 'cbx' == what then
+    fcb.text = doc
+    I.log('info', 'include', "cb.'%s', id %s, plain pandoc.CodeBlock", cid, what)
+    return fcb
+  else
+    return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
+  end
+end
 
 -- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
@@ -548,7 +561,7 @@ function I.result(cb)
       fcb.attr.identifier = string.format('%s-%d-%s', I.opts.cid, idx, what)
       local new = I.mkelm[how](fcb, cb, doc, what)
       -- see `:Open https://pandoc.org/lua-filters.html#type-blocks`
-      -- new is either Blocks or Block;
+      -- type(new) is either Blocks or Block;
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
       for _, block in ipairs(new) do
         elms[#elms + 1] = block
