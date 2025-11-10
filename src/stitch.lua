@@ -27,11 +27,11 @@ I.level = {
 }
 
 function I.log(lvl, action, msg, ...)
-  -- [stitch level] (action cb_id) msg .. (need to check opts.log value)
+  -- log format: [stitch:recursLevel logLevel] tag< >action | msg
   if (I.level[I.opts.log] or 1) >= I.level[lvl] then
-    local fmt = '[stitch:%d %5s] %-7s %-7s| ' .. tostring(msg) .. '\n'
-    local text = string.format(fmt, #tail, lvl, I.opts.cid or 'stitch', action, ...)
-    io.stderr:write(text)
+    local tag = I.opts.cid or 'stitch'
+    local fmt = string.format('[stitch:%d %5s] %-7s:%7s| %s\n', #tail, lvl, tag, action, msg)
+    io.stderr:write(string.format(fmt, ...))
   end
 end
 
@@ -195,7 +195,7 @@ function I.mkcmd(cb)
     -- `normalize` (v2.12) makes dir platform independent
     local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
     if not os.execute('mkdir -p ' .. dir) then
-      I.log('error', 'cmd', 'permission denied when creating ' .. dir)
+      I.log('error', 'command', 'permission denied when creating ' .. dir)
       return false
     end
   end
@@ -204,24 +204,24 @@ function I.mkcmd(cb)
   -- if not flive(fname) then .. else I.log(reuse) end
   local fh = io.open(I.opts.cbx, 'w')
   if not fh then
-    I.log('error', 'cmd', 'cbx could not open file: ' .. I.opts.cbx)
+    I.log('error', 'command', 'cbx could not open file: ' .. I.opts.cbx)
     return false
   end
   if not fh:write(cb.text) then
     fh:close()
-    I.log('error', 'cmd', 'cbx could not write to: ' .. I.opts.cbx)
+    I.log('error', 'command', 'cbx could not write to: ' .. I.opts.cbx)
     return false
   end
   fh:close()
 
   if not os.execute('chmod u+x ' .. I.opts.cbx) then
-    I.log('error', 'cmd', 'cbx could not mark executable: ' .. I.opts.cbx)
+    I.log('error', 'command', 'cbx could not mark executable: ' .. I.opts.cbx)
     return false
   end
 
-  I.log('info', 'expand', "cmd template '%s'", I.opts.cmd)
+  I.log('info', 'command', "expanding template '%s'", I.opts.cmd)
   I.opts.cmd = I.opts.cmd:gsub('%#(%w+)', I.opts)
-  I.log('info', 'expand', '%s', I.opts.cmd)
+  I.log('info', 'command', '%s', I.opts.cmd)
   return true
 end
 
