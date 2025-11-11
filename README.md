@@ -937,42 +937,164 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 
 If `stitch` isn’t behaving as expected:
 
-| \#  | gotcha     | description                                                            |
-|-----|------------|------------------------------------------------------------------------|
-| 1   | no quotes  | most values are strings and without quotes only the first word remains |
-| 2   | no section | rememer: stitch falls back to hardcoded options if none are speficied  |
-| 3   | no result  | a 0-byte artifact file may result in an empty element                  |
-| 4   | wrong art  | if output is absent check the right \`what\` is in \`inc\`             |
+| \#  | gotcha        | description                                                            |
+|-----|---------------|------------------------------------------------------------------------|
+| 1   | no quotes     | most values are strings and without quotes only the first word remains |
+| 2   | no section    | rememer: stitch falls back to hardcoded options if none are speficied  |
+| 3   | no result     | a 0-byte artifact file may result in an empty element                  |
+| 4   | wrong art     | if output is absent check the right \`what\` is in \`inc\`             |
+| 5   | cb is skipped | probably because it it not recognized as such: check your markdown     |
+| 6   | pdf fails     | image files that are invalid may break your pdf-engine                 |
 
-## Meta
+## Stitch introspection
+
+If a CodeBlock’s attributes include a `lua=chunk`, then stitch will load
+it as a chunk, providing a copy of itself as `Stitch` in the chunk’s
+global namespace.
+
+```` lua
+``` {.lua .stitch inc="cbx:fcb out:fcb" lua="chunk"}
+local out = io.open(Stitch.opts.out, 'w')
+local tprint = function(t)
+  local lead = string.rep(" ", 6) -- magical nr
+  out:write("{\n")
+  for k,v in pairs(t) do
+    local vv = tostring(v):gsub("%s+", " \\\n" .. lead .. lead)
+    out:write(lead, k, " = ", vv, "\n")
+  end
+  out:write("}\n")
+end
+out:write("Stitch counters:\n")
+out:write("- cbc = ", Stitch.cbc, " (codeblock counter)\n")
+out:write("- hdc = ", Stitch.hdc, " (header counter)\n")
+out:write("\n\nCodeBlock opts:\n")
+tprint(Stitch.opts)
+out:write("\nStitch context:\n")
+for k,v in pairs(Stitch.ctx) do
+    out:write(k, ":\n")
+    tprint(v)
+end
+out:write("\nHardcoded options\n")
+tprint(Stitch.hardcoded)
+out:write("\n")
+
+-- tmp
+local fp = 'media/hello.txt'
+local mt = 'text/plain'
+local contents = 'Nou moe?'
+pandoc.mediabag.insert(fp, mt, contents)
+for p,m in pandoc.mediabag.items() do
+    out:write("pd.mediabag", k, v)
+end
+
+out:close()
+```
+````
 
 ``` lua
-Counters:
-- cb  count  = 19
-- hdr count = 2
-
-Context:
-diagon = table: 0x40e1c1f0
-doc = table: 0x40e1c3b0
-cetz = table: 0x40e1c4d0
-stitch = table: 0x40e1c490
-gnuplot = table: 0x40e1c820
-download = table: 0x40e1c780
-youplot = table: 0x40e1c650
+Stitch counters:
+- cbc = 19 (codeblock counter)
+- hdc = 2 (header counter)
 
 
-CB Opts:
-cbx = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.cbx
-sha = 0e551bdc13524e32f4ef4be4aad2957b02b064bb
-out = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.out
-inc = out:fcb
-cid = cb19
-cmd = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.cbx \
-      .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.png \
-      1>.stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.out \
-      2>.stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.err
-err = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.err
-art = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.png
-lua = chunk
+CodeBlock opts:
+{
+      cid = cb19
+      lua = chunk
+      cbx = .stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.cbx
+      cmd = .stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.cbx \
+            .stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.png \
+            1>.stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.out \
+            2>.stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.err
+      art = .stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.png
+      out = .stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.out
+      inc = cbx:fcb \
+            out:fcb
+      err = .stitch/readme/cb19-7b6c9361edf99e0a51d53f057a71868830ca279b.err
+      sha = 7b6c9361edf99e0a51d53f057a71868830ca279b
+}
 
+Stitch context:
+cetz:
+{
+      dir = .stitch/cetz
+      inc = art \
+            cbx:fcb
+      arg = compile
+      cmd = typst \
+            #arg \
+            #cbx \
+            #art
+}
+youplot:
+{
+      dir = .stitch/youplot
+      cmd = #cbx \
+            1>#out
+}
+stitch:
+{
+      classes = table: \
+            0x485629b0
+      log = debug
+      header = 0
+}
+doc:
+{
+      dir = .stitch/readme
+      inc = out
+      cmd = #cbx \
+            1>#out
+}
+diagon:
+{
+      dir = .stitch/diagon
+      cmd = diagon \
+            #arg \
+            <#cbx \
+            1>#out
+}
+download:
+{
+      dir = .stitch/cetz
+      inc = cbx:fcb
+      out = .stitch/cetz/#arg
+      exe = yes
+}
+gnuplot:
+{
+      dir = .stitch/gnuplot
+      inc = art:fig \
+            cbx:fcb
+      cmd = gnuplot \
+            #cbx \
+            1>#art \
+            2>#err
+}
+
+Hardcoded options
+{
+      cid = x
+      log = info
+      dir = .stitch
+      arg = 
+      cmd = #cbx \
+            #arg \
+            #art \
+            1>#out \
+            2>#err
+      art = #dir/#cid-#sha.#fmt
+      exe = maybe
+      out = #dir/#cid-#sha.out
+      old = purge
+      inc = cbx:fcb \
+            out:fcb \
+            art:img \
+            err:fcb
+      cbx = #dir/#cid-#sha.cbx
+      err = #dir/#cid-#sha.err
+      fmt = png
+}
+
+pd.mediabag
 ```

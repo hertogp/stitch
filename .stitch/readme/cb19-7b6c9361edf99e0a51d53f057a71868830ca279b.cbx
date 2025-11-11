@@ -1,0 +1,34 @@
+local out = io.open(Stitch.opts.out, 'w')
+local tprint = function(t)
+  local lead = string.rep(" ", 6) -- magical nr
+  out:write("{\n")
+  for k,v in pairs(t) do
+    local vv = tostring(v):gsub("%s+", " \\\n" .. lead .. lead)
+    out:write(lead, k, " = ", vv, "\n")
+  end
+  out:write("}\n")
+end
+out:write("Stitch counters:\n")
+out:write("- cbc = ", Stitch.cbc, " (codeblock counter)\n")
+out:write("- hdc = ", Stitch.hdc, " (header counter)\n")
+out:write("\n\nCodeBlock opts:\n")
+tprint(Stitch.opts)
+out:write("\nStitch context:\n")
+for k,v in pairs(Stitch.ctx) do
+    out:write(k, ":\n")
+    tprint(v)
+end
+out:write("\nHardcoded options\n")
+tprint(Stitch.hardcoded)
+out:write("\n")
+
+-- tmp
+local fp = 'media/hello.txt'
+local mt = 'text/plain'
+local contents = 'Nou moe?'
+pandoc.mediabag.insert(fp, mt, contents)
+for p,m in pandoc.mediabag.items() do
+    out:write("pd.mediabag", k, v)
+end
+
+out:close()

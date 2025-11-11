@@ -279,14 +279,14 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 # Documentation
 
-This lua-filter requires pandoc version >= 2.19, or >= 3.0 if you want
-to use `pandoc.Figure` to include results.  Some stuff in here is probably not
-Windows friendly, but any *nix should be fine.
+This lua-filter requires pandoc version >= 2.19 (or >= 3.0 if you want
+to use `pandoc.Figure` to link to an image).  Some stuff in here is probably
+not Windows friendly, but any *nix should be fine.
 
 
 ## Installation
 
-Installation is pretty straightforward:
+Installation is straightforward:
 
 * put `stitch.lua` on your `$LUA_PATH` (e.g. in `~/.local/share/pandoc/filters`)
 * add `~/.local/share/pandoc/filters/?.lua` to `$LUA_PATH`
@@ -294,145 +294,97 @@ Installation is pretty straightforward:
 
 ## Usage
 
-`% pandoc --lua-filter stitch.lua doc.md -t doc.pdf`
+`% pandoc --lua-filter stitch.lua doc.md ..`
 
-A doc's meta section is read by Stitch for options.  When converting
-multiple documents into one output document, those could go into
-a yaml file mentioned last on the command line.  Or as the first one,
-since meta information is merged, where the 'last one wins'.
-
-*stitchable codeblock*
-
-A codeblock can be marked for processing by `stitch` by:
-
-  * `.stitch` included as a class, and/or
-  * `stitch=name` included as an attribute
-
-If either one is found, the codeblock will be processed according to the set of
-options found for this codeblock. See [Options](#options) below for the
-resolution order.
-
-Using `stitch=` or `stitch=""` is the same as including the `.stitch` class. If
-the hardcoded defaults are enough, simply add `.stitch` as a class.  If the
-tool being used requires other settings, create a `name`'d section in the meta
-block of the document and set the codeblock attribute `stitch=name`.
-
-Examples:
-
-    ```{#id-x .stitch}
-    echo "just using the defaults"
-    ```
-or
-
-    ```{#id-y stitch=download out="#dir/dta/weather.json"}
-    curl -sL https://host/v1/forecast/?today&format=json
-    ```
-and the meta section looks something like this:
-
-    ---
-    author: me
-    stitch:
-      defaults:
-        dir: ".stitch"     # work dir for all things stitch
-      download:
-        inc=""             # no includes, just download
-        cmd="#cbx 1>#out"  # redirect stdout to file given by cb's `#out`-attribute
-    ...
-
-The `#<opt>`'s are expanded by stitch using the option-set for the current
-codeblock.  In case of the second codeblock example, stdout is redirected to
-`.stitch/dta/weather.json` which is a path relative to the directory where the
-pandoc conversion command was given.
-
-*codeblock 'execution'*
+The filter will process a codeblock if it has a:
+  * `.stitch` class,
+  * `stitch=name` attribute, or
+  * class listed in the [`byc`]-option (short for 'by class')
 
 Processing a codeblock follows these steps:
 
   1. resolve all options and expand them (once)
-  2. save `cb.text` to file given by `#cbx`-path (always)
+  2. save `cb.text` to [`cbx`]-file & mark it as executable (always)
   3. check if anything has changed (1+ of the other artifacts exist)
-  4. conditionally run `os.execute(#cmd)` to produce new artifacts
-  5. check for old files and conditionally remove them
-  6. parse the `inc` option and include results in order (if any)
+  4. conditionally run [`cmd`] to produce new artifacts:
+     a. an [`art`]-file (usually an image file, depends on [`cmd`]),
+     b. an [`out`]-file (if [`cmd`] redirects `stdout` here)
+     c. an [`err`]-file (if [`cmd`] redirects `stderr` here)
+  5. check for [`old`] files and conditionally remove them
+  6. parse the [`inc`] option and include results in order (if any)
 
-In the face of errors, just complain and carry on.
+As a special case, the [`lua`]-option will override step 4 and loads the
+[`cbx`]-file as a chunk and executes it.  Regardless, last step will try to
+include 0 or more of the resulting files.
+
+In the face of errors, just complain and carry on.  If things don't pan out,
+check the logs and perhaps set the codeblock's [`log`]-option to `debug`.
 
 ## Features
 
-Stitch provides a few features that make converting codeblocks easy:
+Stitch provides a few features for converting codeblocks:
 
-  * conditional codeblock execution
-  * organize file storage locations for codeblock artifacts
-  * old file detection and (possibly) clean up
-  * include 0 or more of stdout, stderr, output file and/or codeblock
-  * include the same output multiple times in different ways
-  * run codeblock as system command or run it through another command
+  * conditional codeblock execution ([`exe`])
+    - run the codeblock as a system command
+    - have it processed by an external tool
+    - load it as a chunk and run it with Stitch in its global environment
+  * organize storage locations for codeblock artifacts ([`dir`])
+  * detect old files and (possibly) remove them ([`old`])
+  * include 0 or more of the artifacts ([`inc`])
+  * include the same artifact multiple times in, usually, different ways
   * use a codeblock for side-effects only (0 includes)
-  * different log levels to show processing details
-  * non-stitch cb attributes are transferred to included results if possible
-  * unique id is also assigned and transferred if possible
+  * log levels, global, per tool or codeblock, to show all gory details ([`log`])
+  * transfer codeblock attributes to included results, if possible
+  * a unique id per codeblock and its includes ([`cid`])
+  * include after re-read an artifact using a [pandoc --read=format](https://pandoc.org/MANUAL.html#general-options)
+  * run the [`cbx`] or other artifact through an external filter
+    - any lua program/filter that accepts string data or a pandoc doc
+    - stitch itself to do codeblocks in an externally acquired markdown doc
 
-\newpage
 
-## Options
+## Configuration
 
-Stitch options are resolved in the following, most to least, specific order:
+Stitch options are resolved in the following, *most to least*, specific order:
 
   1. codeblock attributes
-  2. a meta `name` section
-  3. the meta `defaults` section
+  2. a `name` section, in `meta.stitch`
+  3. the `defaults` section, again in `meta.stitch`
   4. hardcoded Stitch defaults
 
 The list of options and default values are:
 
-Opt | Value                          | Description
-:---|:-------------------------------|:--------------------------------
-arg | ''                             | argument for the command line
-cid | 'x'                            | the codeblock's id, if absent it is generated
-dir | '.stitch'                      | Stitch's working directory, relative to pandoc's
-exe | 'maybe'                        | execute codeblock (or not)
-fmt | 'png'                          | intended graphic file format
-log | 'info'                         | log verbosity
-old | 'purge'                        | what to do with old residual files
-inc | 'cbx:fcb out art:img err'      | what to include in which order
---- | --- expandables ---            | ---
-cbx | '#dir/#cid-#sha.cbx'           | codeblock file template
-out | '#dir/#cid-#sha.out'           | stdout file capture template
-err | '#dir/#cid-#sha.err'           | stderr file capture template
-art | '#dir/#cid-#sha.#fmt'          | cmd file output template
-cmd | '#cbx #arg #art 1>#out 2>#err' | command line template
+Opt | Value                            | Description
+:---|:---------------------------------|:--------------------------------
+arg | `''`                             | for use in `cmd` (on the cli)
+byc | `''`                             | select codeblock by class
+cid | `'x'`                            | the cb's `#id` or generated
+dir | `'.stitch'`                      | the working directory
+exe | `'maybe'`                        | execute codeblock (possibly)
+fmt | `'png'`                          | for use in `art`
+hdr | `'0'`                            | shift headers of included doc's
+inc | `'cbx:fcb out art:img err'`      | what to include in which order
+log | `'info'`                         | log verbosity
+lua | `''`                             | run codeblock as a chunk
+old | `'purge'`                        | what to do with old files
+--- | -------------------------------- | --------------------------------
+art | `'#dir/#cid-#sha.#fmt'`          | cmd file output template
+cbx | `'#dir/#cid-#sha.cbx'`           | codeblock 'exec' file template
+cmd | `'#cbx #arg #art 1>#out 2>#err'` | command line template
+err | `'#dir/#cid-#sha.err'`           | stderr file capture template
+out | `'#dir/#cid-#sha.out'`           | stdout file capture template
 
 : Table Stitch options
 
 
-### cid
+### `arg`
 
-_*`cid`*_ is a unique, codeblock identifier, used in file templates.
-
-It is set to either:
-
-- cb.attr.identifier, or
-- cb\<nth\>, where it's the nth codeblock seen by stitch
-
-When generating an element `id` to assign to included elements,
-`id=cid-nth-what` is used, where `nth` is the nth directive of the `inc`-option
-being inserted and the `what` is the part being included (one of `cbx`, `out`,
-`err` or `art`).
-
-So `csv-3-err` is the id for the element inserted for a codeblock with:\
-- identifier `csv`, and\
-- where the 3rd directive in its `inc` option includes an artifact and where\
-- `err` is the artificat to be included
-
-### arg
-
-_*arg*_ is used to optionally supply extra argument(s) on the command line.
+*arg* is used to optionally supply extra argument(s) on the command line.
 
 It is a string and may contain spaces and it is simply interpolated in the
-`cmd` expansion which will be executed via an `os.execute(cmd)`.  So `arg=""`
+[`cmd`] expansion which will be executed via an `os.execute(cmd)`.  So `arg=""`
 won't show up on the command line.
 
-The example below shows how a bash script sees its arguments when the `#arg` is
+The example below shows how a bash script sees its arguments when `arg` is
 a multi word string in the codeblock's attributes.  There is no output on
 stderr so the redirect does not create a file and the output file argument is
 ignored by the script.
@@ -451,8 +403,45 @@ echo "alt last arg :  ${@:$#}"
 echo "--------------"
 ```
 
+### `byc`
 
-### dir
+*byc* specifies a list of (codeblock) classes that are deemed *stitchable*
+
+Its main purpose is to allow for stitch to process codeblocks of a document
+that have no `stitch=name` attribute or `.stich` class, e.g. when produced
+externally.
+
+When processing such a document directly with pandoc and stitch as a filter,
+one could use a `default.yaml` file on the command line specifying howto
+process such codeblocks.  Ofcourse, this only works if the codeblocks in
+the document have proper classes in line with their contents.
+
+If a codeblock being processed creates such an intermediate document,
+stitch can filter it by recursing on itself and passing on its own
+configuration.
+
+
+### `cid`
+
+*cid* is a unique, codeblock identifier, used in file templates.
+
+It is set to either:
+
+- cb.attr.identifier, or
+- cb\<nth\>, where it's the nth codeblock seen by stitch
+
+When generating an element `id` to assign to included elements,
+`id=cid-nth-what` is used, where `nth` is the nth directive of the `inc`-option
+being inserted and the `what` is the part being included (one of `cbx`, `out`,
+`err` or `art`).
+
+So `csv-3-err` is the id for the element inserted for a codeblock with:\
+- identifier `csv`, and\
+- where the 3rd directive in its `inc` option includes an artifact and where\
+- `err` is the artificat to be included
+
+
+### `dir`
 
 _*dir*_\ is used in the expansion of the artifact filepaths.
 
@@ -465,7 +454,7 @@ in one or more of:
 - `cb.attributes.dir`, to override for a specific codeblock
 
 
-### exe
+### `exe`
 
 _*exe*_\ specifies whether a codeblock should actually run.
 
@@ -488,65 +477,18 @@ the codeblock doesn't run again and previous results will be used instead.
 Swapping `exe` to a different value won't affect the sha-fingerprint.
 
 
-### fmt
+### `fmt`
 
 _*fmt*_\ is used as the extension in the `#art` template.
 
 It allows for easily setting the intended graphics format on the codeblock
 level without touching the `art` template.
 
+### `hdr`
 
-### log
+TODO: explain
 
-_*log*_ is verbosity of logging, one of `debug, info, warn, error, silent`.
-
-Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
-off all logging except for one codeblock where logging happens on the debug
-level.
-
-
-### old
-
-_*old*_\ says what to do with old files during a pandoc conversion run.
-
-If `old=purge`, old files are deleted.  Anything else means `keep`.
-
-Old files of an artificat are detected when their filenames match the
-new filename except for the last `-#sha.ext` part.  If a filename
-template doesn't end in `-#sha.ext` then Stitch cannot detect old
-files and manual clean up will be necessary.
-
-
-### artifact templates
-
-_*cbx, out, err, art*_ are simply filename templates.
-
-These are primarily used in the `cmd` template during the expansion to
-the full command to run on the command line.  Depending on how the `cmd`
-template is set, these may or may not be actually used.
-
-Usually `out, err` are for redirecting output on stdout and stderr
-respectively.  Normally, `art` refers to some graphics file (or whatever)
-produced by the codeblock or a cli tools called by `cmd`.  However, it
-can be anything you like, it just provides a way to capture output to
-file.
-
-
-### cmd
-
-_*cmd*_\ is expanded and run via `os.execute(cmd)`.
-
-The (hardcoded) default is to:
-
-- run the codeblock as a system command,
-- provide the expanded forms of `#arg` and `#art` as arguments, and
-- redirect stdout & stderr to `#out` and `err` respectively.
-
-Ofcourse, it is up to the codeblock code to actually use its argument and/or
-the intended output filename.
-
-
-### inc
+### `inc`
 
 _*inc*_ contains 0 or more directives on what to include and how.
 
@@ -639,7 +581,166 @@ re-reading and possibly filtering.
 * *img*, a pandoc.Image link to the file on disk for `what`
 * *fig*, same but using pandoc.Figure
 
+
+### `log`
+
+*log* is verbosity of logging, one of `debug, info, warn, error, silent`.
+
+Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
+off all logging except for one codeblock where logging happens on the debug
+level.
+
+
+### `lua`
+
+`lua=chunk` loads the codeblock as a chunk and runs it.
+
+The chunk is compiled with a copy of `Stitch` supplied in its environment,
+which enables introspection.
+
+```{.lua #chunk .stitch inc="cbx:fcb out:fcb" lua=chunk}
+local out = io.open(Stitch.opts.out, 'w')
+
+local tprint = function(t)
+  local indent = string.rep(" ", 2) -- magical nr
+  local indent2 = string.rep(" ", 2 + 6) -- dark magic
+  out:write("{\n")
+  for k,v in pairs(t) do
+    v = tostring(v)
+    if #v > 40 then
+      v = v:gsub("%s+", " \\\n" .. indent2)
+    end
+    out:write(indent, k, " = '", v, "'\n")
+  end
+  out:write("}\n")
+end
+
+out:write("Stitch counters:\n")
+out:write("- cbc = ", Stitch.cbc, " (codeblock counter)\n")
+out:write("- hdc = ", Stitch.hdc, " (header counter)\n")
+
+out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
+tprint(Stitch.opts)
+
+out:write("\nStitch context:\n")
+for k,v in pairs(Stitch.ctx) do
+    out:write(k, ": ")
+    tprint(v)
+end
+out:write("defaults:")
+tprint(Stitch.ctx.defaults)
+
+out:write("\nstitch.hardcoded:\n")
+tprint(Stitch.hardcoded)
+out:write("\n")
+
+-- tmp
+local fp = 'media/hello.txt'
+local mt = 'text/plain'
+local contents = 'Nou moe?'
+pandoc.mediabag.insert(fp, mt, contents)
+out:write("pandoc.mediabag:\n")
+for k,v in pandoc.mediabag.items() do
+    out:write("- ", k, " : ", v, "\n")
+end
+-- /tmp
+
+out:close()
+```
+
+
+
+### `old`
+
+If `old=purge`, old files are deleted.  Anything else means `keep`.
+
+Old incarnations of an artifact file are detected when their filenames match
+the new filename except for the last `-#sha.<ext>` part.  If a filename template
+doesn't end in `-#sha.<ext>` then Stitch cannot detect old files and manual clean
+up will be necessary.
+
+### `art`
+
+Specifies the intended filename for a codeblock's result.
+
+This is usually some type of graphic, but need not be.  The type
+of file and the output format of the document, determines how it can be
+included by [`inc`].  When creating PDF's, linking to the `art`-file
+as an image usually kills the conversion.
+
+### `cbx`
+
+Specifies the filename where the current codeblock's body is saved.
+
+When stitch touches a codeblock, it always saves its body (content)
+to the filename given by `cbx` and marks it as executable.  Later
+on, it might be:
+- run as a system command and use its output, e.g. [youplot]
+- fed to an external tool and use her output, e.g. [diagon]
+- loaded as a chunk and called to produce output, e.g. [lua]
+
+
+### `cmd`
+
+Specifies the command line to (optionally) run via `os.execute(cmd)`.
+
+The (hardcoded) default for `cmd` is to:
+
+- run the codeblock as a system command,
+- provide the expanded forms of [`arg`] and [`art`] as arguments, and
+- redirect stdout & stderr to [`out`] and [`err`] respectively.
+
+Ofcourse, it is up to the codeblock code to actually use its argument and/or
+the intended output filename.
+
+If the [`cbx`]-file itself is to be processed by another tool, simply change
+the cmd string to something like `gnuplot #cbx 1>#art 2>#err` which redirects
+gnuplot's graphical output to the file given by [`art`] (the `#..` are all
+expanded before running the command).
+
+
+### `err`
+
+*err* is a filename template used to capture any output on `stderr`
+
+These are primarily used in the `cmd` template during the expansion to
+the full command to run on the command line.  Depending on how the `cmd`
+template is set, these may or may not be actually used.
+
+Usually `out, err` are for redirecting output on stdout and stderr
+respectively.  Normally, `art` refers to some graphics file (or whatever)
+produced by the codeblock or a cli tools called by `cmd`.  However, it
+can be anything you like, it just provides a way to capture output to
+file.
+
+### `out`
+
+
+
 \newpage
+
+## Gotcha's
+
+If `stitch` isn't behaving as expected:
+
+```{.stitch exe=no inc="cbx!csv"}
+#,gotcha,description
+1,no quotes,most values are strings and without quotes only the first word remains
+2,no section,rememer: stitch falls back to hardcoded options if none are speficied
+3,no result,a 0-byte artifact file may result in an empty element
+4,wrong art,if output is absent check the right `what` is in `inc`
+5,cb is skipped,probably because it it not recognized as such: check your markdown
+6,pdf fails,image files that are invalid may break your pdf-engine
+
+```
+
+\newpage
+
+## Stitch introspection
+
+If a CodeBlock's attributes include a `lua=chunk`, then stitch will
+load it as a chunk, providing a copy of itself as `Stitch` in the
+chunk's global namespace.
 
 # More examples
 
@@ -708,45 +809,3 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 
 \newpage
 
-## Gotcha's
-
-If `stitch` isn't behaving as expected:
-
-```{.stitch exe=no inc="cbx!csv"}
-#,gotcha,description
-1,no quotes,most values are strings and without quotes only the first word remains
-2,no section,rememer: stitch falls back to hardcoded options if none are speficied
-3,no result,a 0-byte artifact file may result in an empty element
-4,wrong art,if output is absent check the right `what` is in `inc`
-```
-
-## Stitch introspection
-
-```{.lua .stitch inc=out:fcb lua=chunk exe=yes}
--- local I = package.loaded.stitch[1]._
-local out = io.open(M.opts.out, 'w')
-out:write("Counters:\n")
-out:write("- cb  count  = ", M.cbc, "\n")
-out:write("- hdr count = ", M.hdc, "\n")
-out:write("\nContext:\n")
-for k,v in pairs(M.ctx) do
-    out:write(k, " = ", tostring(v), "\n")
-end
-
-out:write("\n\nCB Opts:\n")
-for k,v in pairs(M.opts) do
-    local vv = v:gsub("%s+", " \\\n      ")
-    out:write(k, " = ", vv, "\n")
-end
-out:write("\n")
-out:close()
-
--- tmp
-local fp = 'media/hello.txt'
-local mt = 'text/plain'
-local contents = 'Nou moe?'
-pandoc.mediabag.insert(fp, mt, contents)
-for p,m in pandoc.mediabag.items() do
-    print("pd.mediabag", k, v)
-end
-```

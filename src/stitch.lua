@@ -1,4 +1,4 @@
---[[ stitch ]]
+--[[-- stitch --]]
 -- TODO:
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
@@ -8,6 +8,7 @@
 -- [x] make stitch also shift headers based on doc.meta.stitch.xxx.hdr
 -- [ ] REVIEW: add stitch classes list to treat as stichable
 -- [?] REVIEW: option lua=chunk just runs dofile(cbx)()() ?
+-- [ ] add I.dump(table) -> list of strings, shallow dump of table
 
 -- ensure we're loaded only once (see notes on module's return statement)
 if package.loaded.stitch then return package.loaded.stitch end
@@ -16,7 +17,7 @@ local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
 
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 
---[[ state ]]
+--[[-- state --]]
 
 local MAXTAIL = 6 -- max tail length (aka recursion depth)
 local tail = {} -- stack of saved states during recursion
@@ -33,15 +34,16 @@ I.cbc = 0 -- codeblock counter
 I.hdc = 0 -- header counter
 I.ctx = {} -- this doc's context (= meta.stitch)
 
---[[ helpers ]]
+--[[-- helpers --]]
 
+-- print a formatted log to stderr (if cb's log level permits it)
+-- uses `I.opts.cid` or 'stitch' as log entry originator
 function I.log(lvl, action, msg, ...)
-  -- log format: [stitch:recursLevel logLevel] tag< >action | msg
+  -- log format: [stitch:recursLevel logLevel] owner :action | msg
   local level = I.level[I.opts.log or I.ctx.stitch.log] or 0
-  -- if (I.level[I.opts.log] or 0) >= I.level[lvl] then
   if level >= I.level[lvl] then
-    local tag = I.opts.cid or 'stitch'
-    local fmt = string.format('[stitch:%d %5s] %-7s:%7s| %s\n', #tail, lvl, tag, action, msg)
+    local owner = I.opts.cid or 'stitch'
+    local fmt = string.format('[stitch:%d %5s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
     io.stderr:write(string.format(fmt, ...))
   end
 end
@@ -49,6 +51,7 @@ end
 I.log('info', 'init', 'STITCH initialized')
 
 -- return a semi-deep copy of table t
+-- (used to provide a copy of I to external filters)
 function I.dcopy(t, seen)
   seen = seen or {}
   if 'table' ~= type(t) then return t end
@@ -63,13 +66,20 @@ function I.dcopy(t, seen)
   return tt
 end
 
---[[ stitch data ]]
+-- returns a semi-deep dump of `t` as a list of lines
+-- (assumes all keys are strings)
+function I.tdump(t, lines, n)
+  -- TODO: semi-deep dump of table
+end
+
+--[[-- data --]]
 
 I.optvalues = {
   -- valid option,value-pairs
   exe = { 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'info', 'debug' },
   old = { 'keep', 'purge' },
+  lua = { 'chunk', '' },
   inc_what = { 'cbx', 'art', 'out', 'err' },
   inc_how = { '', 'any', 'fcb', 'img', 'fig' },
 }
@@ -84,6 +94,7 @@ I.hardcoded = {
   log = 'info', -- {debug, error, warn, info, silent}
   exe = 'maybe', -- {yes, no, maybe}
   old = 'purge', -- {keep, purge}
+  lua = '', -- {chunk, ''}
   -- inc = "what:type!format[+extensions]@filter[.func] .."
   -- * what is one of {cbx, out, err, art},
   -- * type is one of {"", fcb, img, fig}
@@ -96,19 +107,18 @@ I.hardcoded = {
   cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
 }
 
---[[ options ]]
+--[[-- options --]]
 
 -- check pre-defined option,value-pairs, removing those that are not valid
----@param section string name of config section to check
 ---@param opts table single, flat, k,v store of options (v's are strings)
 ---@return table opts same table with illegal option,values removed
-function I.check(section, opts)
+function I.check(opts)
   for k, _ in pairs(I.optvalues) do
     local val = opts[k]
     local ok, err = I.vouch(k, val)
     if val and not ok then
       opts[k] = nil
-      I.log('error', 'check', 'in ' .. section .. ': ' .. err)
+      I.log('error', 'check', err)
     end
   end
   return opts
@@ -135,7 +145,7 @@ function I.parse(inc)
   -- no validity checking:
   -- * an invalid what-value will be skipped by I.result
   -- * an invalid how-value will be ignored
-  I.log('debug', 'include', "include found %s inc's in '%s'", #directives, inc)
+  I.log('debug', 'include', "found %s inc's in '%s'", #directives, inc)
 
   return directives
 end
@@ -195,7 +205,7 @@ function I.xlate(elm)
     end
     return t
   elseif 'CodeBlock' == elm.tag then
-    -- a CodeBlock's type is actually 'Block'
+    -- a CodeBlock is an instance of type Block, elm.tags differentiate between Block's
     return {
       text = elm.text,
       attr = I.xlate(elm.attr),
@@ -206,7 +216,7 @@ function I.xlate(elm)
   end
 end
 
---[[ files ]]
+--[[-- files --]]
 
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
@@ -384,7 +394,7 @@ function I.deja_vu()
   return I.freal(I.opts.cbx) and (I.freal(I.opts.out) or I.freal(I.opts.err) or I.freal(I.opts.art))
 end
 
---[[ AST elements ]]
+--[[-- AST --]]
 
 I.mkelm = {}
 setmetatable(I.mkelm, {
@@ -435,6 +445,11 @@ end
 
 function I.mkelm.fig(fcb, _, _, what)
   --  pandoc.Figure element (type Block), since pandoc version >=3.0
+  -- tmp
+  local fname = I.opts[what]
+  local mime, contents = pd.mediabag.fetch(fname)
+  print('fname, mime, #contents', fname, mime, #contents)
+  -- /tmp
   local img = pd.Image({}, I.opts[what], '', {})
   img.attr.identifier = fcb.attr.identifier .. '-img'
   I.log('info', 'include', "cb.'#%s', '%s:fig', pandoc.Figure", fcb.attr.identifier, what)
@@ -609,18 +624,18 @@ function I.result(cb)
   return elms
 end
 
---[[ setup ]]
+--[[-- setup --]]
 
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@return boolean ok success indicator
 function I.mkopt(cb)
-  -- resolution: cb -> meta.stitch[cb.cfg] -> defaults -> hardcoded
+  -- resolution: cb -> meta.stitch.section -> defaults -> hardcoded
   I.opts = I.xlate(cb.attributes)
-  I.opts = I.check('cb.attr', I.opts)
-  -- setmetatable(I.opts, { __index = I.ctx[I.opts.cfg] })
-  setmetatable(I.opts, { __index = I.ctx[I.opts.stitch] })
   I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%02d', I.cbc)
+  I.opts = I.check(I.opts)
+  local cfg = I.opts.stitch -- {.. stitch=cfg .. }, pickup cfg section name
+  setmetatable(I.opts, { __index = I.ctx[cfg] })
   I.opts.sha = I.mksha(cb) -- derived only
 
   -- expand filenames for this codeblock (cmd is expanded as exe later)
@@ -630,17 +645,15 @@ function I.mkopt(cb)
   end
 
   -- check against circular refs
-  for k, _ in pairs(I.hardcoded) do
-    if 'cmd' ~= k and 'string' == type(I.opts[k]) and I.opts[k]:match('#%w+') then
-      I.log('error', 'option', '%s not entirely expanded: %s', k, I.opts[k])
-      return false
-    end
-  end
-
+  local ok = true
   for k, _ in pairs(I.hardcoded) do
     I.log('debug', 'option', '%s = %q', k, I.opts[k])
+    if 'cmd' ~= k and 'string' == type(I.opts[k]) and I.opts[k]:match('#%w+') then
+      I.log('error', 'option', '%s not entirely expanded: %s', k, I.opts[k])
+      ok = false -- keep checking the rest
+    end
   end
-  return true
+  return ok
 end
 
 --- extract `doc.meta.stitch` config from a doc's meta block (if any)
@@ -668,15 +681,15 @@ function I.mkctx(doc)
   })
   setmetatable(I.ctx.stitch, nil) -- no metable for stitch section
 
-  defaults = I.check('defaults', defaults)
+  defaults = I.check(defaults)
   for section, map in pairs(I.ctx) do
-    I.ctx[section] = I.check(section, map)
+    I.ctx[section] = I.check(map)
   end
 
   return I.ctx
 end
 
---[[ filter ]]
+--[[-- filter --]]
 
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
@@ -693,7 +706,7 @@ function I.CodeBlock(cb)
       I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
     elseif 'chunk' == I.opts.lua then
       I.log('info', 'execute', "codeblock as a chunk (exe='%s')", I.opts.exe)
-      _ENV.M = I.dcopy(I)
+      _ENV.Stitch = I.dcopy(I) -- enables introspection by the chunk
       local f, err = loadfile(I.opts.cbx, 't', _ENV) -- lexcial scope
       if f == nil or err then
         I.log('error', 'execute', 'skipped, chunk compile error: %s', err)
@@ -739,6 +752,8 @@ function I.Header(elm)
   end
   return elm
 end
+
+--[[-- Stitch --]]
 
 local Stitch = {
   _ = I, -- Stitch's implementation, for testing

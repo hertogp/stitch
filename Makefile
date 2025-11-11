@@ -3,34 +3,34 @@ BUSTED   = busted
 FILTER   = --lua-filter stitch.lua
 EX_DIR   = examples
 ST_DIR   = .stitch
-FROM     = markdown
-EXTS     = inline_code_attributes
+FROM     = --from markdown
+EXTS     = inline_code_attributes+lists_without_preceding_blankline
 UNICODE  = -V mainfont="DejaVu Serif" -V mainfontfallback="NotoColorEmoji:mode=harf"
 ENGINE   = --pdf-engine=xelatex
 
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
 ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
-PDFLOGS  = $(ST_DIR)/readme-to-pdf.log
-GFMLOGS  = $(ST_DIR)/readme-to-gfm.log
+PDFLOGS  = $(ST_DIR)/readme.pdf.log
+GFMLOGS  = $(ST_DIR)/readme.gfm.log
+TOCDEPTH = --toc-depth=4
 
-# make any ex(ample) converting markdown -> html
 default: show
 
 readme: readme.pdf
 	@echo "creating README.md, logging to $(GFMLOGS)"
-	$(PANDOC) $(FILTER) _readme.md -t gfm -o README.md 2>&1 | tee $(GFMLOGS)
+	$(PANDOC) $(FILTER) $(FROM)+$(EXTS) _readme.md -t gfm -o README.md 2>&1 | tee $(GFMLOGS)
 
 readme.pdf:
 	@echo "creating examples/README.pdf, logging to $(PDFLOGS)"
-	$(PANDOC) $(FILTER) $(ENGINE) _readme.md -t pdf -o examples/README.pdf 2>&1 | tee $(PDFLOGS)
+	$(PANDOC) $(FILTER) $(ENGINE) $(FROM)+$(EXTS) _readme.md -t pdf -o $(EX_DIR)/README.pdf 2>&1 | tee $(PDFLOGS)
 
 
 ex%:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $@.md -o $@.html
+	cd $(EX_DIR); $(PANDOC) $(FILTER) $(FROM)+${EXTS} $@.md -o $@.html
 
 %.pdf:
-	cd $(EX_DIR); $(PANDOC) $(FILTER) --from $(FROM)+${EXTS} $(ENGINE) ${@:%.pdf=%.md} -o $@
+	cd $(EX_DIR); $(PANDOC) $(FILTER) $(TOCDEPTH) $(FROM)+${EXTS} $(ENGINE) ${@:%.pdf=%.md} -o $@
 
 all: $(TARGETS:%=%.pdf)
 

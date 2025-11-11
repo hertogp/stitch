@@ -1,0 +1,47 @@
+local out = io.open(Stitch.opts.out, 'w')
+
+local tprint = function(t)
+  local indent = string.rep(" ", 2) -- magical nr
+  local indent2 = string.rep(" ", 2 + 6) -- dark magic
+  out:write("{\n")
+  for k,v in pairs(t) do
+    v = tostring(v)
+    if #v > 40 then
+      v = v:gsub("%s+", " \\\n" .. indent2)
+    end
+    out:write(indent, k, " = '", v, "'\n")
+  end
+  out:write("}\n")
+end
+
+out:write("Stitch counters:\n")
+out:write("- cbc = ", Stitch.cbc, " (codeblock counter)\n")
+out:write("- hdc = ", Stitch.hdc, " (header counter)\n")
+
+out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
+tprint(Stitch.opts)
+
+out:write("\nStitch context:\n")
+for k,v in pairs(Stitch.ctx) do
+    out:write(k, ": ")
+    tprint(v)
+end
+out:write("defaults:")
+tprint(Stitch.ctx.defaults)
+
+out:write("\nstitch.hardcoded:\n")
+tprint(Stitch.hardcoded)
+out:write("\n")
+
+-- tmp
+local fp = 'media/hello.txt'
+local mt = 'text/plain'
+local contents = 'Nou moe?'
+pandoc.mediabag.insert(fp, mt, contents)
+out:write("pandoc.mediabag:\n")
+for k,v in pandoc.mediabag.items() do
+    out:write("- ", k, " : ", v, "\n")
+end
+-- /tmp
+
+out:close()
