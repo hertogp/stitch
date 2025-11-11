@@ -740,4 +740,13 @@ for k,v in pairs(M.opts) do
 end
 out:write("\n")
 out:close()
+
+-- tmp
+local fp = 'media/hello.txt'
+local mt = 'text/plain'
+local contents = 'Nou moe?'
+pandoc.mediabag.insert(fp, mt, contents)
+for p,m in pandoc.mediabag.items() do
+    print("pd.mediabag", k, v)
+end
 ```
