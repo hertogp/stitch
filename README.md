@@ -932,3 +932,47 @@ lua. Any (nested) codeblocks can also be processed by stitch.
    00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 7.9      
          └                                        ┘ 
 ```
+
+## Gotcha’s
+
+If `stitch` isn’t behaving as expected:
+
+| \#  | gotcha     | description                                                            |
+|-----|------------|------------------------------------------------------------------------|
+| 1   | no quotes  | most values are strings and without quotes only the first word remains |
+| 2   | no section | rememer: stitch falls back to hardcoded options if none are speficied  |
+| 3   | no result  | a 0-byte artifact file may result in an empty element                  |
+| 4   | wrong art  | if output is absent check the right \`what\` is in \`inc\`             |
+
+## Meta
+
+``` lua
+Counters:
+- cb  count  = 19
+- hdr count = 2
+
+Context:
+diagon = table: 0x40e1c1f0
+doc = table: 0x40e1c3b0
+cetz = table: 0x40e1c4d0
+stitch = table: 0x40e1c490
+gnuplot = table: 0x40e1c820
+download = table: 0x40e1c780
+youplot = table: 0x40e1c650
+
+
+CB Opts:
+cbx = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.cbx
+sha = 0e551bdc13524e32f4ef4be4aad2957b02b064bb
+out = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.out
+inc = out:fcb
+cid = cb19
+cmd = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.cbx \
+      .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.png \
+      1>.stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.out \
+      2>.stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.err
+err = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.err
+art = .stitch/readme/cb19-0e551bdc13524e32f4ef4be4aad2957b02b064bb.png
+lua = chunk
+
+```

@@ -3,22 +3,24 @@
 -- [o] check utf8 requirements (if any)
 -- [o] add mediabag to store files related to cb's
 -- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
--- [o] add `meta` as inc target for troubleshooting meta!read@filter:fcb
+-- [?] add `meta` as inc target for troubleshooting meta!read@filter:fcb
 -- [ ] check all pd.<f>'s used and establish oldest version possible
--- [ ] make stitch also shift headers based on doc.meta.stitch.xxx.hdr
+-- [x] make stitch also shift headers based on doc.meta.stitch.xxx.hdr
 -- [ ] REVIEW: add stitch classes list to treat as stichable
+-- [?] REVIEW: option lua=chunk just runs dofile(cbx)()() ?
 
 -- ensure we're loaded only once (see notes on module's return statement)
 if package.loaded.stitch then return package.loaded.stitch end
 
-local I = {} -- Stitch's Implementation; for testing
-local tail = {}
 local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
 
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 
---[[ helpers ]]
+--[[ state ]]
 
+local MAXTAIL = 6 -- max tail length (aka recursion depth)
+local tail = {} -- stack of saved states during recursion
+local I = {} -- Stitch's Implementation; for testing
 I.opts = { log = 'info' } --> for initial logging, is reset for each cb
 I.level = {
   silent = 0,
@@ -27,6 +29,11 @@ I.level = {
   info = 3,
   debug = 4,
 }
+I.cbc = 0 -- codeblock counter
+I.hdc = 0 -- header counter
+I.ctx = {} -- this doc's context (= meta.stitch)
+
+--[[ helpers ]]
 
 function I.log(lvl, action, msg, ...)
   -- log format: [stitch:recursLevel logLevel] tag< >action | msg
@@ -38,6 +45,8 @@ function I.log(lvl, action, msg, ...)
     io.stderr:write(string.format(fmt, ...))
   end
 end
+
+I.log('info', 'init', 'STITCH initialized')
 
 -- return a semi-deep copy of table t
 function I.dcopy(t, seen)
@@ -55,11 +64,6 @@ function I.dcopy(t, seen)
 end
 
 --[[ stitch data ]]
-
-I.cbc = 0 -- codeblock counter
-I.log('info', 'init', 'loading STITCH, init cbc to %d', I.cbc)
-
-I.ctx = {} -- this doc's context (= meta.stitch)
 
 I.optvalues = {
   -- valid option,value-pairs
@@ -527,7 +531,7 @@ function I.xform(dta, filter)
   tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
     dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- pass in, current cb opts & context
-    I.opts = {} -- reset to prevent current cb's opts to carry over in recursion
+    I.opts = {} -- reset in case we recurse later on
   end
 
   -- ensure filters is a *list* of filters (as expected by pandoc version <3.5)
@@ -538,7 +542,7 @@ function I.xform(dta, filter)
       local ok, tmp = pcall(f[fun], dta)
 
       if not ok then
-        I.log('warn', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
+        I.log('error', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
       else
         dta = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
         count = count + 1
@@ -605,7 +609,7 @@ function I.result(cb)
   return elms
 end
 
---[[ options (meta/cb) ]]
+--[[ setup ]]
 
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
@@ -678,7 +682,6 @@ end
 ---@return any list of nodes in pandoc's ast
 function I.CodeBlock(cb)
   I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
-
   if not (cb.attributes.stitch or cb.classes:find('stitch')) then return nil end
   -- if not cb.classes:find('stitch') then return nil end
 
@@ -688,6 +691,22 @@ function I.CodeBlock(cb)
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
     elseif I.deja_vu() and 'maybe' == I.opts.exe then
       I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
+    elseif 'chunk' == I.opts.lua then
+      I.log('info', 'execute', "codeblock as a chunk (exe='%s')", I.opts.exe)
+      _ENV.M = I.dcopy(I)
+      local f, err = loadfile(I.opts.cbx, 't', _ENV) -- lexcial scope
+      if f == nil or err then
+        I.log('error', 'execute', 'skipped, chunk compile error: %s', err)
+      else
+        I.log('info', 'execute', 'running chunk, fingers crossed ..')
+        local ok
+        ok, err = pcall(f)
+        if not ok or err then
+          I.log('error', 'execute', 'error running chunk: %s', tostring(err))
+        else
+          I.log('info', 'execute', 'chunk ran ok')
+        end
+      end
     else
       I.log('info', 'execute', "running codeblock (exe='%s')", I.opts.exe)
       local ok, code, nr = os.execute(I.opts.cmd)
@@ -709,6 +728,7 @@ end
 --- @param elm any a header from document being walked
 --- @return any elm same header with possibly updated `header.level`
 function I.Header(elm)
+  I.hdc = I.hdc + 1 -- counter
   local level = elm.level + math.floor(tonumber(I.ctx.stitch.header) or 0)
   if level ~= elm.level then
     level = level > 0 and level or 0
@@ -724,9 +744,15 @@ local Stitch = {
   _ = I, -- Stitch's implementation, for testing
 
   Pandoc = function(doc)
-    -- if #tail > 0, doc is being included in an outer doc.
+    if #tail > MAXTAIL then
+      -- if #tail > 0, doc is being included in an outer doc.
+      I.log('error', 'stitch', 'recursion level %d too deep, max is %d', #tail, MAXTAIL)
+      assert(false, 'maximum recursion level exceeded') -- simply skips doc
+    end
+
     I.mkctx(doc)
     local cbc = I.cbc
+    local hdc = I.hdc
 
     local s = I.ctx.stitch -- shorthand
     if #tail > 0 then
@@ -741,7 +767,7 @@ local Stitch = {
     I.log('info', 'stitch', msg)
 
     local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
-    I.log('info', 'stitch', '%d codeblocks done', I.cbc - cbc)
+    I.log('info', 'stitch', 'saw %d CodeBlocks and %d Headers', I.cbc - cbc, I.hdc - hdc)
 
     return rv
   end,

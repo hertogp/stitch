@@ -1,0 +1,17 @@
+-- local I = package.loaded.stitch[1]._
+local out = io.open(M.opts.out, 'w')
+out:write("Counters:\n")
+out:write("- cb  count  = ", M.cbc, "\n")
+out:write("- hdr count = ", M.hdc, "\n")
+out:write("\nContext:\n")
+for k,v in pairs(M.ctx) do
+    out:write(k, " = ", tostring(v), "\n")
+end
+
+out:write("\n\nCB Opts:\n")
+for k,v in pairs(M.opts) do
+    local vv = v:gsub("%s+", " \\\n      ")
+    out:write(k, " = ", vv, "\n")
+end
+out:write("\n")
+out:close()

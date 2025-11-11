@@ -719,3 +719,25 @@ If `stitch` isn't behaving as expected:
 3,no result,a 0-byte artifact file may result in an empty element
 4,wrong art,if output is absent check the right `what` is in `inc`
 ```
+
+## Stitch introspection
+
+```{.lua .stitch inc=out:fcb lua=chunk exe=yes}
+-- local I = package.loaded.stitch[1]._
+local out = io.open(M.opts.out, 'w')
+out:write("Counters:\n")
+out:write("- cb  count  = ", M.cbc, "\n")
+out:write("- hdr count = ", M.hdc, "\n")
+out:write("\nContext:\n")
+for k,v in pairs(M.ctx) do
+    out:write(k, " = ", tostring(v), "\n")
+end
+
+out:write("\n\nCB Opts:\n")
+for k,v in pairs(M.opts) do
+    local vv = v:gsub("%s+", " \\\n      ")
+    out:write(k, " = ", vv, "\n")
+end
+out:write("\n")
+out:close()
+```
