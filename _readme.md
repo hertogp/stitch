@@ -33,6 +33,8 @@ stitch:
     dir: ".stitch/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
     inc: "art:fig cbx:fcb"
+    cls: true
+    num: 3
 ...
 
 ```{#preface stitch=doc}
@@ -259,7 +261,7 @@ which is then used in the following codeblock to create a graph.
 
 Another example using the trusty `gnuplot`.
 
-```{#cb07 stitch=gnuplot}
+```{#cb07 stitch=gnuplot byc=99 cls=true log=debug}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
@@ -403,22 +405,17 @@ echo "alt last arg :  ${@:$#}"
 echo "--------------"
 ```
 
-### `byc`
+### `cls`
 
-*byc* specifies a list of (codeblock) classes that are deemed *stitchable*
+*cls* specifies whether or not a codeblock can be selected by class.
 
-Its main purpose is to allow for stitch to process codeblocks of a document
-that have no `stitch=name` attribute or `.stich` class, e.g. when produced
-externally.
+Valid values:
 
-When processing such a document directly with pandoc and stitch as a filter,
-one could use a `default.yaml` file on the command line specifying howto
-process such codeblocks.  Ofcourse, this only works if the codeblocks in
-the document have proper classes in line with their contents.
-
-If a codeblock being processed creates such an intermediate document,
-stitch can filter it by recursing on itself and passing on its own
-configuration.
+```{.stitch lua=chunk inc="out"}
+local fh = io.open(Stitch.opts.out, 'w')
+fh:write(pandoc.json.encode(Stitch.optvalues.cls))
+fh:close()
+```
 
 
 ### `cid`
@@ -443,7 +440,7 @@ So `csv-3-err` is the id for the element inserted for a codeblock with:\
 
 ### `dir`
 
-_*dir*_\ is used in the expansion of the artifact filepaths.
+*dir* is used in the expansion of the artifact filepaths.
 
 This effectively sets the working directory for stitch relative to the
 directory where pandoc was started.  Override the hardcoded `.stitch` default
@@ -456,13 +453,15 @@ in one or more of:
 
 ### `exe`
 
-_*exe*_\ specifies whether a codeblock should actually run.
+*exe* specifies whether a codeblock should actually run.
 
-Valid values are:
+Valid values:
 
-- `yes`, always run the codeblock (new or not)
-- `no`, do not run the codeblock even if new, rest of processing still happens
-- `maybe`, run the codeblock if something changed (the default)
+```{.stitch lua=chunk inc="out"}
+local fh = io.open(Stitch.opts.out, 'w')
+fh:write(pandoc.json.encode(Stitch.optvalues.exe))
+fh:close()
+```
 
 Stitch calculates a sha-hash using all option values (sorted by key),
 excluding the `exe`'s value plus the codeblock contents and with all spaces
@@ -740,11 +739,10 @@ where:
 - `<action>` denotes what stitch is doing at that moment
 - `<msg>` is whatever seemed insightful at the time
 
-As an example see the
+As an example, see the
 [readme.pdf.log](https://github.com/hertogp/stitch/blob/main/.stitch/readme.pdf.log)
-generated last time this readme was converted to PDF.
-
-Here is the beginning of aforementioned log-file (at least as it was once):
+generated last time this readme was converted to PDF.  Here is the beginning of
+it (at least as it was on one of the conversion runs):
 
 ```
 [stitch:0  info] stitch :   init| STITCH initialized
@@ -765,7 +763,8 @@ The logs show:
 - stitch being initialized,
 - that is it walking codeblocks only (no shifting headers here) and
 - how it processed the fist (`preface`) codeblock of this readme
-  (the [boxes](https://boxes.thomasjensen.com/) asciiart picture).
+- that artifiacts are stored in '.stitch/readme/' directory
+- the start of processing the second codeblock, aptly named `cb01` ..
 
 \newpage
 

@@ -75,30 +75,29 @@ end
 --[[-- data --]]
 
 I.optvalues = {
-  -- valid option,value-pairs
-  exe = { 'yes', 'no', 'maybe' },
+  -- all values listed, MUST be strings
+  -- valid option,value-pairs; TODO: add key=false to validate key w/ any value?
+  cls = { 'true', 'false', 'yes', 'no', '0', '1', '2' },
+  exe = { 'true', 'false', 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'info', 'debug' },
-  old = { 'keep', 'purge' },
   lua = { 'chunk', '' },
+  old = { 'keep', 'purge' },
   inc_what = { 'cbx', 'art', 'out', 'err' },
-  inc_how = { '', 'any', 'fcb', 'img', 'fig' },
+  inc_how = { "''", 'any', 'fcb', 'img', 'fig' },
 }
 
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
-  cid = 'x', -- TODO: MUST be unique for each cb so old file detectinon is possible
-  -- cfg = '', -- name of config section in doc.meta.stitch.<cfg> (if any)
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
+  cls = 'false', -- {'true', 'false', 'yes', 'no', '0', '1', '2', '3'}
+  cid = 'x', -- either cb.identifier or set by stitch using I.cbc
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
-  fmt = 'png', -- format for images (if any)
-  log = 'info', -- {debug, error, warn, info, silent}
   exe = 'maybe', -- {yes, no, maybe}
-  old = 'purge', -- {keep, purge}
-  lua = '', -- {chunk, ''}
-  -- inc = "what:type!format[+extensions]@filter[.func] .."
-  -- * what is one of {cbx, out, err, art},
-  -- * type is one of {"", fcb, img, fig}
+  fmt = 'png', -- format for images (if any)
   inc = 'cbx:fcb out:fcb art:img err:fcb',
+  log = 'info', -- {debug, error, warn, info, silent}
+  lua = '', -- {chunk, ''}
+  old = 'purge', -- {keep, purge}
   -- expandable filenames
   cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
   out = '#dir/#cid-#sha.out', -- capture of stdout (if any)
@@ -150,7 +149,8 @@ function I.parse(inc)
   return directives
 end
 
--- checks if `name`,`value` is a valid pair
+-- checks if `name`,`value` is a valid pair according to `I.optsvalues`
+-- (not all options have predefines value ranges)
 ---@param name string the name of the option
 ---@param value any the value of the option
 ---@return boolean ok true if `value` is valid for given, valid, `name`, false otherwise
@@ -158,13 +158,19 @@ end
 function I.vouch(name, value)
   local values = I.optvalues[name]
   if not values then return false, string.format("'%s' is not a known option", name) end
+  value = string.format('%s', value) -- valid values listed as strings
 
   for _, v in ipairs(values) do
     if value == v then return true, nil end
   end
 
-  local err = "option '%s' expects one of {%s}, got '%s'"
-  err = string.format(err, name, table.concat(values, ', '), value)
+  local err = "option '%s' expects one of {%s}, got %q"
+  local valid = {}
+  for _, v in ipairs(values) do
+    valid[#valid + 1] = string.format('%q', v)
+  end
+
+  err = string.format(err, name, table.concat(valid, ', '), value)
   return false, err
 end
 
@@ -485,7 +491,7 @@ function I.mkfcb(cb)
 
   clone.classes = cb.classes:map(function(class) return class:gsub('^stitch$', 'stitched') end)
 
-  -- remove attributes present in I.opts
+  -- remove attributes from codeblock if present in I.opts
   for k, _ in pairs(cb.attributes) do
     if I.hardcoded[k] then clone.attributes[k] = nil end
   end
@@ -647,10 +653,11 @@ function I.mkopt(cb)
   -- check against circular refs
   local ok = true
   for k, _ in pairs(I.hardcoded) do
+    -- TODO: exclude 'arg' as well?
     I.log('debug', 'option', '%s = %q', k, I.opts[k])
     if 'cmd' ~= k and 'string' == type(I.opts[k]) and I.opts[k]:match('#%w+') then
       I.log('error', 'option', '%s not entirely expanded: %s', k, I.opts[k])
-      ok = false -- keep checking the rest
+      ok = false -- keep checking the rest & log accordingly
     end
   end
   return ok
@@ -764,6 +771,11 @@ local Stitch = {
       I.log('error', 'stitch', 'recursion level %d too deep, max is %d', #tail, MAXTAIL)
       assert(false, 'maximum recursion level exceeded') -- simply skips doc
     end
+
+    -- tmp
+    dump = require 'dump'
+    print('meta', dump(I.xlate(doc.meta)))
+    -- /tmp
 
     I.mkctx(doc)
     local cbc = I.cbc
