@@ -496,11 +496,14 @@ fh:write(pandoc.json.encode(Stitch.optvalues.cls))
 fh:close()
 ```
 
-When used as a codeblock attribute `{.. cls=true ..}` then the codeblock will
-be processed by stitch if stitch has a section for one of the cb's classes.
+When used as a codeblock attribute `{.. cls=true ..}`, stitch will match
+any of the codeblock's classes to named stitch sections in the doc's meta
+data.  The first match is then used to process the codeblock.  When no
+class matches, the codeblock is ignored.
 
-When used as part of a stitch named section in the document's meta data, all
-codeblocks that have that class will be processed by stitch.
+When used as part of a named stitch section in the document's meta data, all
+codeblocks in the current document, that have that name as a class, will be
+processed by stitch.
 
 The main purpose is to allow for processing of markdown documents that are
 pulled in by a codeblock and which are not necessarily 'stitch-aware'.
