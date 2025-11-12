@@ -3,43 +3,41 @@ monofont: "DejaVu Sans Mono"
 stitch:
   stitch:
     log: debug
-    classes:
-      - diagon
-      - graphviz
   defaults:
     inc: "out cbx:fcb"
-    dir: ".stitch/readme"
+    dir: ".stitch/readme/defaults"
   doc:
-    dir: ".stitch/readme"
+    dir: ".stitch/readme/doc"
     cmd: "#cbx 1>#out"
     inc: out
   diagon:
-    dir: ".stitch/diagon"
+    dir: ".stitch/readme/diagon"
     cmd: "diagon #arg <#cbx 1>#out"
   youplot:
-    dir: ".stitch/youplot"
+    dir: ".stitch/readme/youplot"
     cmd: "#cbx 1>#out"
   cetz:
-    dir: ".stitch/cetz"
+    dir: ".stitch/readme/cetz"
     arg: compile
     cmd: "typst #arg #cbx #art" # ignore stderr
     inc: "art cbx:fcb"
   download:
-    dir: ".stitch/cetz"
+    dir: ".stitch/readme/download"
     out: ".stitch/cetz/#arg"
     inc: "cbx:fcb"
     exe: "yes"
   gnuplot:
-    dir: ".stitch/gnuplot"
+    dir: ".stitch/readme/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
     inc: "art:fig cbx:fcb"
   chunk:
     lua: chunk
+    dir: ".stitch/readme/chunk"
     inc: out
     cmd: "" # is ignored anyway
 ...
 
-```{#preface stitch=doc}
+```{#preface .stitch inc=out}
 figlet -w 50 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 ```
 
@@ -420,7 +418,7 @@ echo "--------------"
 
 Valid values:
 
-```{stitch=chunk}
+```{#opt-cls stitch=chunk}
 local fh = io.open(Stitch.opts.out, 'w')
 fh:write(pandoc.json.encode(Stitch.optvalues.cls))
 fh:close()
@@ -465,7 +463,7 @@ in one or more of:
 
 Valid values:
 
-```{stitch=chunk}
+```{#opt-exe stitch=chunk}
 local fh = io.open(Stitch.opts.out, 'w')
 fh:write(pandoc.json.encode(Stitch.optvalues.exe))
 fh:close()
@@ -486,7 +484,7 @@ Swapping `exe` to a different value won't affect the sha-fingerprint.
 
 ### `fmt`
 
-_*fmt*_\ is used as the extension in the `#art` template.
+*fmt* is used as the extension in the `#art` template.
 
 It allows for easily setting the intended graphics format on the codeblock
 level without touching the `art` template.
@@ -605,7 +603,7 @@ level.
 The chunk is compiled with a copy of `Stitch` supplied in its environment,
 which enables introspection.
 
-```{.lua #chunk .stitch inc="cbx:fcb out:fcb" lua=chunk}
+```{.lua #opt-lua stitch=chunk inc="cbx:fcb out:fcb" lua=chunk}
 local out = io.open(Stitch.opts.out, 'w')
 
 local tprint = function(t)

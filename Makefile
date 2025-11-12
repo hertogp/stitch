@@ -11,8 +11,8 @@ ENGINE   = --pdf-engine=xelatex
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
 ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
-PDFLOGS  = $(ST_DIR)/readme.pdf.log
-GFMLOGS  = $(ST_DIR)/readme.gfm.log
+PDFLOGS  = $(ST_DIR)/readme/readme.pdf.log
+GFMLOGS  = $(ST_DIR)/readme/readme.gfm.log
 TOCDEPTH = --toc-depth=4
 
 default: show

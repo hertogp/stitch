@@ -5,166 +5,169 @@ meta	{
         cetz = {
             arg = "compile",
             cmd = "typst #arg #cbx #art",
-            dir = ".stitch/cetz",
+            dir = ".stitch/readme/cetz",
             inc = "art cbx:fcb"
         },
         chunk = {
             cmd = "",
+            dir = ".stitch/readme/chunk",
             inc = "out",
             lua = "chunk"
         },
         defaults = {
-            dir = ".stitch/readme",
+            dir = ".stitch/readme/defaults",
             inc = "out cbx:fcb"
         },
         diagon = {
             cmd = "diagon #arg <#cbx 1>#out",
-            dir = ".stitch/diagon"
+            dir = ".stitch/readme/diagon"
         },
         doc = {
             cmd = "#cbx 1>#out",
-            dir = ".stitch/readme",
+            dir = ".stitch/readme/doc",
             inc = "out"
         },
         download = {
-            dir = ".stitch/cetz",
+            dir = ".stitch/readme/download",
             exe = "yes",
             inc = "cbx:fcb",
             out = ".stitch/cetz/#arg"
         },
         gnuplot = {
             cmd = "gnuplot #cbx 1>#art 2>#err",
-            dir = ".stitch/gnuplot",
+            dir = ".stitch/readme/gnuplot",
             inc = "art:fig cbx:fcb"
         },
         stitch = {
-            classes = {
-                [1] = "diagon",
-                [2] = "graphviz"
-            },
             log = "debug"
         },
         youplot = {
             cmd = "#cbx 1>#out",
-            dir = ".stitch/youplot"
+            dir = ".stitch/readme/youplot"
         }
     }
 }
 [stitch:0  info] stitch : stitch| walking CodeBlocks
-[stitch:0  info] preface:command| expanding template '#cbx 1>#out'
-[stitch:0  info] preface:command| .stitch/readme/preface-7860af3cbb57811f8f89d2358602d89a41b69cfe.cbx 1>.stitch/readme/preface-7860af3cbb57811f8f89d2358602d89a41b69cfe.out
+[stitch:0  info] preface:command| expanding template '#cbx #arg #art 1>#out 2>#err'
+[stitch:0  info] preface:command| .stitch/readme/defaults/preface-3f4ff6e21d61765054552d3fda21cf5d0234a386.cbx  .stitch/readme/defaults/preface-3f4ff6e21d61765054552d3fda21cf5d0234a386.png 1>.stitch/readme/defaults/preface-3f4ff6e21d61765054552d3fda21cf5d0234a386.out 2>.stitch/readme/defaults/preface-3f4ff6e21d61765054552d3fda21cf5d0234a386.err
 [stitch:0  info] preface:execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] preface:  files| looking for old files ..
 [stitch:0  info] preface:  files| 0 old files removed
 [stitch:0  info] preface:include| cb.'#preface-1-out', 'out:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb01   :command| expanding template 'diagon #arg <#cbx 1>#out'
-[stitch:0  info] cb01   :command| diagon Flowchart <.stitch/diagon/cb01-8fb46b1711cb5c0d4335f73dfcab2769171da978.cbx 1>.stitch/diagon/cb01-8fb46b1711cb5c0d4335f73dfcab2769171da978.out
+[stitch:0  info] cb01   :command| diagon Flowchart <.stitch/readme/diagon/cb01-095d3f8ad01981d42ea35b6b6861d11fd0f4e2b2.cbx 1>.stitch/readme/diagon/cb01-095d3f8ad01981d42ea35b6b6861d11fd0f4e2b2.out
 [stitch:0  info] cb01   :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] cb01   :  files| looking for old files ..
 [stitch:0  info] cb01   :  files| 0 old files removed
 [stitch:0  info] cb01   :include| cb.'#cb01-1-out', 'out:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb01   :include| cb.'#cb01-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb02   :command| expanding template '#cbx 1>#out'
-[stitch:0  info] cb02   :command| .stitch/youplot/cb02-7f72babbfe8c76085befda559ede11ef0b63172d.cbx 1>.stitch/youplot/cb02-7f72babbfe8c76085befda559ede11ef0b63172d.out
+[stitch:0  info] cb02   :command| .stitch/readme/youplot/cb02-013d8713e49d545259b86d2c401443ad04ffdf89.cbx 1>.stitch/readme/youplot/cb02-013d8713e49d545259b86d2c401443ad04ffdf89.out
 [stitch:0  info] cb02   :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] cb02   :  files| looking for old files ..
 [stitch:0  info] cb02   :  files| 0 old files removed
 [stitch:0  info] cb02   :include| cb.'#cb02-1-out', 'out:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb02   :include| cb.'#cb02-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb03   :command| expanding template 'typst #arg #cbx #art'
-[stitch:0  info] cb03   :command| typst compile .stitch/cetz/cb03-a628cacea4ec4659df2342aec678b3bb9f75cf61.cbx .stitch/cetz/cb03-a628cacea4ec4659df2342aec678b3bb9f75cf61.png
+[stitch:0  info] cb03   :command| typst compile .stitch/readme/cetz/cb03-3b034d34d95adb47f7f472040b5af2dbcd842521.cbx .stitch/readme/cetz/cb03-3b034d34d95adb47f7f472040b5af2dbcd842521.png
 [stitch:0  info] cb03   :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] cb03   :  files| looking for old files ..
 [stitch:0  info] cb03   :  files| 0 old files removed
-fname, mime, #contents	.stitch/cetz/cb03-a628cacea4ec4659df2342aec678b3bb9f75cf61.png	image/png	70809
+fname, mime, #contents	.stitch/readme/cetz/cb03-3b034d34d95adb47f7f472040b5af2dbcd842521.png	image/png	70809
 [stitch:0  info] cb03   :include| cb.'#cb03-1-art', 'art:fig', pandoc.Figure
 [stitch:0  info] cb03   :include| cb.'#cb03-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb04   :command| expanding template 'typst #arg #cbx #art'
-[stitch:0  info] cb04   :command| typst compile .stitch/cetz/cb04-83fb6e7dc72309fb9b49b800ba9b8f3857eca5b7.cbx .stitch/cetz/cb04-83fb6e7dc72309fb9b49b800ba9b8f3857eca5b7.svg
+[stitch:0  info] cb04   :command| typst compile .stitch/readme/cetz/cb04-f4bd7eed3966246b153d4b9b4dc440fd06f43539.cbx .stitch/readme/cetz/cb04-f4bd7eed3966246b153d4b9b4dc440fd06f43539.svg
 [stitch:0  info] cb04   :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] cb04   :  files| looking for old files ..
 [stitch:0  info] cb04   :  files| 0 old files removed
-fname, mime, #contents	.stitch/cetz/cb04-83fb6e7dc72309fb9b49b800ba9b8f3857eca5b7.svg	image/svg+xml	165817
+fname, mime, #contents	.stitch/readme/cetz/cb04-f4bd7eed3966246b153d4b9b4dc440fd06f43539.svg	image/svg+xml	165817
 [stitch:0  info] cb04   :include| cb.'#cb04-1-art', 'art:fig', pandoc.Figure
 [stitch:0  info] cb04   :include| cb.'#cb04-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb05   :command| expanding template '#cbx #arg #art 1>#out 2>#err'
-[stitch:0  info] cb05   :command| .stitch/cetz/cb05-d3710858b6d6e656c27dc3c075c4f4a88b4679ea.cbx local-temperature.json .stitch/cetz/cb05-d3710858b6d6e656c27dc3c075c4f4a88b4679ea.png 1>.stitch/cetz/local-temperature.json 2>.stitch/cetz/cb05-d3710858b6d6e656c27dc3c075c4f4a88b4679ea.err
+[stitch:0  info] cb05   :command| .stitch/readme/download/cb05-1c5b37f387f59e78466095a3f706900722db6a3e.cbx local-temperature.json .stitch/readme/download/cb05-1c5b37f387f59e78466095a3f706900722db6a3e.png 1>.stitch/cetz/local-temperature.json 2>.stitch/readme/download/cb05-1c5b37f387f59e78466095a3f706900722db6a3e.err
 [stitch:0  info] cb05   :execute| running codeblock (exe='yes')
 [stitch:0  info] cb05   :execute| cb05, codeblock ran successfully
 [stitch:0  info] cb05   :  files| looking for old files ..
-[stitch:0  warn] cb05   :  files| `#out` template without `#sha` (d3710858b6d6e656c27dc3c075c4f4a88b4679ea), unable to detect old files
+[stitch:0  warn] cb05   :  files| `#out` template without `#sha` (1c5b37f387f59e78466095a3f706900722db6a3e), unable to detect old files
 [stitch:0  info] cb05   :  files| 0 old files removed
 [stitch:0  info] cb05   :include| cb.'#cb05-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb06   :command| expanding template 'typst #arg #cbx #art'
-[stitch:0  info] cb06   :command| typst compile .stitch/cetz/cb06-f1873d394ba1c7a80c803f40638ee972be150027.cbx .stitch/cetz/cb06-f1873d394ba1c7a80c803f40638ee972be150027.svg
+[stitch:0  info] cb06   :command| typst compile .stitch/readme/cetz/cb06-12665738b03003862a90be0fc2d5ee4d2fae610f.cbx .stitch/readme/cetz/cb06-12665738b03003862a90be0fc2d5ee4d2fae610f.svg
 [stitch:0  info] cb06   :execute| running codeblock (exe='yes')
+error: file not found (searched at /home/pdh/dev/stitch/.stitch/readme/cetz/local-temperature.json)
+  ┌─ .stitch/readme/cetz/cb06-12665738b03003862a90be0fc2d5ee4d2fae610f.cbx:3:16
+  │
+3 │ #let dta = json("local-temperature.json")
+  │                 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+[stitch:0 error] cb06   :execute| codeblock failed with exit(1)
 [stitch:0  info] cb06   :execute| cb06, codeblock ran successfully
 [stitch:0  info] cb06   :  files| looking for old files ..
 [stitch:0  info] cb06   :  files| 0 old files removed
-fname, mime, #contents	.stitch/cetz/cb06-f1873d394ba1c7a80c803f40638ee972be150027.svg	image/svg+xml	115120
-[stitch:0  info] cb06   :include| cb.'#cb06-1-art', 'art:fig', pandoc.Figure
+[stitch:0 error] cb06   :include| cb.'#cb06', skipping 'art:any' (no file produced)
 [stitch:0  info] cb06   :include| cb.'#cb06-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
-[stitch:0 debug] cb07   : option| cmd = "gnuplot #cbx 1>#art 2>#err"
-[stitch:0 debug] cb07   : option| exe = "maybe"
-[stitch:0 debug] cb07   : option| out = ".stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.out"
-[stitch:0 debug] cb07   : option| art = ".stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.png"
-[stitch:0 debug] cb07   : option| dir = ".stitch/gnuplot"
-[stitch:0 debug] cb07   : option| fmt = "png"
+[stitch:0 debug] cb07   : option| cbx = ".stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.cbx"
 [stitch:0 debug] cb07   : option| cid = "cb07"
-[stitch:0 debug] cb07   : option| old = "purge"
-[stitch:0 debug] cb07   : option| log = "debug"
+[stitch:0 debug] cb07   : option| cmd = "gnuplot #cbx 1>#art 2>#err"
+[stitch:0 debug] cb07   : option| out = ".stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.out"
+[stitch:0 debug] cb07   : option| art = ".stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.png"
+[stitch:0 debug] cb07   : option| dir = ".stitch/readme/gnuplot"
 [stitch:0 debug] cb07   : option| arg = ""
-[stitch:0 debug] cb07   : option| lua = ""
+[stitch:0 debug] cb07   : option| err = ".stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.err"
+[stitch:0 debug] cb07   : option| old = "purge"
 [stitch:0 debug] cb07   : option| cls = "true"
-[stitch:0 debug] cb07   : option| cbx = ".stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.cbx"
 [stitch:0 debug] cb07   : option| inc = "art:fig cbx:fcb"
-[stitch:0 debug] cb07   : option| err = ".stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.err"
+[stitch:0 debug] cb07   : option| exe = "maybe"
+[stitch:0 debug] cb07   : option| fmt = "png"
+[stitch:0 debug] cb07   : option| lua = ""
+[stitch:0 debug] cb07   : option| log = "debug"
 [stitch:0  info] cb07   :command| expanding template 'gnuplot #cbx 1>#art 2>#err'
-[stitch:0  info] cb07   :command| gnuplot .stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.cbx 1>.stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.png 2>.stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.err
+[stitch:0  info] cb07   :command| gnuplot .stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.cbx 1>.stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.png 2>.stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.err
 [stitch:0  info] cb07   :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] cb07   :  files| looking for old files ..
 [stitch:0  info] cb07   :  files| 0 old files removed
 [stitch:0 debug] cb07   :include| found 2 inc's in 'art:fig cbx:fcb'
-[stitch:0 debug] cb07   :   read| .stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.png, 62276 bytes
-fname, mime, #contents	.stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.png	image/png	62276
+[stitch:0 debug] cb07   :   read| .stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.png, 62276 bytes
+fname, mime, #contents	.stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.png	image/png	62276
 [stitch:0  info] cb07   :include| cb.'#cb07-1-art', 'art:fig', pandoc.Figure
-[stitch:0 debug] cb07   :   read| .stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3b157.cbx, 549 bytes
+[stitch:0 debug] cb07   :   read| .stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.cbx, 549 bytes
 [stitch:0  info] cb07   :include| cb.'#cb07-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] arg    :command| expanding template '#cbx #arg #art 1>#out 2>#err'
-[stitch:0  info] arg    :command| .stitch/readme/arg-6cee780223452e7424515d954bce46d9a4106221.cbx two words .stitch/readme/arg-6cee780223452e7424515d954bce46d9a4106221.png 1>.stitch/readme/arg-6cee780223452e7424515d954bce46d9a4106221.out 2>.stitch/readme/arg-6cee780223452e7424515d954bce46d9a4106221.err
+[stitch:0  info] arg    :command| .stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.cbx two words .stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.png 1>.stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.out 2>.stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.err
 [stitch:0  info] arg    :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] arg    :  files| looking for old files ..
 [stitch:0  info] arg    :  files| 0 old files removed
 [stitch:0  info] arg    :include| cb.'#arg-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] arg    :include| cb.'#arg-2-out', 'out:fcb', fenced pandoc.CodeBlock
-[stitch:0  info] cb10   :command| expanding template ''
-[stitch:0  info] cb10   :command| 
-[stitch:0  info] cb10   :execute| skipped, output files exist (exe='maybe')
-[stitch:0  info] cb10   :  files| looking for old files ..
-[stitch:0  info] cb10   :  files| 0 old files removed
-[stitch:0  info] cb10   :include| cb.'#cb10-1-out', 'out:fcb', fenced pandoc.CodeBlock
-[stitch:0  info] cb11   :command| expanding template ''
-[stitch:0  info] cb11   :command| 
-[stitch:0  info] cb11   :execute| skipped, output files exist (exe='maybe')
-[stitch:0  info] cb11   :  files| looking for old files ..
-[stitch:0  info] cb11   :  files| 0 old files removed
-[stitch:0  info] cb11   :include| cb.'#cb11-1-out', 'out:fcb', fenced pandoc.CodeBlock
-[stitch:0  info] chunk  :command| expanding template '#cbx #arg #art 1>#out 2>#err'
-[stitch:0  info] chunk  :command| .stitch/readme/chunk-f662c7e6dcc46d1daa40af9ca918939f3a0b7df8.cbx  .stitch/readme/chunk-f662c7e6dcc46d1daa40af9ca918939f3a0b7df8.png 1>.stitch/readme/chunk-f662c7e6dcc46d1daa40af9ca918939f3a0b7df8.out 2>.stitch/readme/chunk-f662c7e6dcc46d1daa40af9ca918939f3a0b7df8.err
-[stitch:0  info] chunk  :execute| skipped, output files exist (exe='maybe')
-[stitch:0  info] chunk  :  files| looking for old files ..
-[stitch:0  info] chunk  :  files| 0 old files removed
-[stitch:0  info] chunk  :include| cb.'#chunk-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
-[stitch:0  info] chunk  :include| cb.'#chunk-2-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] opt-cls:command| expanding template ''
+[stitch:0  info] opt-cls:command| 
+[stitch:0  info] opt-cls:execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] opt-cls:  files| looking for old files ..
+[stitch:0  info] opt-cls:  files| 0 old files removed
+[stitch:0  info] opt-cls:include| cb.'#opt-cls-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] opt-exe:command| expanding template ''
+[stitch:0  info] opt-exe:command| 
+[stitch:0  info] opt-exe:execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] opt-exe:  files| looking for old files ..
+[stitch:0  info] opt-exe:  files| 0 old files removed
+[stitch:0  info] opt-exe:include| cb.'#opt-exe-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] opt-lua:command| expanding template ''
+[stitch:0  info] opt-lua:command| 
+[stitch:0  info] opt-lua:execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] opt-lua:  files| looking for old files ..
+[stitch:0  info] opt-lua:  files| 0 old files removed
+[stitch:0  info] opt-lua:include| cb.'#opt-lua-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] opt-lua:include| cb.'#opt-lua-2-out', 'out:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb15   :command| expanding template '#cbx #arg #art 1>#out 2>#err'
-[stitch:0  info] cb15   :command| .stitch/readme/cb15-0e0c3dae5e76c300216a70ad0200f6e7207eda0f.cbx  .stitch/readme/cb15-0e0c3dae5e76c300216a70ad0200f6e7207eda0f.png 1>.stitch/readme/cb15-0e0c3dae5e76c300216a70ad0200f6e7207eda0f.out 2>.stitch/readme/cb15-0e0c3dae5e76c300216a70ad0200f6e7207eda0f.err
+[stitch:0  info] cb15   :command| .stitch/readme/defaults/cb15-9cd05501a2f24f9f93038ed0b09788baa4e21126.cbx  .stitch/readme/defaults/cb15-9cd05501a2f24f9f93038ed0b09788baa4e21126.png 1>.stitch/readme/defaults/cb15-9cd05501a2f24f9f93038ed0b09788baa4e21126.out 2>.stitch/readme/defaults/cb15-9cd05501a2f24f9f93038ed0b09788baa4e21126.err
 [stitch:0  info] cb15   :execute| skipped (exe='no')
 [stitch:0  info] cb15   :  files| looking for old files ..
 [stitch:0  info] cb15   :  files| 0 old files removed
 [stitch:0  info] cb15   :   read| pandoc.read as csv succeeded (got type Pandoc)
 [stitch:0  info] cb15   :include| cb.'cb15-1-cbx', 'cbx', merging 1 pandoc.Block's
 [stitch:0  info] csv    :command| expanding template '#cbx #arg #art 1>#out 2>#err'
-[stitch:0  info] csv    :command| .stitch/readme/csv-44548c368cf92ef4159265161b476aa11361f677.cbx  .stitch/readme/csv-44548c368cf92ef4159265161b476aa11361f677.png 1>.stitch/readme/csv-44548c368cf92ef4159265161b476aa11361f677.out 2>.stitch/readme/csv-44548c368cf92ef4159265161b476aa11361f677.err
+[stitch:0  info] csv    :command| .stitch/readme/defaults/csv-ae6ed9c8cab2b1340085b82125b48978cd587633.cbx  .stitch/readme/defaults/csv-ae6ed9c8cab2b1340085b82125b48978cd587633.png 1>.stitch/readme/defaults/csv-ae6ed9c8cab2b1340085b82125b48978cd587633.out 2>.stitch/readme/defaults/csv-ae6ed9c8cab2b1340085b82125b48978cd587633.err
 [stitch:0  info] csv    :execute| skipped (exe='no')
 [stitch:0  info] csv    :  files| looking for old files ..
 [stitch:0  info] csv    :  files| 0 old files removed
@@ -173,33 +176,33 @@ fname, mime, #contents	.stitch/gnuplot/cb07-a590a8aaafd1be3f5f890ff5e97cf83be9e3
 [stitch:0  info] csv    :include| cb.'csv-2-cbx', 'cbx', merging 1 pandoc.Block's
 [stitch:0  info] csv    :   read| pandoc.read as csv succeeded (got type Pandoc)
 [stitch:0  info] csv    :include| cb.'#csv-3-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
-[stitch:0 debug] nested : option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:0 debug] nested : option| exe = "maybe"
-[stitch:0 debug] nested : option| out = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.out"
-[stitch:0 debug] nested : option| art = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.png"
-[stitch:0 debug] nested : option| dir = ".stitch/readme"
-[stitch:0 debug] nested : option| fmt = "png"
+[stitch:0 debug] nested : option| cbx = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.cbx"
 [stitch:0 debug] nested : option| cid = "nested"
-[stitch:0 debug] nested : option| old = "purge"
-[stitch:0 debug] nested : option| log = "debug"
+[stitch:0 debug] nested : option| cmd = "#cbx #arg #art 1>#out 2>#err"
+[stitch:0 debug] nested : option| out = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.out"
+[stitch:0 debug] nested : option| art = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.png"
+[stitch:0 debug] nested : option| dir = ".stitch/readme/defaults"
 [stitch:0 debug] nested : option| arg = ""
-[stitch:0 debug] nested : option| lua = ""
+[stitch:0 debug] nested : option| err = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.err"
+[stitch:0 debug] nested : option| old = "purge"
 [stitch:0 debug] nested : option| cls = "false"
-[stitch:0 debug] nested : option| cbx = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.cbx"
 [stitch:0 debug] nested : option| inc = "cbx:fcb out!markdown@stitch"
-[stitch:0 debug] nested : option| err = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.err"
+[stitch:0 debug] nested : option| exe = "maybe"
+[stitch:0 debug] nested : option| fmt = "png"
+[stitch:0 debug] nested : option| lua = ""
+[stitch:0 debug] nested : option| log = "debug"
 [stitch:0  info] nested :command| expanding template '#cbx #arg #art 1>#out 2>#err'
-[stitch:0  info] nested :command| .stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.cbx  .stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.png 1>.stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.out 2>.stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.err
+[stitch:0  info] nested :command| .stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.cbx  .stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.png 1>.stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.out 2>.stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.err
 [stitch:0  info] nested :execute| skipped, output files exist (exe='maybe')
 [stitch:0  info] nested :  files| looking for old files ..
 [stitch:0  info] nested :  files| 0 old files removed
 [stitch:0 debug] nested :include| found 2 inc's in 'cbx:fcb out!markdown@stitch'
-[stitch:0 debug] nested :   read| .stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.cbx, 677 bytes
+[stitch:0 debug] nested :   read| .stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.cbx, 677 bytes
 [stitch:0  info] nested :include| cb.'#nested-1-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
-[stitch:0 debug] nested :   read| .stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.out, 647 bytes
+[stitch:0 debug] nested :   read| .stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.out, 647 bytes
 [stitch:0  info] nested :   read| pandoc.read as markdown succeeded (got type Pandoc)
 [stitch:0 debug] nested :  xload| trying module "stitch"
-[stitch:0 debug] nested :  xload| found module "stitch", pkg.loaded=table: 0x35432740
+[stitch:0 debug] nested :  xload| found module "stitch", pkg.loaded=table: 0x2bb6f940
 [stitch:0  warn] nested :  xform| @stitch, found mod stitch, presumably a list of filters
 meta	{
     author = "nested",
@@ -213,78 +216,75 @@ meta	{
             cetz = {
                 arg = "compile",
                 cmd = "typst #arg #cbx #art",
-                dir = ".stitch/cetz",
+                dir = ".stitch/readme/cetz",
                 inc = "art cbx:fcb"
             },
             chunk = {
                 cmd = "",
+                dir = ".stitch/readme/chunk",
                 inc = "out",
                 lua = "chunk"
             },
             diagon = {
                 cmd = "diagon #arg <#cbx 1>#out",
-                dir = ".stitch/diagon"
+                dir = ".stitch/readme/diagon"
             },
             doc = {
                 cmd = "#cbx 1>#out",
-                dir = ".stitch/readme",
+                dir = ".stitch/readme/doc",
                 inc = "out"
             },
             download = {
-                dir = ".stitch/cetz",
+                dir = ".stitch/readme/download",
                 exe = "yes",
                 inc = "cbx:fcb",
                 out = ".stitch/cetz/#arg"
             },
             gnuplot = {
                 cmd = "gnuplot #cbx 1>#art 2>#err",
-                dir = ".stitch/gnuplot",
+                dir = ".stitch/readme/gnuplot",
                 inc = "art:fig cbx:fcb"
             },
             stitch = {
-                classes = {
-                    [1] = "diagon",
-                    [2] = "graphviz"
-                },
                 header = 0,
                 log = "debug"
             },
             youplot = {
                 cmd = "#cbx 1>#out",
-                dir = ".stitch/youplot"
+                dir = ".stitch/readme/youplot"
             }
         },
         opts = {
-            art = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.png",
-            cbx = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.cbx",
+            art = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.png",
+            cbx = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.cbx",
             cid = "nested",
-            cmd = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.cbx  .stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.png 1>.stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.out 2>.stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.err",
-            err = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.err",
+            cmd = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.cbx  .stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.png 1>.stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.out 2>.stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.err",
+            err = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.err",
             hdr = "2",
             inc = "cbx:fcb out!markdown@stitch",
             log = "debug",
-            out = ".stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.out",
-            sha = "16771fe7ddaa168686839969018067fe588f7249"
+            out = ".stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.out",
+            sha = "85d8a99eb2d759c3914553221fe24b9c76531ad4"
         }
     }
 }
 [stitch:1  info] stitch : stitch| walking CodeBlocks and Headers
 [stitch:1  info] stitch : header| id nested-report: shifting level from 1 to 3
+[stitch:1 debug] cb18   : option| cbx = ".stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.cbx"
+[stitch:1 debug] cb18   : option| cid = "cb18"
 [stitch:1 debug] cb18   : option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:1 debug] cb18   : option| exe = "no"
 [stitch:1 debug] cb18   : option| out = ".stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.out"
 [stitch:1 debug] cb18   : option| art = ".stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.png"
 [stitch:1 debug] cb18   : option| dir = ".stitch/readme/nested"
-[stitch:1 debug] cb18   : option| fmt = "png"
-[stitch:1 debug] cb18   : option| cid = "cb18"
-[stitch:1 debug] cb18   : option| old = "purge"
-[stitch:1 debug] cb18   : option| log = "debug"
 [stitch:1 debug] cb18   : option| arg = ""
-[stitch:1 debug] cb18   : option| lua = ""
-[stitch:1 debug] cb18   : option| cls = "false"
-[stitch:1 debug] cb18   : option| cbx = ".stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.cbx"
-[stitch:1 debug] cb18   : option| inc = "cbx!csv"
 [stitch:1 debug] cb18   : option| err = ".stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.err"
+[stitch:1 debug] cb18   : option| old = "purge"
+[stitch:1 debug] cb18   : option| cls = "false"
+[stitch:1 debug] cb18   : option| inc = "cbx!csv"
+[stitch:1 debug] cb18   : option| exe = "no"
+[stitch:1 debug] cb18   : option| fmt = "png"
+[stitch:1 debug] cb18   : option| lua = ""
+[stitch:1 debug] cb18   : option| log = "debug"
 [stitch:1  info] cb18   :command| expanding template '#cbx #arg #art 1>#out 2>#err'
 [stitch:1  info] cb18   :command| .stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.cbx  .stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.png 1>.stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.out 2>.stitch/readme/nested/cb18-e69785473875cdfc2c59577515fd4f5bf837eb97.err
 [stitch:1  info] cb18   :execute| skipped (exe='no')
@@ -305,7 +305,7 @@ meta	{
 [stitch:1  info] stitch : stitch| saw 2 CodeBlocks and 2 Headers
 [stitch:1 debug] stitch :  xform| @stitch[1].Pandoc, ok, got a userdata (Pandoc)
 [stitch:0  info] nested :  xform| @stitch, applied 1 filter(s) to given `dta`
-[stitch:0  info] nested :  write| .stitch/readme/nested-16771fe7ddaa168686839969018067fe588f7249.out, skipped writing 'userdata'
+[stitch:0  info] nested :  write| .stitch/readme/defaults/nested-85d8a99eb2d759c3914553221fe24b9c76531ad4.out, skipped writing 'userdata'
 [stitch:0 debug] nested :include| cb.'nested-2-out', 'out', no type specified (using default)
 [stitch:0  info] nested :include| cb.'nested-2-out', 'out', merging 6 pandoc.Block's
 [stitch:0  info] stitch : stitch| saw 19 CodeBlocks and 2 Headers
