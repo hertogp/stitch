@@ -506,7 +506,8 @@ codeblocks in the current document, that have that name as a class, will be
 processed by stitch.
 
 The main purpose is to allow for processing of markdown documents that are
-pulled in by a codeblock and which are not necessarily 'stitch-aware'.
+produced externally and pulled in by a codeblock and that are not necessarily
+'stitch-aware'.
 
 For example, suppose your main document's meta data looks something like:
 
@@ -514,9 +515,9 @@ For example, suppose your main document's meta data looks something like:
      author: abc
      stitch:                     # the stitch meta data section
        gnuplot:                  # a named stitch section
-         dir: '.stitch/gnuplot'  # - option: value
-         .. : more options       # ..
-         cls: true
+         dir: '.stitch/gnuplot'
+         .. : more options
+         cls: true               # -> select codeblocks with class .gnuplot
        other:                    # a named stitch section
          dir: ..
      ...
