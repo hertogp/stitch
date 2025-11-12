@@ -512,12 +512,12 @@ For example, suppose your main document's meta data looks something like:
 
      ---
      author: abc
-     stitch:
-       gnuplot:
-         dir: '.stitch/gnuplot'
-         .. : more options
+     stitch:                     # the stitch meta data section
+       gnuplot:                  # a named stitch section
+         dir: '.stitch/gnuplot'  # - option: value
+         .. : more options       # ..
          cls: true
-       other:
+       other:                    # a named stitch section
          dir: ..
      ...
 
