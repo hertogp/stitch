@@ -479,7 +479,6 @@ all `{#id .gnuplot ..}` codeblocks will also be processed without touching the
 subdocument itself.
 
 
-
 ### `dir`
 
 *dir* is used in the expansion of the artifact filepaths.
@@ -488,9 +487,20 @@ This effectively sets the working directory for stitch relative to the
 directory where pandoc was started.  Override the hardcoded `.stitch` default
 in one or more of:
 
-- `meta.stitch.defaults.dir`, to change it for all codeblocks
-- `meta.stitch.name.dir`, to override for all codeblocks linked to `name`
-- `cb.attributes.dir`, to override for a specific codeblock
+- the codeblock attributes
+- a named stitch section in the doc's meta data
+- a stitch section named `defaults`
+
+Setting `dir` in a codeblock's attributes is then specific for that codeblock.
+Mainly useful when debugging a particular defiant codeblock since it makes the
+artifact files easier to find/view.
+
+When set in a named stitch section in the meta data, it allows to store artifact
+files per type of tool used.  Useful if the document being processed uses
+multiple tools for various codeblocks.
+
+If just want to collect all artifacts in the same directory, just not in
+`.stitch`, set dir as desired in the meta data stitch section named `defaults`.
 
 
 ### `exe`

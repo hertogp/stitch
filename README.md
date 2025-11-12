@@ -1,4 +1,4 @@
-``` stitched
+``` doc
                                 \\\///
                                / _  _ \
                              (| (.)(.) |)
@@ -29,8 +29,7 @@ line, stitch will help you do the same from within a codeblock and
 include its result upon converting the document using
 [pandoc](https://pandoc.org/).
 
-The main features of [`stitch`](https://github.com/hertogp/stitch)
-include:
+The main features of this lua-filter include:
 
 - run a codeblock as a system command to produce `data`
 - or use the codeblock itself (its text) as `data`
@@ -137,31 +136,31 @@ hours of the day. That output is then processed by
 ```
                   Temperature (˚C) Today
          ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■■ 6.6                   
-   01:00 ┤■■■■■■■■■■■■■■■■■ 5.9                     
+   00:00 ┤■■■■■■■■■■■■■■■■■■ 6.6                    
+   01:00 ┤■■■■■■■■■■■■■■■■ 5.9                      
    02:00 ┤■■■■■■■■■■■■■■■■ 5.6                      
-   03:00 ┤■■■■■■■■■■■■■■■ 5.1                       
-   04:00 ┤■■■■■■■■■■■■■■■ 5.1                       
-   05:00 ┤■■■■■■■■■■■■■■■ 5.0                       
-   06:00 ┤■■■■■■■■■■■■■■ 4.8                        
+   03:00 ┤■■■■■■■■■■■■■■ 5.1                        
+   04:00 ┤■■■■■■■■■■■■■■ 5.1                        
+   05:00 ┤■■■■■■■■■■■■■■ 5.0                        
+   06:00 ┤■■■■■■■■■■■■■ 4.8                         
    07:00 ┤■■■■■■■■■■■■■ 4.5                         
    08:00 ┤■■■■■■■■■■■■■■ 4.9                        
-   09:00 ┤■■■■■■■■■■■■■■■■■■■ 6.5                   
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■ 7.9               
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.6          
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.9     
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.6   
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.5   
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.0     
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.3       
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.7          
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4          
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4          
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4          
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.0            
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 8.5             
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 8.2              
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■ 7.8               
+   09:00 ┤■■■■■■■■■■■■■■■■■■ 6.5                    
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■ 7.9                
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.6           
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.4     
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.0    
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.2   
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.6     
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.9       
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.3        
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.9          
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.7           
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4            
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 9.0             
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 8.6              
          └                                        ┘ 
 ```
 
@@ -184,7 +183,7 @@ for plotting, charts & tree layout.
 <figure id="cb03-1-art" data-stitch="cetz"
 data-caption="Karl&#39;s picture">
 <img
-src=".stitch/readme/cetz/cb03-3b034d34d95adb47f7f472040b5af2dbcd842521.png"
+src=".stitch/readme/cetz/cb03-b96aa58c9edfa801e2fb84b0dbfc6567d2288ab8.png"
 id="cb03-1-art-img" />
 <figcaption>Karl's picture</figcaption>
 </figure>
@@ -243,7 +242,7 @@ drawing diagrams and arrows. Revisiting the flowchart shown earlier with
 
 <figure id="cb04-1-art" data-stitch="cetz" data-caption="Stitch">
 <img
-src=".stitch/readme/cetz/cb04-f4bd7eed3966246b153d4b9b4dc440fd06f43539.svg"
+src=".stitch/readme/cetz/cb04-f424f10774774a67eeec850e1c141da332fd675e.svg"
 id="cb04-1-art-img" />
 <figcaption>Stitch</figcaption>
 </figure>
@@ -308,7 +307,7 @@ following codeblock to create a graph.
 <figure id="cb06-1-art" data-stitch="cetz"
 data-caption="Temperature (C) today by Lilaq">
 <img
-src=".stitch/readme/cetz/cb06-15ee4783366ec30f07b578986f59f14795d2d528.svg"
+src=".stitch/readme/cetz/cb06-641f22e973bc0b7967a14ddcf5095d406985fbbb.svg"
 id="cb06-1-art-img" />
 <figcaption>Temperature (C) today by Lilaq</figcaption>
 </figure>
@@ -333,14 +332,14 @@ id="cb06-1-art-img" />
 
 Another example using the trusty `gnuplot`.
 
-<figure id="cb07-1-art" data-stitch="gnuplot" data-byc="99">
+<figure id="cb07-1-art" data-stitch="gnuplot">
 <img
-src=".stitch/readme/gnuplot/cb07-47cbc954d3cc828338f9ff7947df3b52e2cc48b1.png"
+src=".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.png"
 id="cb07-1-art-img" />
 </figure>
 
 ````
-``` {#cb07 stitch="gnuplot" byc="99" cls="true" log="debug"}
+``` {#cb07 stitch="gnuplot" log="debug"}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
@@ -382,8 +381,8 @@ The filter will process a codeblock if it has a:
 - `.stitch` class,
 - `stitch=name` attribute, where `<name>` refers to a
   `meta.stitch`-section
-- class which has a `meta.stitch`-section with its \[`byc`\]-option set
-  to yes/true
+- class which has a `meta.stitch`-section with its [`cls`](#cls)-option
+  set to yes/true
 
 Processing a codeblock follows these steps:
 
@@ -453,7 +452,7 @@ The list of options and default values are:
 | Opt | Value                            | Description                     |
 |:----|:---------------------------------|:--------------------------------|
 | arg | `''`                             | for use in `cmd` (on the cli)   |
-| byc | `''`                             | select codeblock by class       |
+| cls | `'no'`                           | select codeblock by class       |
 | cid | `'x'`                            | the cb’s `#id` or generated     |
 | dir | `'.stitch'`                      | the working directory           |
 | exe | `'maybe'`                        | execute codeblock (possibly)    |
@@ -503,24 +502,14 @@ echo "--------------"
 
 ``` stitched
 --------------
-script name  :  .stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.cbx
+script name  :  .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.cbx
 nr of args   :  3
-all args     :  two words .stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.png
+all args     :  two words .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.png
 1st arg      :  two
 2nd arg      :  words
-last arg     :  .stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.png
-alt last arg :  .stitch/readme/defaults/arg-c873bfc189467c7b9c95bbe2f3c605da05e6963e.png
+last arg     :  .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.png
+alt last arg :  .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.png
 --------------
-```
-
-### `cls`
-
-*cls* specifies whether or not a codeblock can be selected by class.
-
-Valid values:
-
-```
-["true","false","yes","no","0","1","2"]
 ```
 
 ### `cid`
@@ -545,6 +534,52 @@ with:
   where  
 - `err` is the artificat to be included
 
+### `cls`
+
+*cls* specifies whether or not a codeblock can be selected by class.
+
+Valid values:
+
+```
+[true,false,"true","false","yes","no"]
+```
+
+When used as a codeblock attribute `{.. cls=true ..}` then the codeblock
+will be processed by stitch if stitch has a section for one of the cb’s
+classes.
+
+When used as part of a stitch named section in the document’s meta data,
+all codeblocks that have that class will be processed by stitch.
+
+The main purpose is to allow for processing of markdown documents that
+are pulled in by a codeblock and which are not necessarily
+‘stitch-aware’.
+
+For example, suppose your main document’s meta data looks something
+like:
+
+     ---
+     author: abc
+     stitch:
+       gnuplot:
+         dir: '.stitch/gnuplot'
+         .. : more options
+         cls: true
+       other:
+         dir: ..
+     ...
+
+Then all codeblocks with a `.gnuplot` class will be processed according
+to the settings of `gnuplot` in the meta data of the document. That
+means less noise in the attributes of gnuplot codeblocks.
+
+If a codeblock in the main document pulls in another markdown document,
+which is to be filtered by stitch as well (see [Nested
+doc](#nested-doc)), stitch add its own configuration to the
+subdocument’s meta data before calling itself. That way all
+`{#id .gnuplot ..}` codeblocks will also be processed without touching
+the subdocument itself.
+
 ### `dir`
 
 *dir* is used in the expansion of the artifact filepaths.
@@ -553,10 +588,21 @@ This effectively sets the working directory for stitch relative to the
 directory where pandoc was started. Override the hardcoded `.stitch`
 default in one or more of:
 
-- `meta.stitch.defaults.dir`, to change it for all codeblocks
-- `meta.stitch.name.dir`, to override for all codeblocks linked to
-  `name`
-- `cb.attributes.dir`, to override for a specific codeblock
+- the codeblock attributes
+- a named stitch section in the doc’s meta data
+- a stitch section named `defaults`
+
+Setting `dir` in a codeblock’s attributes is then specific for that
+codeblock. Mainly useful when debugging a particular defiant codeblock
+since it makes the artifact files easier to find/view.
+
+When set on in a stitch section in the meta data, it allows to store
+artifact files per type of tool used. Useful if the document being
+processed uses multiple tools for various codeblocks.
+
+If just want to collect all artifacts in the same directory, just not in
+`.stitch`, set dir as desired in the meta data stitch section named
+`defaults`.
 
 ### `exe`
 
@@ -565,7 +611,7 @@ default in one or more of:
 Valid values:
 
 ```
-["true","false","yes","no","maybe"]
+[true,false,"true","false","yes","no","maybe"]
 ```
 
 Stitch calculates a sha-hash using all option values (sorted by key),
@@ -696,7 +742,7 @@ codeblock.
 Valid values:
 
 ```
-["silent","error","warn","info","debug"]
+["silent","error","warn","notify","info","debug"]
 ```
 
 Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to
@@ -713,142 +759,97 @@ environment, which enables introspection.
 ```` lua
 ``` {#opt-lua .lua stitch="chunk" inc="cbx:fcb out:fcb" lua="chunk"}
 local out = io.open(Stitch.opts.out, 'w')
-
-local tprint = function(t)
-  local indent = string.rep(" ", 2) -- magical nr
-  local indent2 = string.rep(" ", 2 + 6) -- dark magic
-  out:write("{\n")
-  for k,v in pairs(t) do
-    v = tostring(v)
-    if #v > 40 then
-      v = v:gsub("%s+", " \\\n" .. indent2)
-    end
-    out:write(indent, k, " = '", v, "'\n")
-  end
-  out:write("}\n")
-end
-
-out:write("Stitch counters:\n")
-out:write("- cbc = ", Stitch.cbc, " (codeblock counter)\n")
-out:write("- hdc = ", Stitch.hdc, " (header counter)\n")
-
 out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
-tprint(Stitch.opts)
+out:write("{\n", table.concat(Stitch.yaml(Stitch.opts, 2), "\n"), "\n}\n")
 
-out:write("\nStitch context:\n")
-for k,v in pairs(Stitch.ctx) do
-    out:write(k, ": ")
-    tprint(v)
-end
-out:write("defaults:")
-tprint(Stitch.ctx.defaults)
+out:write("\nFrom doc.meta:\n")
+local yaml = table.concat(Stitch.yaml(Stitch.ctx, 2), "\n")
+local mta = Stitch.yaml(Stitch.ctx.defaults, 4)
+table.insert(mta, 1, "\n  defaults:")
+mta = table.concat(mta, "\n")
+out:write("stitch:\n", yaml, mta, "\n\n")
 
-out:write("\nstitch.hardcoded:\n")
-tprint(Stitch.hardcoded)
+out:write("\nHardcoded option defaults:\n")
+out:write(table.concat(Stitch.yaml(Stitch.hardcoded, 2), "\n"))
 out:write("\n")
-
--- tmp
-local fp = 'media/hello.txt'
-local mt = 'text/plain'
-local contents = 'Nou moe?'
-pandoc.mediabag.insert(fp, mt, contents)
-out:write("pandoc.mediabag:\n")
-for k,v in pandoc.mediabag.items() do
-    out:write("- ", k, " : ", v, "\n")
-end
--- /tmp
 
 out:close()
 ```
 ````
 
 ``` lua
-Stitch counters:
-- cbc = 13 (codeblock counter)
-- hdc = 0 (header counter)
 
 
 codeblock #opt-lua options:
 {
-  sha = 'e1f24c9825931b751c077696e54bc937b0342257'
-  lua = 'chunk'
-  out = '.stitch/readme/chunk/opt-lua-e1f24c9825931b751c077696e54bc937b0342257.out'
-  stitch = 'chunk'
-  err = '.stitch/readme/chunk/opt-lua-e1f24c9825931b751c077696e54bc937b0342257.err'
-  cmd = ''
-  cbx = '.stitch/readme/chunk/opt-lua-e1f24c9825931b751c077696e54bc937b0342257.cbx'
-  art = '.stitch/readme/chunk/opt-lua-e1f24c9825931b751c077696e54bc937b0342257.png'
-  inc = 'cbx:fcb out:fcb'
-  cid = 'opt-lua'
+  lua: 'chunk'
+  cbx: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.cbx'
+  err: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.err'
+  sha: 'cf6a30d5aae63af73ebc70232eb64cd290d8e77b'
+  inc: 'cbx:fcb out:fcb'
+  art: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.png'
+  cid: 'opt-lua'
+  cmd: ''
+  stitch: 'chunk'
+  out: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.out'
 }
 
-Stitch context:
-doc: {
-  inc = 'out'
-  cmd = '#cbx 1>#out'
-  dir = '.stitch/readme/doc'
-}
-chunk: {
-  lua = 'chunk'
-  inc = 'out'
-  cmd = ''
-  dir = '.stitch/readme/chunk'
-}
-cetz: {
-  arg = 'compile'
-  inc = 'art cbx:fcb'
-  cmd = 'typst #arg #cbx #art'
-  dir = '.stitch/readme/cetz'
-}
-youplot: {
-  cmd = '#cbx 1>#out'
-  dir = '.stitch/readme/youplot'
-}
-gnuplot: {
-  inc = 'art:fig cbx:fcb'
-  cmd = 'gnuplot #cbx 1>#art 2>#err'
-  dir = '.stitch/readme/gnuplot'
-}
-diagon: {
-  cmd = 'diagon #arg <#cbx 1>#out'
-  dir = '.stitch/readme/diagon'
-}
-download: {
-  out = '.stitch/cetz/#arg'
-  exe = 'yes'
-  inc = 'cbx:fcb'
-  dir = '.stitch/readme/download'
-}
-stitch: {
-  log = 'debug'
-  header = '0'
-}
-defaults:{
-  inc = 'out cbx:fcb'
-  dir = '.stitch/readme/defaults'
-}
+From doc.meta:
+stitch:
+  youplot:
+    dir: '.stitch/readme/youplot'
+    cmd: '#cbx 1>#out'
+  gnuplot:
+    dir: '.stitch/readme/gnuplot'
+    inc: 'art:fig cbx:fcb'
+    cmd: 'gnuplot #cbx 1>#art 2>#err'
+  cetz:
+    dir: '.stitch/readme/cetz'
+    arg: 'compile'
+    inc: 'art cbx:fcb'
+    cmd: 'typst #arg #cbx #art'
+  diagon:
+    dir: '.stitch/readme/diagon'
+    cmd: 'diagon #arg <#cbx 1>#out'
+  stitch:
+    log: 'debug'
+    header: '0'
+  doc:
+    dir: '.stitch/readme/doc'
+    inc: 'out'
+    cls: 'true'
+    cmd: '#cbx 1>#out'
+  chunk:
+    dir: '.stitch/readme/chunk'
+    inc: 'out'
+    lua: 'chunk'
+    cmd: ''
+  download:
+    dir: '.stitch/readme/download'
+    exe: 'yes'
+    out: '#dir/#arg'
+    inc: 'cbx:fcb'
+  defaults:
+    dir: '.stitch/readme/defaults'
+    inc: 'out cbx:fcb'
 
-stitch.hardcoded:
-{
-  exe = 'maybe'
-  arg = ''
-  cls = 'false'
-  lua = ''
-  out = '#dir/#cid-#sha.out'
-  fmt = 'png'
-  dir = '.stitch'
-  cid = 'x'
-  err = '#dir/#cid-#sha.err'
-  cmd = '#cbx #arg #art 1>#out 2>#err'
-  log = 'info'
-  cbx = '#dir/#cid-#sha.cbx'
-  art = '#dir/#cid-#sha.#fmt'
-  inc = 'cbx:fcb out:fcb art:img err:fcb'
-  old = 'purge'
-}
 
-pandoc.mediabag:
-- media/hello.txt : text/plain
+Hardcoded option defaults:
+  lua: ''
+  arg: ''
+  log: 'info'
+  cbx: '#dir/#cid-#sha.cbx'
+  err: '#dir/#cid-#sha.err'
+  fmt: 'png'
+  cls: 'no'
+  out: '#dir/#cid-#sha.out'
+  exe: 'maybe'
+  art: '#dir/#cid-#sha.#fmt'
+  inc: 'cbx:fcb out:fcb art:img err:fcb'
+  dir: '.stitch'
+  old: 'purge'
+  cid: 'x'
+  cmd: '#cbx #arg #art 1>#out 2>#err'
 ```
 
 ### `old`
@@ -1161,31 +1162,31 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 ``` stitched
                   Temperature (˚C) Today
          ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■■ 6.6                   
-   01:00 ┤■■■■■■■■■■■■■■■■■ 5.9                     
+   00:00 ┤■■■■■■■■■■■■■■■■■■ 6.6                    
+   01:00 ┤■■■■■■■■■■■■■■■■ 5.9                      
    02:00 ┤■■■■■■■■■■■■■■■■ 5.6                      
-   03:00 ┤■■■■■■■■■■■■■■■ 5.1                       
-   04:00 ┤■■■■■■■■■■■■■■■ 5.1                       
-   05:00 ┤■■■■■■■■■■■■■■■ 5.0                       
-   06:00 ┤■■■■■■■■■■■■■■ 4.8                        
+   03:00 ┤■■■■■■■■■■■■■■ 5.1                        
+   04:00 ┤■■■■■■■■■■■■■■ 5.1                        
+   05:00 ┤■■■■■■■■■■■■■■ 5.0                        
+   06:00 ┤■■■■■■■■■■■■■ 4.8                         
    07:00 ┤■■■■■■■■■■■■■ 4.5                         
    08:00 ┤■■■■■■■■■■■■■■ 4.9                        
-   09:00 ┤■■■■■■■■■■■■■■■■■■■ 6.5                   
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■ 7.9               
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.6          
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.9     
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.6   
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.5   
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.0     
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.3       
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.7          
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4          
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4          
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4          
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.0            
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 8.5             
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 8.2              
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■ 7.8               
+   09:00 ┤■■■■■■■■■■■■■■■■■■ 6.5                    
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■ 7.9                
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.6           
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.4     
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.0    
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.2   
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.6     
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.9       
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.3        
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.9          
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.7           
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4            
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 9.0             
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 8.6              
          └                                        ┘ 
 ```
 
@@ -1193,41 +1194,42 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 
 ```
 
-Doc's meta
+In doc.meta
 ---
 stitch:
-  doc:
-    dir: '.stitch/readme/doc'
-    cmd: '#cbx 1>#out'
-    inc: 'out'
-  diagon:
-    dir: '.stitch/readme/diagon'
-    cmd: 'diagon #arg <#cbx 1>#out'
+  cetz:
+    cmd: 'typst #arg #cbx #art'
+    arg: 'compile'
+    dir: '.stitch/readme/cetz'
+    inc: 'art cbx:fcb'
   download:
-    dir: '.stitch/readme/download'
     exe: 'yes'
     inc: 'cbx:fcb'
+    dir: '.stitch/readme/download'
     out: '#dir/#arg'
   stitch:
     log: 'debug'
     header: '0'
-  cetz:
-    dir: '.stitch/readme/cetz'
-    cmd: 'typst #arg #cbx #art'
-    inc: 'art cbx:fcb'
-    arg: 'compile'
   gnuplot:
-    dir: '.stitch/readme/gnuplot'
     cmd: 'gnuplot #cbx 1>#art 2>#err'
+    dir: '.stitch/readme/gnuplot'
     inc: 'art:fig cbx:fcb'
-  youplot:
-    dir: '.stitch/readme/youplot'
+  doc:
     cmd: '#cbx 1>#out'
+    inc: 'out'
+    cls: 'true'
+    dir: '.stitch/readme/doc'
   chunk:
-    dir: '.stitch/readme/chunk'
     cmd: ''
+    dir: '.stitch/readme/chunk'
     inc: 'out'
     lua: 'chunk'
+  diagon:
+    cmd: 'diagon #arg <#cbx 1>#out'
+    dir: '.stitch/readme/diagon'
+  youplot:
+    cmd: '#cbx 1>#out'
+    dir: '.stitch/readme/youplot'
   defaults:
     dir: '.stitch/readme/defaults'
     inc: 'out cbx:fcb'
@@ -1235,19 +1237,21 @@ stitch:
 
 codeblock opts:
 {
-  exe: 'yes'
   cmd: ''
-  arg: ''
-  old: 'purge'
-  art: '.stitch/readme/chunk/opt-xxx-75bbf4f26015baa4bd7eeed57785bb7d8b668673.png'
-  cid: 'opt-xxx'
+  dir: '.stitch/readme/chunk'
+  art: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.png'
   fmt: 'png'
-  cls: 'false'
-  cbx: '.stitch/readme/chunk/opt-xxx-75bbf4f26015baa4bd7eeed57785bb7d8b668673.cbx'
+  cbx: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.cbx'
   inc: 'out'
-  err: '.stitch/readme/chunk/opt-xxx-75bbf4f26015baa4bd7eeed57785bb7d8b668673.err'
-  out: '.stitch/readme/chunk/opt-xxx-75bbf4f26015baa4bd7eeed57785bb7d8b668673.out'
+  cid: 'opt-xxx'
+  old: 'purge'
+  arg: ''
+  out: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.out'
   lua: 'chunk'
   log: 'info'
-  dir: '.stitch/readme/chunk'}
+  err: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.err'
+  cls: 'no'
+  exe: 'yes'
+}
+[[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']
 ```
