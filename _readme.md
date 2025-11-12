@@ -357,19 +357,20 @@ artifact
   ~ refers to the [`cbx`]-file or one of 3 files produced by processing a codeblock
 
 cbx-file
-  ~ the file where a codeblock's contents is stored and marked executable
+  ~ the [`cbx`]-file where a codeblock's contents is stored and marked executable
 
 art-file
-  ~ the file where the file-based output is captured
+  ~ the [`art`]-file where file-based output is to be written to
 
 out-file
-  ~ the file where the output on stdout is captured
+  ~ the [`out`]-file where the output on stdout is captured
 
 err-file
-  ~ the file where the output on stderr is captured
+  ~ the [`err`]-file where the output on stderr is captured
 
 tool
   ~ an external program used to process the [cbx]-file
+  ~ this usually has its own `stitch section` in the doc's meta data
 
 stitch section
   ~ a `name`'d table of options under `stitch:` in the doc's meta data
@@ -378,7 +379,7 @@ defaults
   ~ a `defaults` section under `stitch` to fall back on when resolving options
 
 hardcoded
-  ~ the option values hardcoded in stitch if option resolution fails
+  ~ the option values hardcoded in stitch and used if option resolution fails
 
 option resolution
   ~ where stitch looks for options and their values.
