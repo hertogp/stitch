@@ -460,8 +460,8 @@ It is set to either:
 - cb.attr.identifier, or
 - cb\<nth\>, where it's the nth codeblock seen by stitch
 
-Each time an artifact is included as per [`inc`] and `id` is generated
-and assigned (if possible).  That id consists of the codeblock's identifier
+Each time an artifact is included as per [`inc`] an `id` is generated
+and assigned to the element to be inserted (if possible).  That id consists of the codeblock's identifier
 ([`cid`]), a counter of the nth artifact being included and the kind of
 artifact.
 
