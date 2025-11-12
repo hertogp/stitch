@@ -408,6 +408,20 @@ sha | `set by stitch`                  | sha1 hash of options & cb.text
 
 : Table Stitch options
 
+The defaults are basically setup to:
+- run the [`cbx`']-file as a command on the system
+- provide additional [`arg`]'s (if any)
+- provide and an output filename [`art`] as last argument
+- capture stdout and stderr to [`out`], resp. [`err`]-files
+- include some artifacts in the current doc:
+   - `cbx:fcb`, the original codeblock with its attributes
+   - `out`, whatever was captured on stdout in a codeblock
+   - `art:img` a link to an image file given by [`art`]
+   - `err`, whatever was captures on stderr in another codeblock
+
+It is then up to the codeblock's code to actually produce any of the artifacts
+to be included.  Tweaking a codeblock is then usually limited to specifying an
+[`arg`] attribute and possibly changing its [`inc`] attribute.
 
 ### `arg`
 
@@ -423,7 +437,7 @@ stderr so the redirect does not create a file and the output file argument is
 ignored by the script.
 
 
-```{#arg .stitch inc="cbx:fcb out" arg="two words"}
+```{#arg .stitch arg="two words"}
 #!/usr/bin/env bash
 echo "--------------"
 echo "script name  :  ${0}"
@@ -451,9 +465,9 @@ When generating an element `id` to assign to included elements,
 being inserted and the `what` is the part being included (one of `cbx`, `out`,
 `err` or `art`).
 
-So `csv-3-err` is the id for the element inserted for a codeblock with:\
-- identifier `csv`, and\
-- where the 3rd directive in its `inc` option includes an artifact and where\
+So `csv-3-err` is the id for the element inserted for a codeblock with:
+- identifier `csv`, and
+- where the 3rd directive in its `inc` option includes an artifact and where
 - `err` is the artificat to be included
 
 
