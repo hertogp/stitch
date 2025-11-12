@@ -496,6 +496,15 @@ fh:write(pandoc.json.encode(Stitch.optvalues.cls))
 fh:close()
 ```
 
+Normally, codeblocks are marked by:
+- setting an attribute like `stitch=name`, or
+- adding `.stitch` as a class to a codeblock.
+
+So converting an externally acquired markdown document would require touching
+all relevant codeblocks in order for them to get processed. The `cls` options
+alleviates the need to edit such a document by allowing codeblock selection to
+use any class attached to a codeblock.
+
 When used as a codeblock attribute `{.. cls=true ..}`, stitch will match
 any of the codeblock's classes to named stitch sections in the doc's meta
 data.  The first match is then used to process the codeblock.  When no
@@ -545,11 +554,11 @@ in one or more of:
 - a named stitch section in the doc's meta data
 - a stitch section named `defaults`
 
-Setting `dir` in a codeblock's attributes is then specific for that codeblock.
+Setting `dir` in a codeblock's attributes is specific for that codeblock.
 Mainly useful when debugging a particular defiant codeblock since it makes the
 artifact files easier to find/view.
 
-When set in a named stitch section in the meta data, it allows to store
+When set in a named stitch section in the document's meta data, it allows to store
 artifact files per type of tool used.  Useful if the document being processed
 uses multiple tools for various codeblocks.
 
