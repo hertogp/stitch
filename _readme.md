@@ -344,22 +344,44 @@ Stitch provides a few features for converting codeblocks:
   * include the same artifact multiple times in, usually, different ways
   * use a codeblock for side-effects only (0 includes)
   * log levels, global, per tool or codeblock, to show all gory details ([`log`])
-  * transfer codeblock attributes to included results, if possible
-  * a unique id per codeblock and its includes ([`cid`])
+  * transfer a codeblock's attributes to its included results, if possible
+  * a unique id per codeblock and for each of its includes ([`cid`])
   * include after re-read an artifact using a [pandoc --read=format](https://pandoc.org/MANUAL.html#general-options)
   * run the [`cbx`] or other artifact through an external filter
     - any lua program/filter that accepts string data or a pandoc doc
-    - stitch itself to do codeblocks in an externally acquired markdown doc
+    - stitch itself for codeblocks in an externally acquired markdown doc
 
+where,
+
+artifact
+  ~ refers to a file produced by processing a codeblock
+
+cbx-file
+  ~ the file where a codeblock's contents is stored and marked executable
+
+art-file
+  ~ the file where the file-based output is captured
+
+out-file
+  ~ the file where the output on stdout is captured
+
+err-file
+  ~ the file where the output on stderr is captured
+
+tool
+  ~ an external program used to process the [cbx]-file
+
+
+\newpage
 
 ## Configuration
 
-Stitch options are resolved in the following, *most to least*, specific order:
+Stitch options are resolved in *most to least* specific order:
 
   1. codeblock attributes
-  2. a `name` section, in `meta.stitch`
-  3. the `defaults` section, again in `meta.stitch`
-  4. hardcoded Stitch defaults
+  2. a codeblock's `name` section, in stitch's meta data
+  3. the `defaults` section, again in stitch's meta data
+  4. hardcoded stitch defaults
 
 The list of options and default values are:
 

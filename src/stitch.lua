@@ -91,8 +91,6 @@ end
 --[[-- data --]]
 
 I.optvalues = {
-  -- all values listed, MUST be strings
-  -- valid option,value-pairs; TODO: add key=false to validate key w/ any value?
   cls = { true, false, 'true', 'false', 'yes', 'no' },
   exe = { true, false, 'true', 'false', 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
@@ -105,21 +103,20 @@ I.optvalues = {
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
+  art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
+  cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
   cid = 'x', -- either cb.identifier or set by stitch using I.cbc
   cls = 'no', -- {'true', 'false', 'yes', 'no', '0', '1', '2', '3'}
+  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
+  err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
   exe = 'maybe', -- {yes, no, maybe}
   fmt = 'png', -- format for images (if any)
   inc = 'cbx:fcb out:fcb art:img err:fcb',
   log = 'info', -- {debug, error, warn, info, silent}
   lua = '', -- {chunk, ''}
   old = 'purge', -- {keep, purge}
-  -- expandable filenames
-  cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
   out = '#dir/#cid-#sha.out', -- capture of stdout (if any)
-  err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
-  art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
-  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
 }
 
 --[[-- options --]]
