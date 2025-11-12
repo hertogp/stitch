@@ -495,12 +495,12 @@ Setting `dir` in a codeblock's attributes is then specific for that codeblock.
 Mainly useful when debugging a particular defiant codeblock since it makes the
 artifact files easier to find/view.
 
-When set in a named stitch section in the meta data, it allows to store artifact
-files per type of tool used.  Useful if the document being processed uses
-multiple tools for various codeblocks.
+When set in a named stitch section in the meta data, it allows to store
+artifact files per type of tool used.  Useful if the document being processed
+uses multiple tools for various codeblocks.
 
-If just want to collect all artifacts in the same directory, just not in
-`.stitch`, set dir as desired in the meta data stitch section named `defaults`.
+For dumping all artifacts in the same directory, just not in `.stitch`, set dir
+as desired in the `defaults`-section of stitch in the doc's meta data.
 
 
 ### `exe`
@@ -515,12 +515,25 @@ fh:write(pandoc.json.encode(Stitch.optvalues.exe))
 fh:close()
 ```
 
-Stitch calculates a sha-hash using all option values (sorted by key),
-excluding the `exe`'s value plus the codeblock contents and with all spaces
-removed.  That fingerprint is then used (`#sha`) in filenames and allows for
-unique names as well as old/new file detection.  Files that match the path
-of the current codeblock's new files, except for the `-#sha.ext` part, are
-considered old and candidates for removal (see _*old*_).
+If *exe* is either `yes`, `true` or true, the codeblock is always run.  Values
+like `no`, `false` or false means it won't be run.
+
+When the value is `maybe` (the default), the codeblock is only executed when
+something changed and new or different results are expected.  To detect
+changes, stitch uses a fingerprint of the codeblock.
+
+A codeblock's fingerprint is calculated using:
+- almost all option values (sorted by key), and
+- the codeblock's contents
+
+All values are combined to a single string with all whitespace removed.  The
+fingerprint is then the sha1r- hash of that string.
+
+Options that donot influence any actual results are omitted (like `exe`, `log`
+etc.).  Sorting and whitespace removal means consistent fingerprints and makes
+it useful to detect changes in the codeblock and/or its options.
+
+
 
 So if `exe=maybe` and files exists for the newly calculated fingerprint,
 the codeblock doesn't run again and previous results will be used instead.
