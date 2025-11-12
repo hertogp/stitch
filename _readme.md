@@ -719,6 +719,57 @@ file.
 
 \newpage
 
+## Logging
+
+Using codeblocks to generate artifacts and include those in the current
+document can be confusing at times, especially when small errors lead
+to unexpected behaviour and/or no output at all.
+
+That's where logging might help.  Use the [`log`]
+attribute, either on an individual codeblock, or on the tool level in a
+`meta.stitch` tool section and set it to `debug` to crank up the volume.
+
+Log entries have roughly the following format:
+
+  `[stitch:<N> <Level>] <owner> : <action> | <message>`
+
+where:
+- `<N>` is the recursion level (max depth is hardcoded to 6)
+- `<level>` is one of `error`, `warn`, `info`, `debug`
+- `<owner>` is usually the codeblock [`cid`] or `stitch` itself
+- `<action>` denotes what stitch is doing at that moment
+- `<msg>` is whatever seemed insightful at the time
+
+As an example see the
+[readme.pdf.log](https://github.com/hertogp/stitch/blob/main/.stitch/readme.pdf.log)
+generated last time this readme was converted to PDF.
+
+Here is the beginning of aforementioned log-file (at least as it was once):
+
+```
+[stitch:0  info] stitch :   init| STITCH initialized
+[stitch:0  info] stitch : stitch| walking CodeBlocks
+[stitch:0  info] preface:command| expanding template '#cbx 1>#out'
+[stitch:0  info] preface:command| .stitch/readme/preface-<sha>.cbx 1>.stitch/readme/preface-<sha>.out
+[stitch:0  info] preface:execute| skipped, output files exist (exe='maybe')
+[stitch:0  info] preface:  files| looking for old files ..
+[stitch:0  info] preface:  files| 0 old files removed
+[stitch:0  info] preface:include| cb.'#preface-1-out', 'out:fcb', fenced pandoc.CodeBlock
+[stitch:0  info] cb01   :command| expanding template 'diagon #arg <#cbx 1>#out'
+```
+
+where `<sha>` is the (40 chars long) fingerprint of the codeblock being
+processed.
+
+The logs show:
+- stitch being initialized,
+- that is it walking codeblocks only (no shifting headers here) and
+- how it processed the fist (`preface`) codeblock of this readme
+  (the [boxes](https://boxes.thomasjensen.com/) asciiart picture).
+
+\newpage
+
+
 ## Gotcha's
 
 If `stitch` isn't behaving as expected:
