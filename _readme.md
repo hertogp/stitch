@@ -756,7 +756,7 @@ out:close()
 
 Valid values:
 
-```{#opt-log stitch=chunk}
+```{#opt-old stitch=chunk}
 local fh = io.open(Stitch.opts.out, 'w')
 fh:write(pandoc.json.encode(Stitch.optvalues.old))
 fh:close()

@@ -92,7 +92,7 @@ end
 
 I.optvalues = {
   cls = { true, false, 'true', 'false', 'yes', 'no' },
-  exe = { true, false, 'true', 'false', 'yes', 'no', 'maybe' },
+  exe = { 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
   lua = { 'chunk', '' },
   old = { 'keep', 'purge' },
@@ -363,7 +363,7 @@ end
 
 -- remove old files from past runs of current codeblock
 ---@return number count number of files removed
-function I.fkill()
+function I.purge()
   local count = 0
   if 'purge' ~= I.opts.old then
     I.log('info', 'files', "not purging old files: cb.old='%s'", I.opts.old)
@@ -403,6 +403,7 @@ function I.fkill()
     end
   end
 
+  I.log('info', 'files', '%d old files removed', count)
   return count
 end
 
@@ -715,24 +716,28 @@ end
 
 -- return meta section name that makes this cb eligible or nil
 function I.eligible(cb)
-  -- hi-2-lo: attr.stitch=name, cls=yes, .stitch (defaults)
+  -- more to less specific: attr.stitch=name, cls=yes, .stitch (defaults)
+  -- at this point, no I.opts available & cb may not have an identifier
   if cb.attributes.stitch then return cb.attributes.stitch end
   for _, class in ipairs(cb.classes) do
     local cls = tostring(I.ctx[class].cls)
     if cls == 'true' or cls == 'yes' then return class end
   end
   if cb.classes:find('stitch') then return 'defaults' end
-  I.log('note', 'select', '%s is not eligible for stitch processing', cb.identifier)
+  -- TODO: cb does not always have an identifier
+  local tag = #cb.identifier > 0 and cb.identifier or string.format('cb%s', I.cbc)
+  I.log('note', 'select', '%s is not eligible for stitch processing', tag)
   return false
 end
+
+-- optionally run a codeblock as a chunk or system command
 ---@poram cb a pandoc.codeblock
----@return any list of nodes in pandoc's ast
+---@return any result a sequence of nodes to replace given `cb` or nil
 function I.CodeBlock(cb)
   I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
   local section = I.eligible(cb)
   if not section then return nil end
 
-  -- TODO: also check I.opts.exe and I.opts.old (keep/purge)
   if I.mkopt(cb, section) and I.mkcmd(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
@@ -758,16 +763,14 @@ function I.CodeBlock(cb)
       I.log('info', 'execute', "running codeblock (exe='%s')", I.opts.exe)
       local ok, code, nr = os.execute(I.opts.cmd)
       if not ok then
-        -- complain and carry on
-        I.log('error', 'execute', 'codeblock failed with %s(%s)', code, nr)
-        -- return nil
+        I.log('error', 'execute', '%s, codeblock failed with %s(%s)', I.opts.cid, code, nr)
+      else
+        I.log('info', 'execute', '%s, codeblock ran successfully', I.opts.cid)
       end
-      I.log('info', 'execute', '%s, codeblock ran successfully', I.opts.cid)
     end
   end
 
-  local count = I.fkill()
-  I.log('info', 'files', '%d old files removed', count)
+  I.purge() -- purge old files, if allowed
   return I.result(cb)
 end
 
