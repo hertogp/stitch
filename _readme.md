@@ -460,14 +460,14 @@ It is set to either:
 - cb.attr.identifier, or
 - cb\<nth\>, where it's the nth codeblock seen by stitch
 
-When generating an element `id` to assign to included elements,
-`id=cid-nth-what` is used, where `nth` is the nth directive of the `inc`-option
-being inserted and the `what` is the part being included (one of `cbx`, `out`,
-`err` or `art`).
+Each time an artifact is included as per [`inc`] and `id` is generated
+and assigned (if possible).  That id consists of the codeblock's identifier
+([`cid`]), a counter of the nth artifact being included and the kind of
+artifact.
 
-So `csv-3-err` is the id for the element inserted for a codeblock with:
-- identifier `csv`, and
-- where the 3rd directive in its `inc` option includes an artifact and where
+An example of such an element id is: `csv-3-err` where
+- the codeblock identifier is `csv`,
+- it's the [`inc`]-directive that causes the include, and where
 - `err` is the artificat to be included
 
 
