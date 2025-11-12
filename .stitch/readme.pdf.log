@@ -50,7 +50,7 @@ fname, mime, #contents	.stitch/cetz/cb04-5e87b0bebe01ef19c55ff5fdf4013745e2fe1f8
 [stitch:0  info] cb06   :execute| cb06, codeblock ran successfully
 [stitch:0  info] cb06   :  files| looking for old files ..
 [stitch:0  info] cb06   :  files| 0 old files removed
-fname, mime, #contents	.stitch/cetz/cb06-0ce52749832f4f7a86c91024d020b6da6c67b87e.svg	image/svg+xml	135131
+fname, mime, #contents	.stitch/cetz/cb06-0ce52749832f4f7a86c91024d020b6da6c67b87e.svg	image/svg+xml	134316
 [stitch:0  info] cb06   :include| cb.'#cb06-1-art', 'art:fig', pandoc.Figure
 [stitch:0  info] cb06   :include| cb.'#cb06-2-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
 [stitch:0  info] cb07   :command| expanding template 'gnuplot #cbx 1>#art 2>#err'
@@ -92,20 +92,20 @@ fname, mime, #contents	.stitch/gnuplot/cb07-487e12972a2051d2e5f0a8ae28ba814c134d
 [stitch:0  info] csv    :include| cb.'csv-2-cbx', 'cbx', merging 1 pandoc.Block's
 [stitch:0  info] csv    :   read| pandoc.read as csv succeeded (got type Pandoc)
 [stitch:0  info] csv    :include| cb.'#csv-3-cbx', 'cbx:fcb', fenced pandoc.CodeBlock
-[stitch:0 debug] nested : option| dir = ".stitch/readme"
+[stitch:0 debug] nested : option| inc = "cbx:fcb out!markdown@stitch"
+[stitch:0 debug] nested : option| log = "debug"
+[stitch:0 debug] nested : option| cid = "nested"
 [stitch:0 debug] nested : option| fmt = "png"
 [stitch:0 debug] nested : option| exe = "maybe"
 [stitch:0 debug] nested : option| art = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.png"
-[stitch:0 debug] nested : option| cbx = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.cbx"
-[stitch:0 debug] nested : option| err = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.err"
-[stitch:0 debug] nested : option| arg = ""
-[stitch:0 debug] nested : option| inc = "cbx:fcb out!markdown@stitch"
-[stitch:0 debug] nested : option| cid = "nested"
-[stitch:0 debug] nested : option| log = "debug"
 [stitch:0 debug] nested : option| old = "purge"
-[stitch:0 debug] nested : option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:0 debug] nested : option| out = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out"
+[stitch:0 debug] nested : option| arg = ""
+[stitch:0 debug] nested : option| dir = ".stitch/readme"
+[stitch:0 debug] nested : option| cbx = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.cbx"
 [stitch:0 debug] nested : option| lua = ""
+[stitch:0 debug] nested : option| err = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.err"
+[stitch:0 debug] nested : option| out = ".stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out"
+[stitch:0 debug] nested : option| cmd = "#cbx #arg #art 1>#out 2>#err"
 [stitch:0  info] nested :command| expanding template '#cbx #arg #art 1>#out 2>#err'
 [stitch:0  info] nested :command| .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.cbx  .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.png 1>.stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out 2>.stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.err
 [stitch:0  info] nested :execute| skipped, output files exist (exe='maybe')
@@ -117,24 +117,24 @@ fname, mime, #contents	.stitch/gnuplot/cb07-487e12972a2051d2e5f0a8ae28ba814c134d
 [stitch:0 debug] nested :   read| .stitch/readme/nested-4df8bdd8cfaf9828cc8357bf24cae382c6410399.out, 647 bytes
 [stitch:0  info] nested :   read| pandoc.read as markdown succeeded (got type Pandoc)
 [stitch:0 debug] nested :  xload| trying module "stitch"
-[stitch:0 debug] nested :  xload| found module "stitch", pkg.loaded=table: 0x47334880
+[stitch:0 debug] nested :  xload| found module "stitch", pkg.loaded=table: 0x460f5070
 [stitch:0  warn] nested :  xform| @stitch, found mod stitch, presumably a list of filters
 [stitch:1  info] stitch : stitch| walking CodeBlocks and Headers
 [stitch:1  info] stitch : header| id nested-report: shifting level from 1 to 3
-[stitch:1 debug] cb15   : option| dir = ".stitch/readme/nested"
+[stitch:1 debug] cb15   : option| inc = "cbx!csv"
+[stitch:1 debug] cb15   : option| log = "debug"
+[stitch:1 debug] cb15   : option| cid = "cb15"
 [stitch:1 debug] cb15   : option| fmt = "png"
 [stitch:1 debug] cb15   : option| exe = "no"
 [stitch:1 debug] cb15   : option| art = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.png"
-[stitch:1 debug] cb15   : option| cbx = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.cbx"
-[stitch:1 debug] cb15   : option| err = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.err"
-[stitch:1 debug] cb15   : option| arg = ""
-[stitch:1 debug] cb15   : option| inc = "cbx!csv"
-[stitch:1 debug] cb15   : option| cid = "cb15"
-[stitch:1 debug] cb15   : option| log = "debug"
 [stitch:1 debug] cb15   : option| old = "purge"
-[stitch:1 debug] cb15   : option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:1 debug] cb15   : option| out = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.out"
+[stitch:1 debug] cb15   : option| arg = ""
+[stitch:1 debug] cb15   : option| dir = ".stitch/readme/nested"
+[stitch:1 debug] cb15   : option| cbx = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.cbx"
 [stitch:1 debug] cb15   : option| lua = ""
+[stitch:1 debug] cb15   : option| err = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.err"
+[stitch:1 debug] cb15   : option| out = ".stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.out"
+[stitch:1 debug] cb15   : option| cmd = "#cbx #arg #art 1>#out 2>#err"
 [stitch:1  info] cb15   :command| expanding template '#cbx #arg #art 1>#out 2>#err'
 [stitch:1  info] cb15   :command| .stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.cbx  .stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.png 1>.stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.out 2>.stitch/readme/nested/cb15-f1b4eece59b7d602c93e3675bd95b96e4e422feb.err
 [stitch:1  info] cb15   :execute| skipped (exe='no')
