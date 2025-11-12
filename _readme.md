@@ -351,10 +351,10 @@ Stitch provides a few features for converting codeblocks:
     - any lua program/filter that accepts string data or a pandoc doc
     - stitch itself for codeblocks in an externally acquired markdown doc
 
-where,
+Some terminology used:
 
 artifact
-  ~ refers to a file produced by processing a codeblock
+  ~ refers to the [`cbx`]-file or one of 3 files produced by processing a codeblock
 
 cbx-file
   ~ the file where a codeblock's contents is stored and marked executable
@@ -371,6 +371,18 @@ err-file
 tool
   ~ an external program used to process the [cbx]-file
 
+stitch section
+  ~ a `name`'d table of options under `stitch:` in the doc's meta data
+
+defaults
+  ~ a `defaults` section under `stitch` to fall back on when resolving options
+
+hardcoded
+  ~ the option values hardcoded in stitch if option resolution fails
+
+option resolution
+  ~ where stitch looks for options and their values.
+  ~ order is: codeblock attr -> stitch[name] -> stitch[defaults] -> hardcoded
 
 \newpage
 
