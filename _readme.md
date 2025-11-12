@@ -547,13 +547,12 @@ said codeblocks.
 This effectively sets the working directory for stitch relative to the
 directory where pandoc was started.  Override the hardcoded `.stitch` default
 in one or more of:
-
 - the codeblock attributes
 - a named stitch section in the doc's meta data
-- a stitch section named `defaults`
+- a stitch section named `defaults` in the doc's meta data
 
 Setting `dir` in a codeblock's attributes is specific for that codeblock.
-Mainly useful when debugging a particular defiant codeblock since it makes the
+Mainly useful when debugging a particular defiant codeblock, since it makes the
 artifact files easier to find/view.
 
 When set in a named stitch section in the document's meta data, it allows to store
@@ -588,16 +587,20 @@ A codeblock's fingerprint is calculated using:
 - the codeblock's contents
 
 All values are combined to a single string with all whitespace removed.  The
-fingerprint is then the sha1r- hash of that string.
+fingerprint is then the sha1-hash of that string.
 
-Options that donot influence any actual results are omitted (like `exe`, `log`
-etc.).  Sorting and whitespace removal means consistent fingerprints and makes
-it useful to detect changes in the codeblock and/or its options.
+Options that do not influence any actual results are omitted (like `exe` itself
+or `log` etc.).  Sorting and whitespace removal means consistent fingerprints
+and makes it useful to detect changes in the codeblock and/or its options.
 
-So if `exe=maybe` and files exists for the newly calculated fingerprint,
-the codeblock doesn't run again and previous results will be used instead.
+However, sometimes a codeblock simply serves to download some periodically
+updated file from somewhere.  Since nothing changed in the codeblock itself,
+a downloaded file seems up-to-date.  Setting `exe=yes` will ensure the
+download is performed when converting the document.
 
-Swapping `exe` to a different value won't affect the sha-fingerprint.
+Set `exe=no` to avoid downloading each time the document is converted or
+to avoid heavy computations caused by a codeblock while working on other
+parts of the document.
 
 
 ### `fmt`
