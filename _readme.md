@@ -10,6 +10,7 @@ stitch:
     dir: ".stitch/readme/doc"
     cmd: "#cbx 1>#out"
     inc: out
+    cls: 'true'
   diagon:
     dir: ".stitch/readme/diagon"
     cmd: "diagon #arg <#cbx 1>#out"
@@ -23,7 +24,7 @@ stitch:
     inc: "art cbx:fcb"
   download:
     dir: ".stitch/readme/download"
-    out: ".stitch/cetz/#arg"
+    out: "#dir/#arg"
     inc: "cbx:fcb"
     exe: "yes"
   gnuplot:
@@ -37,7 +38,7 @@ stitch:
     cmd: "" # is ignored anyway
 ...
 
-```{#preface .stitch inc=out}
+```{#preface .doc inc=out}
 figlet -w 50 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
 ```
 
@@ -233,18 +234,18 @@ Yet another [typst](https://typst.app/) package, this time for advanced data
 visualization.  Unfortunately, typst and its packages currently have no way of
 downloading data, so the following codeblock is used for side-effects only
 
-``` {#cb05 stitch="download" arg="local-temperature.json"}
+``` {#cb05 stitch="download" arg="../cetz/temperatures.json"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&'\
 'hourly=temperature_2m&timezone=Europe%2FLondon&forecast_days=1&format=json'\
 | jq .
 ```
-This downloads today's temperature to `.stitch/cetz/local-temperature.json`,
+This downloads today's temperature to `.stitch/readme/cetz/temperatures.json`,
 which is then used in the following codeblock to create a graph.
 
 ```{#cb06 stitch=cetz caption="Temperature (C) today by Lilaq" fmt=svg exe=yes}
 #import "@preview/lilaq:0.5.0" as lq
 #set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
-#let dta = json("local-temperature.json")
+#let dta = json("temperatures.json")
 #let hour(str) = { return int(str.slice(11, count: 2))}
 #let hours = dta.hourly.time.map(hour)
 #lq.diagram(
@@ -418,7 +419,7 @@ echo "--------------"
 
 Valid values:
 
-```{#opt-cls stitch=chunk}
+```{#opt-cls stitch=chunk exe=true}
 local fh = io.open(Stitch.opts.out, 'w')
 fh:write(pandoc.json.encode(Stitch.optvalues.cls))
 fh:close()
@@ -495,7 +496,7 @@ TODO: explain
 
 ### `inc`
 
-_*inc*_ contains 0 or more directives on what to include and how.
+*inc* contains 0 or more directives on what to include and how.
 
 It is a single string containing comma or space separated directives. A
 directive must start with the `what` and may be followed by three other
@@ -522,7 +523,6 @@ the order of those 3 mechanisms, they are always evaluated in this order:
 *what*
 
 This part starts the directive and is the only mandatory part and refers to:
-
 * `cbx`, the codeblock itself
 * `art`, usually contains graphical output (depends on `cmd` used)
 * `out`, usually contains the output on stdout (depends on `cmd` used)
@@ -533,7 +533,6 @@ This part starts the directive and is the only mandatory part and refers to:
 
 After the `what`'s output file has been read, `!read` says the data must be
 re-read by pandoc using `pandoc.read(data, <read>)`.  Note:
-
 - `read`'s value should be one of pandoc's `-f xx` formats
 - `!read` converts the data to a Pandoc document
 
@@ -555,7 +554,6 @@ be an actual Pandoc document produced by `!read`.
 
 Before calling, stitch inspects the `data` and if it has type `Pandoc`, its
 meta data is augmented with a `stitched` section that contains:
-
 - `opts`, a lua table with all the options of the current codeblock
 - `ctx`, a lua table with all the `stitch` related meta data of the current doc
 
@@ -566,7 +564,6 @@ If no module was found an error is logged and processing continues.
 
 TODO: add documentation of cb's attr `hdr` that will shift header levels
 of a pandoc doc to be included.
-
 
 
 *:how*
@@ -589,7 +586,15 @@ re-reading and possibly filtering.
 
 ### `log`
 
-*log* is verbosity of logging, one of `debug, info, warn, error, silent`.
+*log* specifies logging level for stitch(-section) or an individual codeblock.
+
+Valid values:
+
+```{#opt-log stitch=chunk}
+local fh = io.open(Stitch.opts.out, 'w')
+fh:write(pandoc.json.encode(Stitch.optvalues.log))
+fh:close()
+```
 
 Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
 off all logging except for one codeblock where logging happens on the debug
@@ -605,50 +610,19 @@ which enables introspection.
 
 ```{.lua #opt-lua stitch=chunk inc="cbx:fcb out:fcb" lua=chunk}
 local out = io.open(Stitch.opts.out, 'w')
-
-local tprint = function(t)
-  local indent = string.rep(" ", 2) -- magical nr
-  local indent2 = string.rep(" ", 2 + 6) -- dark magic
-  out:write("{\n")
-  for k,v in pairs(t) do
-    v = tostring(v)
-    if #v > 40 then
-      v = v:gsub("%s+", " \\\n" .. indent2)
-    end
-    out:write(indent, k, " = '", v, "'\n")
-  end
-  out:write("}\n")
-end
-
-out:write("Stitch counters:\n")
-out:write("- cbc = ", Stitch.cbc, " (codeblock counter)\n")
-out:write("- hdc = ", Stitch.hdc, " (header counter)\n")
-
 out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
-tprint(Stitch.opts)
+out:write("{\n", table.concat(Stitch.yaml(Stitch.opts, 2), "\n"), "\n}\n")
 
-out:write("\nStitch context:\n")
-for k,v in pairs(Stitch.ctx) do
-    out:write(k, ": ")
-    tprint(v)
-end
-out:write("defaults:")
-tprint(Stitch.ctx.defaults)
+out:write("\nFrom doc.meta:\n")
+local yaml = table.concat(Stitch.yaml(Stitch.ctx, 2), "\n")
+local mta = Stitch.yaml(Stitch.ctx.defaults, 4)
+table.insert(mta, 1, "\n  defaults:")
+mta = table.concat(mta, "\n")
+out:write("stitch:\n", yaml, mta, "\n\n")
 
-out:write("\nstitch.hardcoded:\n")
-tprint(Stitch.hardcoded)
+out:write("\nHardcoded option defaults:\n")
+out:write(table.concat(Stitch.yaml(Stitch.hardcoded, 2), "\n"))
 out:write("\n")
-
--- tmp
-local fp = 'media/hello.txt'
-local mt = 'text/plain'
-local contents = 'Nou moe?'
-pandoc.mediabag.insert(fp, mt, contents)
-out:write("pandoc.mediabag:\n")
-for k,v in pandoc.mediabag.items() do
-    out:write("- ", k, " : ", v, "\n")
-end
--- /tmp
 
 out:close()
 ```
@@ -657,7 +631,15 @@ out:close()
 
 ### `old`
 
-If `old=purge`, old files are deleted.  Anything else means `keep`.
+*old* specifies whether or not old files can be removed.
+
+Valid values:
+
+```{#opt-log stitch=chunk}
+local fh = io.open(Stitch.opts.out, 'w')
+fh:write(pandoc.json.encode(Stitch.optvalues.old))
+fh:close()
+```
 
 Old incarnations of an artifact file are detected when their filenames match
 the new filename except for the last `-#sha.<ext>` part.  If a filename template
@@ -706,20 +688,20 @@ expanded before running the command).
 
 ### `err`
 
-*err* is a filename template used to capture any output on `stderr`
+*err* is a filename template used to capture any output on `stderr`.
 
-These are primarily used in the `cmd` template during the expansion to
+It is primarily used in the `cmd` template during the expansion to
 the full command to run on the command line.  Depending on how the `cmd`
-template is set, these may or may not be actually used.
+template is set, this may or may not be actually used.
 
-Usually `out, err` are for redirecting output on stdout and stderr
-respectively.  Normally, `art` refers to some graphics file (or whatever)
-produced by the codeblock or a cli tools called by `cmd`.  However, it
-can be anything you like, it just provides a way to capture output to
-file.
 
 ### `out`
 
+*out* is a filename (template) used to capture any output on `stdout`.
+
+It is primarily used in the `cmd` template during the expansion to
+the full command to run on the command line.  Depending on how the `cmd`
+template is set, this may or may not be actually used.
 
 
 \newpage
@@ -865,3 +847,31 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 
 \newpage
 
+# poor man's yaml
+
+```{#opt-xxx stitch=chunk exe=yes}
+local fh = io.open(Stitch.opts.out, 'w')
+
+fh:write("\nIn doc.meta\n---\nstitch:\n")
+local yaml = Stitch.yaml(Stitch.ctx, 2)
+fh:write(table.concat(yaml, "\n"))
+-- defaults was "protomoted" to metatable of ctx
+yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
+if #yaml > 0 then
+  fh:write("\n  defaults:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
+
+fh:write("\n...\n\n")
+fh:write("codeblock opts:\n")
+local opts = {} -- augment cb attr opts to full list of opts
+for k, _ in pairs(Stitch.hardcoded) do
+  opts[k] = Stitch.opts[k]
+end
+yaml = Stitch.yaml(opts, 2)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
+yaml = Stitch.yaml(Stitch.optvalues.log)
+fh:write("[", table.concat(yaml, ', '), "]")
+fh:close()
+```

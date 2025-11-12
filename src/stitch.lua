@@ -27,8 +27,9 @@ I.level = {
   silent = 0,
   error = 1,
   warn = 2,
-  info = 3,
-  debug = 4,
+  note = 3,
+  info = 4,
+  debug = 5,
 }
 I.cbc = 0 -- codeblock counter
 I.hdc = 0 -- header counter
@@ -43,12 +44,12 @@ function I.log(lvl, action, msg, ...)
   local level = I.level[I.opts.log or I.ctx.stitch.log] or 0
   if level >= I.level[lvl] then
     local owner = I.opts.cid or 'stitch'
-    local fmt = string.format('[stitch:%d %5s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
+    local fmt = string.format('[stitch:%d %6s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
     io.stderr:write(string.format(fmt, ...))
   end
 end
 
-I.log('info', 'init', 'STITCH initialized')
+I.log('note', 'stitch', 'module is being loaded/initialized')
 
 -- return a semi-deep copy of table t
 -- (used to provide a copy of I to external filters)
@@ -66,10 +67,25 @@ function I.dcopy(t, seen)
   return tt
 end
 
--- returns a semi-deep dump of `t` as a list of lines
+-- poor man's yaml representation of a table as a list of lines
 -- (assumes all keys are strings)
-function I.tdump(t, lines, n)
-  -- TODO: semi-deep dump of table
+function I.yaml(t, n, seen)
+  seen = seen or {}
+  n = n or 0
+  if 'table' ~= type(t) then return string.format("'%s'", t) end
+  if seen[t] then return seen[t] end
+
+  local tt = {}
+  seen[t] = tt
+  for k, v in pairs(t) do
+    local indent = string.rep(' ', n)
+    local nl = 'table' == type(v) and '\n' or ' '
+    local kk = 'string' == type(k) and k or string.format('[%s]', k)
+    local vv = I.yaml(v, n + 2, seen)
+    if 'table' == type(vv) then vv = table.concat(vv, '\n') end
+    tt[#tt + 1] = string.format('%s%s:%s%s', indent, kk, nl, vv)
+  end
+  return tt
 end
 
 --[[-- data --]]
@@ -77,9 +93,9 @@ end
 I.optvalues = {
   -- all values listed, MUST be strings
   -- valid option,value-pairs; TODO: add key=false to validate key w/ any value?
-  cls = { 'true', 'false', 'yes', 'no', '0', '1', '2' },
+  cls = { 'true', 'false', 'yes', 'no' },
   exe = { 'true', 'false', 'yes', 'no', 'maybe' },
-  log = { 'silent', 'error', 'warn', 'info', 'debug' },
+  log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
   lua = { 'chunk', '' },
   old = { 'keep', 'purge' },
   inc_what = { 'cbx', 'art', 'out', 'err' },
@@ -454,7 +470,7 @@ function I.mkelm.fig(fcb, _, _, what)
   -- tmp
   local fname = I.opts[what]
   local mime, contents = pd.mediabag.fetch(fname)
-  print('fname, mime, #contents', fname, mime, #contents)
+  -- print('fname, mime, #contents', fname, mime, #contents)
   -- /tmp
   local img = pd.Image({}, I.opts[what], '', {})
   img.attr.identifier = fcb.attr.identifier .. '-img'
@@ -634,13 +650,15 @@ end
 
 ---sets I.opts for the current codeblock
 ---@param cb table codeblock with `.stitch` class (or not)
+---@param section string name of section that made cb eligible
 ---@return boolean ok success indicator
-function I.mkopt(cb)
+function I.mkopt(cb, section)
   -- resolution: cb -> meta.stitch.section -> defaults -> hardcoded
+  print('cb.id', cb.indentifier, section)
   I.opts = I.xlate(cb.attributes)
   I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%02d', I.cbc)
   I.opts = I.check(I.opts)
-  local cfg = I.opts.stitch -- {.. stitch=cfg .. }, pickup cfg section name
+  local cfg = I.opts.stitch or section -- {.. stitch=cfg .. }, pickup cfg section name
   setmetatable(I.opts, { __index = I.ctx[cfg] })
   I.opts.sha = I.mksha(cb) -- derived only
 
@@ -698,15 +716,26 @@ end
 
 --[[-- filter --]]
 
+-- return meta section name that makes this cb eligible or nil
+function I.eligible(cb)
+  -- hi-2-lo: attr.stitch=name, cls=yes, .stitch (defaults)
+  if cb.attributes.stitch then return cb.attributes.stitch end
+  for _, class in ipairs(cb.classes) do
+    if I.ctx[class].cls == 'true' then return class end
+    if I.ctx[class].cls == 'yes' then return class end
+  end
+  if cb.classes:find('stitch') then return 'defaults' end
+  return false
+end
 ---@poram cb a pandoc.codeblock
 ---@return any list of nodes in pandoc's ast
 function I.CodeBlock(cb)
   I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
-  if not (cb.attributes.stitch or cb.classes:find('stitch')) then return nil end
-  -- if not cb.classes:find('stitch') then return nil end
+  local section = I.eligible(cb)
+  if not section then return nil end
 
   -- TODO: also check I.opts.exe and I.opts.old (keep/purge)
-  if I.mkopt(cb) and I.mkcmd(cb) then
+  if I.mkopt(cb, section) and I.mkcmd(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
     elseif I.deja_vu() and 'maybe' == I.opts.exe then
@@ -772,11 +801,6 @@ local Stitch = {
       assert(false, 'maximum recursion level exceeded') -- simply skips doc
     end
 
-    -- tmp
-    dump = require 'dump'
-    print('meta', dump(I.xlate(doc.meta)))
-    -- /tmp
-
     I.mkctx(doc)
     local cbc = I.cbc
     local hdc = I.hdc
@@ -790,8 +814,7 @@ local Stitch = {
 
     s.header = math.floor(tonumber(s.header) or 0)
     local header = 0 ~= s.header and I.Header
-    local msg = 'walking CodeBlocks' .. (header and ' and Headers' or '')
-    I.log('info', 'stitch', msg)
+    I.log('info', 'stitch', 'processing CodeBlocks and %sHeaders', header and '' or 'not ')
 
     local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
     I.log('info', 'stitch', 'saw %d CodeBlocks and %d Headers', I.cbc - cbc, I.hdc - hdc)

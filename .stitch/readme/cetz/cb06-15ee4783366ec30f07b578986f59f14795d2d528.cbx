@@ -1,6 +1,6 @@
 #import "@preview/lilaq:0.5.0" as lq
 #set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
-#let dta = json("local-temperature.json")
+#let dta = json("temperatures.json")
 #let hour(str) = { return int(str.slice(11, count: 2))}
 #let hours = dta.hourly.time.map(hour)
 #lq.diagram(
