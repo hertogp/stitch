@@ -33,8 +33,10 @@ stitch:
     dir: ".stitch/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
     inc: "art:fig cbx:fcb"
-    cls: true
-    num: 3
+  chunk:
+    lua: chunk
+    inc: out
+    cmd: "" # is ignored anyway
 ...
 
 ```{#preface stitch=doc}
@@ -281,9 +283,10 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 # Documentation
 
-This lua-filter requires pandoc version >= 2.19 (or >= 3.0 if you want
-to use `pandoc.Figure` to link to an image).  Some stuff in here is probably
-not Windows friendly, but any *nix should be fine.
+This lua-filter requires pandoc version >= 2.19 (or >= 3.0 if you want to use
+`pandoc.Figure` to link to an image).  Some of the [`lua`] chunks in this
+readme require version >= 3.1.1 in order to convert it.  Anyway, some stuff in
+here is probably not Windows friendly, but any *nix should be fine.
 
 
 ## Installation
@@ -300,27 +303,33 @@ Installation is straightforward:
 
 The filter will process a codeblock if it has a:
   * `.stitch` class,
-  * `stitch=name` attribute, or
-  * class listed in the [`byc`]-option (short for 'by class')
+  * `stitch=name` attribute, where `<name>` refers to a `meta.stitch`-section
+  * class which has a `meta.stitch`-section with its [`byc`]-option set to yes/true
 
 Processing a codeblock follows these steps:
 
   1. resolve all options and expand them (once)
   2. save `cb.text` to [`cbx`]-file & mark it as executable (always)
-  3. check if anything has changed (1+ of the other artifacts exist)
+  3. check if anything has changed [`cid`] (1+ of the other artifacts exist)
   4. conditionally run [`cmd`] to produce new artifacts:
      a. an [`art`]-file (usually an image file, depends on [`cmd`]),
      b. an [`out`]-file (if [`cmd`] redirects `stdout` here)
      c. an [`err`]-file (if [`cmd`] redirects `stderr` here)
   5. check for [`old`] files and conditionally remove them
-  6. parse the [`inc`] option and include results in order (if any)
+  6. parse the [`inc`]-option and include artifacts in order (if any)
 
 As a special case, the [`lua`]-option will override step 4 and loads the
-[`cbx`]-file as a chunk and executes it.  Regardless, last step will try to
+[`cbx`]-file as a chunk and executes it.  Regardless, the last step will try to
 include 0 or more of the resulting files.
 
-In the face of errors, just complain and carry on.  If things don't pan out,
+Another special case is the [`hdr`]-option which specifies a delta to apply
+to headers encountered in the document.  Mainly meant for incorporating externally
+acquired documents.
+
+In the face of errors, stitch just complains and carries on if possible usually
+skipping the offending codeblock.  If things don't pan out,
 check the logs and perhaps set the codeblock's [`log`]-option to `debug`.
+
 
 ## Features
 
@@ -411,12 +420,11 @@ echo "--------------"
 
 Valid values:
 
-```{.stitch lua=chunk inc="out"}
+```{stitch=chunk}
 local fh = io.open(Stitch.opts.out, 'w')
 fh:write(pandoc.json.encode(Stitch.optvalues.cls))
 fh:close()
 ```
-
 
 ### `cid`
 
@@ -457,7 +465,7 @@ in one or more of:
 
 Valid values:
 
-```{.stitch lua=chunk inc="out"}
+```{stitch=chunk}
 local fh = io.open(Stitch.opts.out, 'w')
 fh:write(pandoc.json.encode(Stitch.optvalues.exe))
 fh:close()
