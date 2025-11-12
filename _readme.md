@@ -467,7 +467,7 @@ being included and the kind of artifact.
 
 An example of such an element id is: `csv-3-err` where
 - the codeblock identifier is `csv`,
-- it's the [`inc`]-directive that causes the include, and where
+- it's the third [`inc`]-directive that causes the include, and where
 - `err` is the artificat to be included
 
 
