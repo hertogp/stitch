@@ -500,21 +500,20 @@ Normally, codeblocks are marked by:
 - setting an attribute like `stitch=name`, or
 - adding `.stitch` as a class to a codeblock.
 
-So converting an externally acquired markdown document would require touching
-all relevant codeblocks in order for them to get processed. The `cls` options
-alleviates the need to edit such a document by allowing codeblock selection to
-use any class attached to a codeblock.
+Hence, converting an externally acquired markdown document would require
+touching all relevant codeblocks in order for them to get processed. The `cls`
+option alleviates that need by allowing stitch to select codeblock's based on
+(one of) its classes.
 
-When used as a codeblock attribute `{.. cls=true ..}`, stitch will match
-any of the codeblock's classes to named stitch sections in the doc's meta
-data.  The first match is then used to process the codeblock.  When no
-class matches, the codeblock is ignored.
+When used as a codeblock attribute `{.. cls=true ..}`, stitch will match any of
+the codeblock's classes to named stitch sections in the doc's meta data.  The
+first match is then used to process the codeblock.  When no class matches, the
+codeblock is ignored.  This will happen for this codeblock specifically.
 
-When used as part of a named stitch section in the document's meta data, all
-codeblocks in the current document, that have that name as a class, will be
-processed by stitch.
+To enable the same for all codeblocks that have a certain class, set the
+`cls=true` in the corresponding stitch name'd section in the doc's meta data.
 
-The main purpose is to allow for processing of markdown documents that are
+So the main purpose is to allow for processing of markdown documents that are
 produced externally and pulled in by a codeblock and that are not necessarily
 'stitch-aware'.
 
@@ -531,16 +530,15 @@ For example, suppose your main document's meta data looks something like:
          dir: ..
      ...
 
-Then all codeblocks with a `.gnuplot` class will be processed according to
-the settings of `gnuplot` in the meta data of the document.  That means
-less noise in the attributes of gnuplot codeblocks.
-
 If a codeblock in the main document pulls in another markdown document, which
-is to be filtered by stitch as well (see [Nested doc]), stitch add its own
-configuration to the subdocument's meta data before calling itself.  That way
-all `{#id .gnuplot ..}` codeblocks will also be processed without touching the
-subdocument itself.
+is to be filtered by stitch as well (see [Nested doc]), stitch adds its own
+configuration to the subdocument's meta data before calling itself (or another
+filter) with that document.  That way all `{#id .gnuplot ..}` codeblocks will
+also be processed without touching the subdocument itself.
 
+This feature can also be used when writing a document to further reduce the
+noise in the attributes of codeblocks and allows for consistent processing of
+said codeblocks.
 
 ### `dir`
 
