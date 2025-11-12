@@ -10,7 +10,7 @@ stitch:
     dir: ".stitch/readme/doc"
     cmd: "#cbx 1>#out"
     inc: out
-    cls: 'true'
+    cls: true
   diagon:
     dir: ".stitch/readme/diagon"
     cmd: "diagon #arg <#cbx 1>#out"
@@ -52,7 +52,7 @@ If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
 upon converting the document using [pandoc](https://pandoc.org/).
 
-The main features of [`stitch`](https://github.com/hertogp/stitch) include:
+The main features of this lua-filter include:
 
 - run a codeblock as a system command to produce `data`
 - or use the codeblock itself (its text) as `data`
@@ -262,7 +262,7 @@ which is then used in the following codeblock to create a graph.
 
 Another example using the trusty `gnuplot`.
 
-```{#cb07 stitch=gnuplot byc=99 cls=true log=debug}
+```{#cb07 stitch=gnuplot log=debug}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
@@ -303,7 +303,7 @@ Installation is straightforward:
 The filter will process a codeblock if it has a:
   * `.stitch` class,
   * `stitch=name` attribute, where `<name>` refers to a `meta.stitch`-section
-  * class which has a `meta.stitch`-section with its [`byc`]-option set to yes/true
+  * class which has a `meta.stitch`-section with its [`cls`]-option set to yes/true
 
 Processing a codeblock follows these steps:
 
@@ -366,7 +366,7 @@ The list of options and default values are:
 Opt | Value                            | Description
 :---|:---------------------------------|:--------------------------------
 arg | `''`                             | for use in `cmd` (on the cli)
-byc | `''`                             | select codeblock by class
+cls | `'no'`                           | select codeblock by class
 cid | `'x'`                            | the cb's `#id` or generated
 dir | `'.stitch'`                      | the working directory
 exe | `'maybe'`                        | execute codeblock (possibly)
@@ -413,17 +413,6 @@ echo "alt last arg :  ${@:$#}"
 echo "--------------"
 ```
 
-### `cls`
-
-*cls* specifies whether or not a codeblock can be selected by class.
-
-Valid values:
-
-```{#opt-cls stitch=chunk exe=true}
-local fh = io.open(Stitch.opts.out, 'w')
-fh:write(pandoc.json.encode(Stitch.optvalues.cls))
-fh:close()
-```
 
 ### `cid`
 
@@ -443,6 +432,52 @@ So `csv-3-err` is the id for the element inserted for a codeblock with:\
 - identifier `csv`, and\
 - where the 3rd directive in its `inc` option includes an artifact and where\
 - `err` is the artificat to be included
+
+
+### `cls`
+
+*cls* specifies whether or not a codeblock can be selected by class.
+
+Valid values:
+
+```{#opt-cls stitch=chunk exe=true}
+local fh = io.open(Stitch.opts.out, 'w')
+fh:write(pandoc.json.encode(Stitch.optvalues.cls))
+fh:close()
+```
+
+When used as a codeblock attribute `{.. cls=true ..}` then the codeblock will
+be processed by stitch if stitch has a section for one of the cb's classes.
+
+When used as part of a stitch named section in the document's meta data, all
+codeblocks that have that class will be processed by stitch.
+
+The main purpose is to allow for processing of markdown documents that are
+pulled in by a codeblock and which are not necessarily 'stitch-aware'.
+
+For example, suppose your main document's meta data looks something like:
+
+     ---
+     author: abc
+     stitch:
+       gnuplot:
+         dir: '.stitch/gnuplot'
+         .. : more options
+         cls: true
+       other:
+         dir: ..
+     ...
+
+Then all codeblocks with a `.gnuplot` class will be processed according to
+the settings of `gnuplot` in the meta data of the document.  That means
+less noise in the attributes of gnuplot codeblocks.
+
+If a codeblock in the main document pulls in another markdown document, which
+is to be filtered by stitch as well (see [Nested doc]), stitch add its own
+configuration to the subdocument's meta data before calling itself.  That way
+all `{#id .gnuplot ..}` codeblocks will also be processed without touching the
+subdocument itself.
+
 
 
 ### `dir`

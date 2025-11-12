@@ -93,8 +93,8 @@ end
 I.optvalues = {
   -- all values listed, MUST be strings
   -- valid option,value-pairs; TODO: add key=false to validate key w/ any value?
-  cls = { 'true', 'false', 'yes', 'no' },
-  exe = { 'true', 'false', 'yes', 'no', 'maybe' },
+  cls = { true, false, 'true', 'false', 'yes', 'no' },
+  exe = { true, false, 'true', 'false', 'yes', 'no', 'maybe' },
   log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
   lua = { 'chunk', '' },
   old = { 'keep', 'purge' },
@@ -105,8 +105,8 @@ I.optvalues = {
 I.hardcoded = {
   -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-  cls = 'false', -- {'true', 'false', 'yes', 'no', '0', '1', '2', '3'}
   cid = 'x', -- either cb.identifier or set by stitch using I.cbc
+  cls = 'no', -- {'true', 'false', 'yes', 'no', '0', '1', '2', '3'}
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
   exe = 'maybe', -- {yes, no, maybe}
   fmt = 'png', -- format for images (if any)
@@ -450,7 +450,7 @@ function I.mkelm.fcb(fcb, cb, doc, what)
     -- doc used as-is for out, err
     fcb.text = doc
   end
-  I.log('info', 'include', "cb.'#%s', '%s:fcb', fenced pandoc.CodeBlock", fcb.attr.identifier, what)
+  I.log('info', 'include', "'#%s' for '%s:fcb' as fenced pandoc.CodeBlock", fcb.attr.identifier, what)
 
   return fcb
 end
@@ -461,38 +461,38 @@ function I.mkelm.img(fcb, _, _, what)
   --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
   local title = fcb.attributes.title or ''
   local caption = fcb.attributes.caption
-  I.log('info', 'include', "cb.'#%s', '%s:img', pandoc.Image", fcb.attr.identifier, what)
+  I.log('info', 'include', "'#%s' for '%s:img' as pandoc.Image", fcb.attr.identifier, what)
   return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
 end
 
 function I.mkelm.fig(fcb, _, _, what)
   --  pandoc.Figure element (type Block), since pandoc version >=3.0
   -- tmp
-  local fname = I.opts[what]
-  local mime, contents = pd.mediabag.fetch(fname)
+  -- local fname = I.opts[what]
+  -- local mime, contents = pd.mediabag.fetch(fname)
   -- print('fname, mime, #contents', fname, mime, #contents)
   -- /tmp
   local img = pd.Image({}, I.opts[what], '', {})
   img.attr.identifier = fcb.attr.identifier .. '-img'
-  I.log('info', 'include', "cb.'#%s', '%s:fig', pandoc.Figure", fcb.attr.identifier, what)
+  I.log('info', 'include', "'#%s' for '%s:fig' as pandoc.Figure", fcb.attr.identifier, what)
   return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
 end
 
 function I.mkelm.any(fcb, cb, doc, what)
   -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
   local cid = fcb.attr.identifier
-  I.log('debug', 'include', "cb.'%s', '%s', no type specified (using default)", cid, what)
+  I.log('debug', 'include', "'%s' for '%s' -> no type specified (using default)", cid, what)
   if 'Pandoc' == pd.utils.type(doc) then
     if doc and doc.blocks and doc.blocks[1] and doc.blocks[1].attr then
       doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
     end
-    I.log('info', 'include', "cb.'%s', '%s', merging %d pandoc.Block's", cid, what, #doc.blocks)
+    I.log('info', 'include', "'%s' for '%s' ~> merging %d pandoc.Block's", cid, what, #doc.blocks)
     return doc.blocks
   elseif 'art' == what then
     return I.mkelm.fig(fcb, cb, doc, what)
   elseif 'cbx' == what then
     fcb.text = doc
-    I.log('info', 'include', "cb.'%s', id %s, plain pandoc.CodeBlock", cid, what)
+    I.log('info', 'include', "'%s' for id %s as plain pandoc.CodeBlock", cid, what)
     return fcb
   else
     return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
@@ -630,14 +630,12 @@ function I.result(cb)
       for _, block in ipairs(new) do
         elms[#elms + 1] = block
       end
-      if #new == 0 then
-        I.log('warn', 'include', "cb.'#%s', skipping '%s:%s' (came up empty)", I.opts.cid, what, how)
-      end
+      if #new == 0 then I.log('warn', 'include', "'#%s', skipping '%s:%s' (came up empty)", I.opts.cid, what, how) end
     else
       if fname then
-        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (no file produced)", I.opts.cid, what, how)
+        I.log('error', 'include', "'#%s', skipping '%s:%s' (no file produced)", I.opts.cid, what, how)
       else
-        I.log('error', 'include', "cb.'#%s', skipping '%s:%s' (invalid `what`)", I.opts.cid, what, how)
+        I.log('error', 'include', "'#%s', skipping '%s:%s' (invalid `what`)", I.opts.cid, what, how)
       end
     end
   end
@@ -654,11 +652,12 @@ end
 ---@return boolean ok success indicator
 function I.mkopt(cb, section)
   -- resolution: cb -> meta.stitch.section -> defaults -> hardcoded
-  print('cb.id', cb.indentifier, section)
   I.opts = I.xlate(cb.attributes)
   I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%02d', I.cbc)
   I.opts = I.check(I.opts)
   local cfg = I.opts.stitch or section -- {.. stitch=cfg .. }, pickup cfg section name
+  local x = section == 'defaults' and '' or '> stitch.defaults '
+  I.log('note', 'option', "'%s' uses cb attr > stitch.%s %s> hardcoded.", I.opts.cid, cfg, x)
   setmetatable(I.opts, { __index = I.ctx[cfg] })
   I.opts.sha = I.mksha(cb) -- derived only
 
@@ -678,6 +677,7 @@ function I.mkopt(cb, section)
       ok = false -- keep checking the rest & log accordingly
     end
   end
+
   return ok
 end
 
@@ -721,10 +721,11 @@ function I.eligible(cb)
   -- hi-2-lo: attr.stitch=name, cls=yes, .stitch (defaults)
   if cb.attributes.stitch then return cb.attributes.stitch end
   for _, class in ipairs(cb.classes) do
-    if I.ctx[class].cls == 'true' then return class end
-    if I.ctx[class].cls == 'yes' then return class end
+    local cls = tostring(I.ctx[class].cls)
+    if cls == 'true' or cls == 'yes' then return class end
   end
   if cb.classes:find('stitch') then return 'defaults' end
+  I.log('note', 'select', '%s is not eligible for stitch processing', cb.identifier)
   return false
 end
 ---@poram cb a pandoc.codeblock
