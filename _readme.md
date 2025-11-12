@@ -6,11 +6,10 @@ stitch:
   defaults:
     inc: "out cbx:fcb"
     dir: ".stitch/readme/defaults"
-  doc:
-    dir: ".stitch/readme/doc"
-    cmd: "#cbx 1>#out"
-    inc: out
+  boxes:
+    cmd: "#cbx #arg 1>#out"
     cls: true
+    inc: out
   diagon:
     dir: ".stitch/readme/diagon"
     cmd: "diagon #arg <#cbx 1>#out"
@@ -38,8 +37,9 @@ stitch:
     cmd: "" # is ignored anyway
 ...
 
-```{#preface .doc inc=out}
-figlet -w 50 -krf slant "S t i t c h" | boxes -d ian_jones -p h6v1
+
+```{#preface .boxes arg="'S t i t c h'"}
+figlet -w 50 -krf slant ${1} | boxes -d ian_jones -p h6v1
 ```
 
 \
@@ -365,23 +365,24 @@ The list of options and default values are:
 
 Opt | Value                            | Description
 :---|:---------------------------------|:--------------------------------
-arg | `''`                             | for use in `cmd` (on the cli)
+arg | `''`                             | extra argument(s) for the cli
+art | `'#dir/#cid-#sha.#fmt'`          | template for cmd output file
+cbx | `'#dir/#cid-#sha.cbx'`           | template for cb's `cbx`-file
 cls | `'no'`                           | select codeblock by class
-cid | `'x'`                            | the cb's `#id` or generated
-dir | `'.stitch'`                      | the working directory
-exe | `'maybe'`                        | execute codeblock (possibly)
-fmt | `'png'`                          | for use in `art`
-hdr | `'0'`                            | shift headers of included doc's
+cmd | `'#cbx #arg #art 1>#out 2>#err'` | template for the command line
+dir | `'.stitch'`                      | stitch's working directory
+err | `'#dir/#cid-#sha.err'`           | template for stderr file redirect
+exe | `'maybe'`                        | execute codeblock, or not
+fmt | `'png'`                          | intended `art`-file extension
+hdr | `'0'`                            | simple shift of headers
 inc | `'cbx:fcb out art:img err'`      | what to include in which order
 log | `'info'`                         | log verbosity
 lua | `''`                             | run codeblock as a chunk
 old | `'purge'`                        | what to do with old files
+out | `'#dir/#cid-#sha.out'`           | template for stdout file redirect
 --- | -------------------------------- | --------------------------------
-art | `'#dir/#cid-#sha.#fmt'`          | cmd file output template
-cbx | `'#dir/#cid-#sha.cbx'`           | codeblock 'exec' file template
-cmd | `'#cbx #arg #art 1>#out 2>#err'` | command line template
-err | `'#dir/#cid-#sha.err'`           | stderr file capture template
-out | `'#dir/#cid-#sha.out'`           | stdout file capture template
+cid | `set by stitch`                  | the codeblock's `#id` or generated
+sha | `set by stitch`                  | sha1 hash of options & cb.text
 
 : Table Stitch options
 
@@ -533,8 +534,6 @@ Options that donot influence any actual results are omitted (like `exe`, `log`
 etc.).  Sorting and whitespace removal means consistent fingerprints and makes
 it useful to detect changes in the codeblock and/or its options.
 
-
-
 So if `exe=maybe` and files exists for the newly calculated fingerprint,
 the codeblock doesn't run again and previous results will be used instead.
 
@@ -547,6 +546,7 @@ Swapping `exe` to a different value won't affect the sha-fingerprint.
 
 It allows for easily setting the intended graphics format on the codeblock
 level without touching the `art` template.
+
 
 ### `hdr`
 
