@@ -119,7 +119,7 @@ I.optvalues = {
 }
 
 I.hardcoded = {
-  -- resolution order: cb -> meta.<cfg> -> defaults -> hardcoded
+  -- resolution order: cb->stitch.section->stitch.defaults->hardcoded
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
   art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
   cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
@@ -316,13 +316,13 @@ end
 -- return true if `filename` exists, false otherwise
 ---@param filename string path to a file
 ---@return boolean exists true or false
-function I.freal(filename) return true == os.rename(filename, filename) end
+function I.exists(filename) return true == os.rename(filename, filename) end
 
 -- read file `name` and, possibly, convert to pandoc ast using `format`
 ---@param name string file to read
 ---@param format? string convert file data to ast using a pandoc reader ("" to skip)
 ---@return string|table? data file data, ast or nil (in case of errors)
-function I.fread(name, format)
+function I.read(name, format)
   local ok, dta
   local fh, err = io.open(name, 'r')
 
@@ -353,7 +353,7 @@ end
 ---@param doc string|table? doc to be saved
 ---@param fname string filename to save doc with
 ---@return boolean ok success indicator
-function I.fsave(doc, fname)
+function I.write(doc, fname)
   if 'string' ~= type(doc) then
     I.log('info', 'write', "%s, skipped writing '%s'", fname, type(doc))
     return false
@@ -427,7 +427,7 @@ end
 ---@return boolean deja_vu true iff cb's `cbx` & 1+ artifacts exist, false otherwise
 function I.deja_vu()
   -- don't collapse this
-  return I.freal(I.opts.cbx) and (I.freal(I.opts.out) or I.freal(I.opts.err) or I.freal(I.opts.art))
+  return I.exists(I.opts.cbx) and (I.exists(I.opts.out) or I.exists(I.opts.err) or I.exists(I.opts.art))
 end
 
 --[[-- AST --]]
@@ -614,13 +614,13 @@ function I.result(cb)
   for idx, elm in ipairs(I.parse(I.opts.inc)) do
     local what, format, filter, how = table.unpack(elm)
     local fname = I.opts[what]
-    if fname and I.freal(fname) then
+    if fname and I.exists(fname) then
       local count = 0 -- num of filters actually applied
-      local doc = I.fread(fname, format) -- format maybe "" (just reads fname)
+      local doc = I.read(fname, format) -- format maybe "" (just reads fname)
       doc, count = I.xform(doc, filter)
       if count > 0 then
         -- a filter was actually applied, try to save altered doc
-        I.fsave(doc, fname)
+        I.write(doc, fname)
       end
 
       -- TODO: if count > 0 we cannot assume the filter actually returns
@@ -656,7 +656,7 @@ end
 ---@param section string name of section that made cb eligible
 ---@return boolean ok success indicator
 function I.mkopt(cb, section)
-  -- resolution: cb -> meta.stitch.section -> defaults -> hardcoded
+  -- resolution: cb->stitch.section->stitch.defaults->hardcoded
   I.opts = I.xlate(cb.attributes)
   I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%02d', I.cbc)
   I.opts = I.check(I.opts)
