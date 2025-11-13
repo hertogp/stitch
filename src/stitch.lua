@@ -256,7 +256,7 @@ end
 -- sha1 hash of (stitch) option values and codeblock text
 ---@param cb table a pandoc codeblock
 ---@return string sha1 hash of option values and codeblock content
-function I.mksha(cb)
+function I.fingerprint(cb)
   -- for repeatable fingerprints: keys are sorted, whitespace removed
   local hardcoded_keys = {}
   local skip_keys = 'exe old log' -- these don't change cb-results
@@ -529,10 +529,10 @@ end
 --- @return any mod the result of requiring a module, or nil otherwise
 --- @return string? name the name that was required as a module, nil otherwise
 --- @return string? func the stripped labels (on the right) while searching, or nil
-function I.xload(m, f)
+function I.load(m, f)
   -- return module, module_name, function_name (may be nil)
   if nil == m or 0 == #m then return nil, m, f end
-  I.log('debug', 'xload', 'trying module %q', m)
+  I.log('debug', 'load', 'trying module %q', m)
 
   local suc6, mod = pcall(require, m)
   if false == suc6 or true == mod then
@@ -540,9 +540,9 @@ function I.xload(m, f)
     if not last_dot then return nil, m, f end
     local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
     if ff and f then ff = string.format('%s.%s', ff, f) end
-    return I.xload(mm, ff)
+    return I.load(mm, ff)
   else
-    I.log('debug', 'xload', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
+    I.log('debug', 'load', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
     return mod, m, f
   end
 end
@@ -552,16 +552,16 @@ end
 ---@param filter string name of lua mod[.fun] to run (if any)
 ---@return string|table? doc the, possibly, modified doc
 ---@return number count the number of filters actually applied
-function I.xform(dta, filter)
+function I.filter(dta, filter)
   local count = 0
 
   assert('string' == type(filter), 'expected filter to be a string, got "%s"', type(filter))
   assert(nil ~= dta, 'expected dta to be non-nil!')
   if 0 == #filter then return dta, count end -- "" means silent noop
 
-  local mod, name, fun = I.xload(filter)
+  local mod, name, fun = I.load(filter)
   if not mod then
-    I.log('error', 'xform', '@%s skipped, could not require filter', filter)
+    I.log('error', 'filter', '@%s skipped, could not require filter', filter)
     return dta, count
   end
 
@@ -579,20 +579,20 @@ function I.xform(dta, filter)
 
   fun = fun or 'Pandoc' -- no exported function, so default to `Pandoc`
   local filters = mod[fun] and { mod } or mod
-  I.log('debug', 'xform', '@%s yields %d filter(s)', filter, #filters)
+  I.log('debug', 'filter', '@%s yields %d filter(s)', filter, #filters)
   for n, f in ipairs(filters) do
     if f[fun] then
       local ok, tmp = pcall(f[fun], dta)
 
       if not ok then
-        I.log('error', 'xform', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
+        I.log('error', 'filter', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
       else
         dta = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
         count = count + 1
-        I.log('debug', 'xform', '@%s[%d].%s, ok, got a %s (%s)', name, n, fun, type(dta), pd.utils.type(dta))
+        I.log('debug', 'filter', '@%s[%d].%s, ok, got a %s (%s)', name, n, fun, type(dta), pd.utils.type(dta))
       end
     else
-      I.log('warn', 'xform', "@%s, skipped, filter '%s[%d]' does not export %q", filter, name, n, fun)
+      I.log('warn', 'filter', "@%s, skipped, filter '%s[%d]' does not export %q", filter, name, n, fun)
     end
   end
 
@@ -601,7 +601,7 @@ function I.xform(dta, filter)
   I.ctx = tail[#tail].ctx
   tail[#tail] = nil
 
-  I.log('info', 'xform', '@%s, applied %d filter(s) to given `dta`', filter, count)
+  I.log('info', 'filter', '@%s, applied %d filter(s) to given `dta`', filter, count)
   return dta, count
 end
 
@@ -617,7 +617,7 @@ function I.result(cb)
     if fname and I.exists(fname) then
       local count = 0 -- num of filters actually applied
       local doc = I.read(fname, format) -- format maybe "" (just reads fname)
-      doc, count = I.xform(doc, filter)
+      doc, count = I.filter(doc, filter)
       if count > 0 then
         -- a filter was actually applied, try to save altered doc
         I.write(doc, fname)
@@ -664,7 +664,7 @@ function I.mkopt(cb, section)
   local x = section == 'defaults' and '' or '> stitch.defaults '
   I.log('note', 'option', "'%s' uses cb attr > stitch.%s %s> hardcoded.", I.opts.cid, cfg, x)
   setmetatable(I.opts, { __index = I.ctx[cfg] })
-  I.opts.sha = I.mksha(cb) -- derived only
+  I.opts.sha = I.fingerprint(cb) -- derived only
 
   -- expand filenames for this codeblock (cmd is expanded as exe later)
   local expandables = { 'cbx', 'out', 'err', 'art' }
