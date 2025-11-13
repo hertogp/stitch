@@ -3,61 +3,61 @@
 In doc.meta
 ---
 stitch:
-  cetz:
-    arg: 'compile'
-    inc: 'art cbx:fcb'
-    dir: '.stitch/readme/cetz'
-    cmd: 'typst #arg #cbx #art'
-  gnuplot:
-    dir: '.stitch/readme/gnuplot'
-    inc: 'art:fig cbx:fcb'
-    cmd: 'gnuplot #cbx 1>#art 2>#err'
+  chunk:
+    dir: '.stitch/readme/chunk'
+    lua: 'chunk'
+    cmd: ''
+    inc: 'out'
   stitch:
     hdr: '2'
     log: 'debug'
-  chunk:
-    dir: '.stitch/readme/chunk'
-    inc: 'out'
-    lua: 'chunk'
-    cmd: ''
+  diagon:
+    cmd: 'diagon #arg <#cbx 1>#out'
+    dir: '.stitch/readme/diagon'
+  gnuplot:
+    dir: '.stitch/readme/gnuplot'
+    cmd: 'gnuplot #cbx 1>#art 2>#err'
+    inc: 'art:fig cbx:fcb'
   boxes:
-    cls: 'true'
     inc: 'out'
     cmd: '#cbx #arg 1>#out'
-  diagon:
-    dir: '.stitch/readme/diagon'
-    cmd: 'diagon #arg <#cbx 1>#out'
-  youplot:
-    dir: '.stitch/readme/youplot'
-    cmd: '#cbx 1>#out'
+    cls: 'true'
+  cetz:
+    dir: '.stitch/readme/cetz'
+    inc: 'art cbx:fcb'
+    cmd: 'typst #arg #cbx #art'
+    arg: 'compile'
   download:
     dir: '.stitch/readme/download'
-    inc: 'cbx:fcb'
     out: '#dir/#arg'
+    inc: 'cbx:fcb'
     exe: 'yes'
+  youplot:
+    cmd: '#cbx 1>#out'
+    dir: '.stitch/readme/youplot'
   defaults:
-    cls: 'yes'
     dir: '.stitch/readme/nested'
     log: 'debug'
     hdr: '2'
+    cls: 'yes'
 ...
 
 codeblock opts:
 {
-  arg: ''
-  cid: 'nd-yaml'
-  out: 'fcb'
-  cls: 'yes'
-  log: 'debug'
-  lua: 'chunk'
-  old: 'purge'
-  dir: '.stitch/readme/chunk'
   inc: 'out'
   cbx: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.cbx'
-  err: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.err'
-  exe: 'yes'
-  fmt: 'png'
-  art: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.png'
   cmd: ''
+  arg: ''
+  cid: 'nd-yaml'
+  fmt: 'png'
+  exe: 'yes'
+  lua: 'chunk'
+  old: 'purge'
+  log: 'debug'
+  err: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.err'
+  dir: '.stitch/readme/chunk'
+  art: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.png'
+  out: 'fcb'
+  cls: 'yes'
 }
 [[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']

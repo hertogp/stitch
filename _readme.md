@@ -39,14 +39,14 @@ stitch:
 
 
 ```{#preface .boxes arg="'S t i t c h'"}
-figlet -w 50 -krf slant ${1} | boxes -d ian_jones -p h6v1
+(figlet -w 50 -krf slant ${1}; printf "%18s""- a lua-filter -") | boxes -d ian_jones -p h6v1
 ```
 
 \
 \
 \
 
-# Turning codeblocks into works of art
+# Turn codeblocks into works of art
 
 If you can generate output (be it text or graphics) from the command line,
 stitch will help you do the same from within a codeblock and include its result
@@ -890,6 +890,7 @@ If `stitch` isn't behaving as expected:
 4,wrong art,if output is absent check the right `what` is in `inc`
 5,cb is skipped,probably because it it not recognized as such: check your markdown
 6,pdf fails,image files that are invalid may break your pdf-engine
+7,opt:val,use opt=val to prevent an existential crisis
 
 ```
 
