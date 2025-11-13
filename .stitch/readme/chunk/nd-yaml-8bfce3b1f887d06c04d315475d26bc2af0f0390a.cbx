@@ -4,7 +4,7 @@ fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
 local yaml = Stitch.yaml(Stitch.ctx, 2)
 fh:write(table.concat(yaml, "\n"))
--- defaults was "protomoted" to metatable of ctx
+-- defaults was "promoted" to metatable of ctx
 yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")

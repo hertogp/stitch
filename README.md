@@ -1260,7 +1260,7 @@ fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
 local yaml = Stitch.yaml(Stitch.ctx, 2)
 fh:write(table.concat(yaml, "\n"))
--- defaults was "protomoted" to metatable of ctx
+-- defaults was "promoted" to metatable of ctx
 yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")
@@ -1362,37 +1362,37 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 In doc.meta
 ---
 stitch:
-  stitch:
-    hdr: '2'
-    log: 'debug'
-  diagon:
-    dir: '.stitch/readme/diagon'
-    cmd: 'diagon #arg <#cbx 1>#out'
-  download:
-    out: '#dir/#arg'
-    inc: 'cbx:fcb'
-    dir: '.stitch/readme/download'
-    exe: 'yes'
   boxes:
     cls: 'true'
     cmd: '#cbx #arg 1>#out'
     inc: 'out'
+  stitch:
+    hdr: '2'
+    log: 'debug'
   gnuplot:
-    cmd: 'gnuplot #cbx 1>#art 2>#err'
     dir: '.stitch/readme/gnuplot'
+    cmd: 'gnuplot #cbx 1>#art 2>#err'
     inc: 'art:fig cbx:fcb'
+  diagon:
+    dir: '.stitch/readme/diagon'
+    cmd: 'diagon #arg <#cbx 1>#out'
   youplot:
     dir: '.stitch/readme/youplot'
     cmd: '#cbx 1>#out'
   cetz:
-    arg: 'compile'
-    cmd: 'typst #arg #cbx #art'
     dir: '.stitch/readme/cetz'
+    cmd: 'typst #arg #cbx #art'
+    arg: 'compile'
     inc: 'art cbx:fcb'
+  download:
+    dir: '.stitch/readme/download'
+    out: '#dir/#arg'
+    exe: 'yes'
+    inc: 'cbx:fcb'
   chunk:
-    lua: 'chunk'
-    cmd: ''
     dir: '.stitch/readme/chunk'
+    cmd: ''
+    lua: 'chunk'
     inc: 'out'
   defaults:
     cls: 'yes'
@@ -1403,21 +1403,21 @@ stitch:
 
 codeblock opts:
 {
-  cls: 'yes'
-  cmd: ''
-  out: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.out'
+  err: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.err'
   arg: ''
+  cbx: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.cbx'
+  art: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.png'
   lua: 'chunk'
-  cid: 'nd-yaml'
-  exe: 'yes'
-  err: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.err'
-  old: 'purge'
   dir: '.stitch/readme/chunk'
+  fmt: 'png'
+  cid: 'nd-yaml'
+  cmd: ''
+  exe: 'yes'
   inc: 'out'
   log: 'debug'
-  fmt: 'png'
-  art: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.png'
-  cbx: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.cbx'
+  out: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.out'
+  old: 'purge'
+  cls: 'yes'
 }
 [[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']
 ```

@@ -10,20 +10,24 @@
 -- [?] REVIEW: option lua=chunk just runs dofile(cbx)()() ?
 -- [ ] add I.dump(table) -> list of strings, shallow dump of table
 
--- ensure we're loaded only once (see notes on module's return statement)
+-- initiatlize only once (load vs require)
 if package.loaded.stitch then return package.loaded.stitch end
-
 local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
-
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 
 --[[-- state --]]
 
-local MAXTAIL = 6 -- max tail length (aka recursion depth)
+local MAXTAIL = 4 -- max recursion depth
 local tail = {} -- stack of saved states during recursion
-local I = {} -- Stitch's Implementation; for testing
+local I = {} -- I[mplementation]; for testing
 I.opts = { log = 'info' } --> for initial logging, is reset for each cb
-I.level = {
+I.cbc = 0 -- codeblock counter, across recursive calls
+I.hdc = 0 -- header counter, dito
+I.ctx = {} -- this doc's context (= meta.stitch)
+
+--[[ logging ]]
+
+local log_level = {
   silent = 0,
   error = 1,
   warn = 2,
@@ -31,18 +35,13 @@ I.level = {
   info = 4,
   debug = 5,
 }
-I.cbc = 0 -- codeblock counter
-I.hdc = 0 -- header counter
-I.ctx = {} -- this doc's context (= meta.stitch)
-
---[[-- helpers --]]
 
 -- print a formatted log to stderr (if cb's log level permits it)
 -- uses `I.opts.cid` or 'stitch' as log entry originator
 function I.log(lvl, action, msg, ...)
   -- log format: [stitch:recursLevel logLevel] owner :action | msg
-  local level = I.level[I.opts.log or I.ctx.stitch.log] or 0
-  if level >= I.level[lvl] then
+  local level = log_level[I.opts.log or I.ctx.stitch.log] or 0
+  if level >= log_level[lvl] then
     local owner = I.opts.cid or 'stitch'
     local fmt = string.format('[stitch:%d %6s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
     io.stderr:write(string.format(fmt, ...))
@@ -51,6 +50,8 @@ function I.log(lvl, action, msg, ...)
 end
 
 I.log('note', 'stitch', 'loading module ..')
+
+--[[-- tables --]]
 
 -- return a semi-deep copy of table t
 -- (used to provide a copy of I to external filters)
@@ -147,7 +148,7 @@ I.hardcoded = {
 
 --[[-- options --]]
 
--- check pre-defined option,value-pairs, removing those that are not valid
+-- check table of options for valid values, invalid v -> k,v is removed
 ---@param opts table single, flat, k,v store of options (v's are strings)
 ---@return table opts same table with illegal option,values removed
 function I.check(opts)
@@ -155,34 +156,32 @@ function I.check(opts)
     local val = opts[k]
     local ok, err = I.vouch(k, val)
     if val and not ok then
-      opts[k] = nil
+      opts[k] = nil -- k falls back: cb->section->defaults->hardcoded
       I.log('error', 'check', err)
     end
   end
   return opts
 end
 
--- parse `I.opts.inc` into list: {{what, format, filter, how}, ..}
----@param inc string the I.opts.inc string with include directives
+-- parse `I.opts.inc` list of directives into it constituents: {{what, format, filter, how}, ..}
+-- a directive is "what:type!format+extensions@module.function"
+---@param inc string the I.opts.inc string of comma/space separated directives
 ---@return table directives list of 4-element lists of strings
 function I.parse(inc)
-  -- str is what:type!format+extensions@module.function, ..
+  -- inc is comma/space separated list of directives
   local directives = {}
   local part = '([^!@:]+)'
 
   inc = pd.utils.stringify(inc):gsub('[,%s]+', ' ')
   for p in inc:gmatch('%S+') do
+    -- `what` needs to come first, order of the others not important
     directives[#directives + 1] = {
-      p:match('^' .. part) or '', -- what to include
-      p:match('!' .. part) or '', -- read as type
+      p:match('^' .. part) or '', -- what
+      p:match('!' .. part) or '', -- read
       p:match('@' .. part) or '', -- filter
-      p:match(':' .. part) or 'any', -- how to include (type of element)
+      p:match(':' .. part) or 'any', -- how
     }
   end
-
-  -- no validity checking:
-  -- * an invalid what-value will be skipped by I.result
-  -- * an invalid how-value will be ignored
   I.log('debug', 'include', "found %s inc's in '%s'", #directives, inc)
 
   return directives
@@ -213,7 +212,7 @@ function I.vouch(name, value)
   return false, err
 end
 
--- translate metadata-like AST elements into lua table(s)
+-- translate an AST to a lua table (wildy incomplete, covers just doc.meta)
 ---@param elm any either `doc.meta`, a `CodeBlock` or lua table
 ---@return any regular table with lua key,values-pairs
 function I.xlate(elm)
@@ -250,7 +249,7 @@ function I.xlate(elm)
     end
     return t
   elseif 'CodeBlock' == elm.tag then
-    -- a CodeBlock is an instance of type Block, elm.tags differentiate between Block's
+    -- note: pd.utils.type(cb) == Block, while cb.tag == CodeBlock
     return {
       text = elm.text,
       attr = I.xlate(elm.attr),
@@ -490,12 +489,6 @@ function I.mkelm.img(fcb, _, _, what)
 end
 
 function I.mkelm.fig(fcb, _, _, what)
-  --  pandoc.Figure element (type Block), since pandoc version >=3.0
-  -- tmp
-  -- local fname = I.opts[what]
-  -- local mime, contents = pd.mediabag.fetch(fname)
-  -- print('fname, mime, #contents', fname, mime, #contents)
-  -- /tmp
   local img = pd.Image({}, I.opts[what], '', {})
   img.attr.identifier = fcb.attr.identifier .. '-img'
   I.log('info', 'include', "'#%s' for '%s:fig' as pandoc.Figure", fcb.attr.identifier, what)
@@ -584,21 +577,12 @@ function I.xform(dta, filter)
   -- save state before calling any filters
   tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
-    -- merge pass along stitch's config when filtering subdoc's
-
-    local dump = require 'dump'
-    print('dta.meta', dump(dta.meta))
+    -- pass along stitch's config when filtering subdoc's
     local mta = I.merge(I.xlate(dta.meta), { stitch = I.ctx })
     local cb2defaults = { cls = I.opts.cls, hdr = I.opts.hdr, log = I.opts.log }
     mta.stitch.defaults = I.merge(mta.stitch.defaults, cb2defaults)
-    print('dump mta.stitch 1', dump(mta.stitch.stitch))
     mta.stitch.stitch = I.merge(mta.stitch.stitch, { hdr = I.opts.hdr }, true) -- same for shifting headers
-    print('dump mta.stitch 2', dump(mta.stitch.stitch))
-    print(mta.stitch.youplot.log)
-
     dta.meta = pd.MetaMap(mta)
-    print('new dta.meta', dump(dta.meta))
-
     I.opts = {} -- reset in case a filter recurses onto stitch
   end
 
@@ -829,22 +813,15 @@ local Stitch = {
 
   Pandoc = function(doc)
     if #tail > MAXTAIL then
-      -- a #tail > 0 means this doc is being included in an outer doc.
       I.log('error', 'stitch', 'recursion level %d too deep, max is %d', #tail, MAXTAIL)
       assert(false, 'maximum recursion level exceeded') -- simply skips doc
     end
 
     I.mkctx(doc)
-    local cbc = I.cbc -- keep count (in case we're recursing
-    local hdc = I.hdc
-
-    local dump = require 'dump'
-    print('CodeBlock ctx', dump(I.ctx))
-    print('CodeBlock.ctx.defaults', dump(I.ctx.defaults))
+    local cbc, hdc = I.cbc, I.hdc -- keep count (in case we're recursing)
     I.ctx.stitch.hdr = math.floor(tonumber(I.ctx.stitch.hdr) or 0)
     local header = 0 ~= I.ctx.stitch.hdr and I.Header or nil
     I.log('info', 'stitch', 'processing CodeBlocks and %sHeaders', header and '' or 'not ')
-
     local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
     I.log('info', 'stitch', 'saw %d CodeBlocks and %d Headers', I.cbc - cbc, I.hdc - hdc)
 
@@ -853,9 +830,8 @@ local Stitch = {
 }
 
 -- Notes:
--- * cannot simply return `Stitch` => requires pandoc version >=3.5
--- * pandoc does f = loadfile(..)(), hence no package.loaded['stitch'] entry
--- * when stitch recurses on a codeblock, it requires itself
--- * stitch must be loaded once (I.cbc), so register as a loaded package
+-- * just returning Stitch requires pandoc version >=3.5
+-- * pandoc loads filters as a chunk, we require ourselves (potentially)
+--   so claim a spot to avoid initializing twice
 package.loaded.stitch = { Stitch }
 return package.loaded.stitch
