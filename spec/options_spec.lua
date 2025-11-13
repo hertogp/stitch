@@ -60,11 +60,4 @@ echo hello, world!
     assert.equal(ctx.sec1.xxx, nil)
     assert.equal(ctx.sec2.xxx, nil)
   end)
-
-  it('- parses codeblock attributes', function() end)
-
-  it("- marshall's option values", function()
-    -- log is a number, ins is list of strings, the rest are strings
-    pending('test marshalling of option values', function() print('pending') end)
-  end)
 end)

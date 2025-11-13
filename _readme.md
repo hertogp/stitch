@@ -732,17 +732,17 @@ which enables introspection.
 ```{.lua #opt-lua stitch=chunk inc="cbx:fcb out:fcb" lua=chunk}
 local out = io.open(Stitch.opts.out, 'w')
 out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
-out:write("{\n", table.concat(Stitch.yaml(Stitch.opts, 2), "\n"), "\n}\n")
+out:write("{\n", table.concat(Stitch.tbl_yaml(Stitch.opts, 2), "\n"), "\n}\n")
 
 out:write("\nFrom doc.meta:\n")
-local yaml = table.concat(Stitch.yaml(Stitch.ctx, 2), "\n")
-local mta = Stitch.yaml(Stitch.ctx.defaults, 4)
+local yaml = table.concat(Stitch.tbl_yaml(Stitch.ctx, 2), "\n")
+local mta = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
 table.insert(mta, 1, "\n  defaults:")
 mta = table.concat(mta, "\n")
 out:write("stitch:\n", yaml, mta, "\n\n")
 
 out:write("\nHardcoded option defaults:\n")
-out:write(table.concat(Stitch.yaml(Stitch.hardcoded, 2), "\n"))
+out:write(table.concat(Stitch.tbl_yaml(Stitch.hardcoded, 2), "\n"))
 out:write("\n")
 
 out:close()
@@ -992,10 +992,10 @@ local fh = io.open(Stitch.opts.out, 'w')
 
 fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
-local yaml = Stitch.yaml(Stitch.ctx, 2)
+local yaml = Stitch.tbl_yaml(Stitch.ctx, 2)
 fh:write(table.concat(yaml, "\n"))
 -- defaults was "promoted" to metatable of ctx
-yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
+yaml = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")
   fh:write(table.concat(yaml, "\n"))
@@ -1007,11 +1007,8 @@ local opts = {} -- augment cb attr opts to full list of opts
 for k, _ in pairs(Stitch.hardcoded) do
   opts[k] = Stitch.opts[k]
 end
-yaml = Stitch.yaml(opts, 2)
+yaml = Stitch.tbl_yaml(opts, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
-
-yaml = Stitch.yaml(Stitch.optvalues.log)
-fh:write("[", table.concat(yaml, ', '), "]")
 fh:close()
 ```
 ]]

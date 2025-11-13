@@ -57,10 +57,10 @@ local fh = io.open(Stitch.opts.out, 'w')
 
 fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
-local yaml = Stitch.yaml(Stitch.ctx, 2)
+local yaml = Stitch.tbl_yaml(Stitch.ctx, 2)
 fh:write(table.concat(yaml, "\n"))
 -- defaults was "promoted" to metatable of ctx
-yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
+yaml = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")
   fh:write(table.concat(yaml, "\n"))
@@ -72,11 +72,8 @@ local opts = {} -- augment cb attr opts to full list of opts
 for k, _ in pairs(Stitch.hardcoded) do
   opts[k] = Stitch.opts[k]
 end
-yaml = Stitch.yaml(opts, 2)
+yaml = Stitch.tbl_yaml(opts, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
-
-yaml = Stitch.yaml(Stitch.optvalues.log)
-fh:write("[", table.concat(yaml, ', '), "]")
 fh:close()
 ```
 ]]

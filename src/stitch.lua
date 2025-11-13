@@ -45,7 +45,7 @@ end
 
 -- return a semi-deep copy of table t
 -- (used to provide a copy of I to external filters)
-function I.dcopy(t, seen)
+function I.tbl_copy(t, seen)
   seen = seen or {}
   if 'table' ~= type(t) then return t end
   if seen[t] then return seen[t] end
@@ -53,40 +53,41 @@ function I.dcopy(t, seen)
   local tt = {}
   seen[t] = tt
   for k, v in pairs(t) do
-    tt[I.dcopy(k, seen)] = I.dcopy(v, seen)
+    tt[I.tbl_copy(k, seen)] = I.tbl_copy(v, seen)
   end
-  setmetatable(tt, I.dcopy(getmetatable(t), seen))
+  setmetatable(tt, I.tbl_copy(getmetatable(t), seen))
   return tt
 end
 
--- recursively merge s onto d without overwriting anything
+-- recursively merge s onto d without overwriting anything, unless `forced`
 --- @param d table? destination table
 --- @param s table source table
---- @return table d the merged table
-function I.merge(d, s, forced)
-  -- TODO: cfg = I.merge(I.xlate(dta.meta), {stitch=I.ctx}) fails?
-  if not d then return I.dcopy(s) end
-  assert('table' == type(d), "expected d to be a table, got '%s'", type(d))
-  assert('table' == type(s), "expected s to be a table, got '%s'", type(s))
+--- @return table m the (new) merged table m
+function I.tbl_merge(d, s, forced)
+  -- TODO: cfg = I.tbl_merge(I.xlate(dta.meta), {stitch=I.ctx}) fails?
+  if not d then return I.tbl_copy(s) end
+  assert('table' == type(d), 'expected d to be a table, got ' .. type(d))
+  assert('table' == type(s), 'expected s to be a table, got ' .. type(s))
   forced = forced or false
 
+  local m = I.tbl_copy(d)
   for k, v in pairs(s) do
-    if not d[k] then
-      d[k] = I.dcopy(v)
-    elseif 'table' == type(d[k]) and 'table' == type(v) then
-      d[k] = I.merge(d[k], v, forced)
-      if not getmetatable(d[k]) then setmetatable(d[k], I.dcopy(getmetatable(v))) end
+    if not m[k] then
+      m[k] = I.tbl_copy(v)
+    elseif 'table' == type(m[k]) and 'table' == type(v) then
+      m[k] = I.tbl_merge(m[k], v, forced)
+      if not getmetatable(m[k]) then setmetatable(m[k], I.tbl_copy(getmetatable(v))) end
     elseif forced then
-      d[k] = I.dcopy(v)
+      m[k] = I.tbl_copy(v)
     end
   end
-  if not getmetatable(d) then setmetatable(d, I.dcopy(getmetatable(s))) end
-  return d
+  if not getmetatable(m) then setmetatable(m, I.tbl_copy(getmetatable(s))) end
+  return m
 end
 
 -- poor man's yaml representation of a table as a list of lines
 -- (assumes all keys are strings)
-function I.yaml(t, n, seen)
+function I.tbl_yaml(t, n, seen)
   seen = seen or {}
   n = n or 0
   if 'table' ~= type(t) then return string.format("'%s'", t) end
@@ -98,7 +99,7 @@ function I.yaml(t, n, seen)
     local indent = string.rep(' ', n)
     local nl = 'table' == type(v) and '\n' or ' '
     local kk = 'string' == type(k) and k or string.format('[%s]', k)
-    local vv = I.yaml(v, n + 2, seen)
+    local vv = I.tbl_yaml(v, n + 2, seen)
     if 'table' == type(vv) then vv = table.concat(vv, '\n') end
     tt[#tt + 1] = string.format('%s%s:%s%s', indent, kk, nl, vv)
   end
@@ -565,13 +566,13 @@ function I.xform(dta, filter)
   end
 
   -- save state before calling any filters
-  tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
+  tail[#tail + 1] = { opts = I.tbl_copy(I.opts), ctx = I.tbl_copy(I.ctx), meta = I.xlate(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
     -- pass along stitch's config when filtering subdoc's
-    local mta = I.merge(I.xlate(dta.meta), { stitch = I.ctx })
+    local mta = I.tbl_merge(I.xlate(dta.meta), { stitch = I.ctx })
     local cb2defaults = { cls = I.opts.cls, hdr = I.opts.hdr, log = I.opts.log }
-    mta.stitch.defaults = I.merge(mta.stitch.defaults, cb2defaults)
-    mta.stitch.stitch = I.merge(mta.stitch.stitch, { hdr = I.opts.hdr }, true) -- same for shifting headers
+    mta.stitch.defaults = I.tbl_merge(mta.stitch.defaults, cb2defaults)
+    mta.stitch.stitch = I.tbl_merge(mta.stitch.stitch, { hdr = I.opts.hdr }, true) -- same for shifting headers
     dta.meta = pd.MetaMap(mta)
     I.opts = {} -- reset in case a filter recurses onto stitch
   end
@@ -752,7 +753,7 @@ function I.CodeBlock(cb)
       I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
     elseif 'chunk' == I.opts.lua then
       I.log('info', 'execute', "codeblock as a chunk (exe='%s')", I.opts.exe)
-      _ENV.Stitch = I.dcopy(I) -- enables introspection by the chunk
+      _ENV.Stitch = I.tbl_copy(I) -- enables introspection by the chunk
       local f, err = loadfile(I.opts.cbx, 't', _ENV) -- lexcial scope
       if f == nil or err then
         I.log('error', 'execute', 'skipped, chunk compile error: %s', err)
