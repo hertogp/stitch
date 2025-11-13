@@ -562,9 +562,16 @@ function I.xform(dta, filter)
     I.log('warn', 'xform', '@%s, found mod %s, presumably a list of filters', filter, name)
   end
 
-  -- push (a *copy* of) our current state before calling any filter(s)
+  -- STATE SAVE: a *copy* of current state before calling any filter(s)
   tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
+    -- PASS IN stitch cfg on RECURSION TODO: needs to be a merge, no overwriting!
+    -- TODO: should merge stitch options into dta.meta.stitch (not stitched!)
+    -- TODO: only need to merge(dta.meta.stich, I.ctx) since any I.opts will be
+    -- REVIEW:
+    -- * we're not using dta.meta.stitched ourselves, so why bother?
+    -- * we are using tail to peak at caller's incarnation to borrow options
+    -- recalculated for each codeblock when we recurse onto ourselves.
     dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- pass in, current cb opts & context
     I.opts = {} -- reset in case we recurse later on
   end
@@ -588,7 +595,7 @@ function I.xform(dta, filter)
     end
   end
 
-  -- restore state after filter(s) are done
+  -- STATE RESTORE: after filter(s) are done
   I.opts = tail[#tail].opts
   I.ctx = tail[#tail].ctx
   tail[#tail] = nil
@@ -611,7 +618,7 @@ function I.result(cb)
       local doc = I.fread(fname, format) -- format maybe "" (just reads fname)
       doc, count = I.xform(doc, filter)
       if count > 0 then
-        -- a filter was actually applied, so save altered doc (if applicable)
+        -- a filter was actually applied, try to save altered doc
         I.fsave(doc, fname)
       end
 
@@ -619,11 +626,10 @@ function I.result(cb)
       -- either data or a pandoc doc.  Could be a table, userdata or even
       -- a function (!).  @_G.load -> would load cbx as a chunk
 
-      local fcb = I.mkfcb(cb) -- need fcb per inclusion(!)
+      local fcb = I.mkfcb(cb) -- need fresh fcb per inclusion(!)
       fcb.attr.identifier = string.format('%s-%d-%s', I.opts.cid, idx, what)
-      local new = I.mkelm[how](fcb, cb, doc, what)
-      -- see `:Open https://pandoc.org/lua-filters.html#type-blocks`
-      -- type(new) is either Blocks or Block;
+      local new = I.mkelm[how](fcb, cb, doc, what) -- returns either Block or Blocks
+
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
       for _, block in ipairs(new) do
         elms[#elms + 1] = block
@@ -797,7 +803,7 @@ local Stitch = {
 
   Pandoc = function(doc)
     if #tail > MAXTAIL then
-      -- if #tail > 0, doc is being included in an outer doc.
+      -- a #tail > 0 means this doc is being included in an outer doc.
       I.log('error', 'stitch', 'recursion level %d too deep, max is %d', #tail, MAXTAIL)
       assert(false, 'maximum recursion level exceeded') -- simply skips doc
     end
@@ -809,6 +815,10 @@ local Stitch = {
     local s = I.ctx.stitch -- shorthand
     if #tail > 0 then
       -- adopt some settings from caller's cb / doc
+      -- TODO: RECURSE OR NOT we should be looking at doc.meta.stitch.stitch.hdr (!)
+      -- codeblock that's pulling in another doc should have attr hdr=2 (e.g.)
+      -- since that's the only one who knows by how much the new doc's headers
+      -- need to shift.
       s.header = s.header or tail[#tail].opts.hdr
       s.log = s.log or tail[#tail].opts.log
     end
