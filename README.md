@@ -10,6 +10,7 @@
       |       ___/ /  / /_   / /  / /_   / /__   / / / /      |
       |      /____/   \__/  /_/   \__/   \___/  /_/ /_/       |
       |                                                       |
+      |                  - a lua-filter -                     |
       |                                                       |
       '-------------------.oooO-------------------------------'
                            (   )   Oooo.
@@ -22,7 +23,7 @@
   
   
 
-# Turning codeblocks into works of art
+# Turn codeblocks into works of art
 
 If you can generate output (be it text or graphics) from the command
 line, stitch will help you do the same from within a codeblock and
@@ -1070,6 +1071,7 @@ If `stitch` isn’t behaving as expected:
 | 4   | wrong art     | if output is absent check the right \`what\` is in \`inc\`             |
 | 5   | cb is skipped | probably because it it not recognized as such: check your markdown     |
 | 6   | pdf fails     | image files that are invalid may break your pdf-engine                 |
+| 7   | opt:val       | use opt=val to prevent an existential crisis                           |
 
 ## Stitch introspection
 
@@ -1229,8 +1231,9 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
 
-## Gnuplot again
+\newpage
 
+## Gnuplot again
 
 ```{#nd-gnu .gnuplot}
 set terminal png
@@ -1248,6 +1251,35 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
 ```
 
+## poor man's yaml
+
+```{.lua #nd-yaml stitch=chunk exe=yes lua=chunk log=debug}
+local fh = io.open(Stitch.opts.out, 'w')
+
+fh:write("\n")
+fh:write('\nIn doc.meta\n---\nstitch:\n')
+local yaml = Stitch.yaml(Stitch.ctx, 2)
+fh:write(table.concat(yaml, "\n"))
+-- defaults was "protomoted" to metatable of ctx
+yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
+if #yaml > 0 then
+  fh:write("\n  defaults:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
+
+fh:write("\n...\n\n")
+fh:write("codeblock opts:\n")
+local opts = {} -- augment cb attr opts to full list of opts
+for k, _ in pairs(Stitch.hardcoded) do
+  opts[k] = Stitch.opts[k]
+end
+yaml = Stitch.yaml(opts, 2)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
+yaml = Stitch.yaml(Stitch.optvalues.log)
+fh:write("[", table.concat(yaml, ', '), "]")
+fh:close()
+```
 ]]
 ````
 `````
@@ -1324,18 +1356,68 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## poor man’s yaml
 
-\`\`\`{#nd-yaml out:fcb stitch=chunk exe=yes lua=chunk log=debug} local
-fh = io.open(Stitch.opts.out, ‘w’)
+``` lua
 
-fh:write(“”) fh:write(‘doc.meta—:’) local yaml = Stitch.yaml(Stitch.ctx,
-2) fh:write(table.concat(yaml, “”)) – defaults was “protomoted” to
-metatable of ctx yaml = Stitch.yaml(Stitch.ctx.defaults, 4) if \#yaml \>
-0 then fh:write(“defaults:”) fh:write(table.concat(yaml, “”)) end
 
-fh:write(“…”) fh:write(“codeblock opts:”) local opts = {} – augment cb
-attr opts to full list of opts for k, \_ in pairs(Stitch.hardcoded) do
-opts\[k\] = Stitch.opts\[k\] end yaml = Stitch.yaml(opts, 2)
-fh:write(“{”, table.concat(yaml, “”), “}”)
+In doc.meta
+---
+stitch:
+  stitch:
+    hdr: '2'
+    log: 'debug'
+  diagon:
+    dir: '.stitch/readme/diagon'
+    cmd: 'diagon #arg <#cbx 1>#out'
+  download:
+    out: '#dir/#arg'
+    inc: 'cbx:fcb'
+    dir: '.stitch/readme/download'
+    exe: 'yes'
+  boxes:
+    cls: 'true'
+    cmd: '#cbx #arg 1>#out'
+    inc: 'out'
+  gnuplot:
+    cmd: 'gnuplot #cbx 1>#art 2>#err'
+    dir: '.stitch/readme/gnuplot'
+    inc: 'art:fig cbx:fcb'
+  youplot:
+    dir: '.stitch/readme/youplot'
+    cmd: '#cbx 1>#out'
+  cetz:
+    arg: 'compile'
+    cmd: 'typst #arg #cbx #art'
+    dir: '.stitch/readme/cetz'
+    inc: 'art cbx:fcb'
+  chunk:
+    lua: 'chunk'
+    cmd: ''
+    dir: '.stitch/readme/chunk'
+    inc: 'out'
+  defaults:
+    cls: 'yes'
+    dir: '.stitch/readme/nested'
+    hdr: '2'
+    log: 'debug'
+...
 
-yaml = Stitch.yaml(Stitch.optvalues.log) fh:write(“\[”,
-table.concat(yaml, ‘,’), ”\]”) fh:close() \`\`\`
+codeblock opts:
+{
+  cls: 'yes'
+  cmd: ''
+  out: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.out'
+  arg: ''
+  lua: 'chunk'
+  cid: 'nd-yaml'
+  exe: 'yes'
+  err: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.err'
+  old: 'purge'
+  dir: '.stitch/readme/chunk'
+  inc: 'out'
+  log: 'debug'
+  fmt: 'png'
+  art: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.png'
+  cbx: '.stitch/readme/chunk/nd-yaml-d9a72f27ad23aea54ba06119512e6926706eb741.cbx'
+}
+[[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']
+```

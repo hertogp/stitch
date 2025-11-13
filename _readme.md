@@ -987,7 +987,7 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## poor man's yaml
 
-```{.lua #nd-yaml out=fcb stitch=chunk exe=yes lua=chunk log=debug}
+```{.lua #nd-yaml stitch=chunk exe=yes lua=chunk log=debug}
 local fh = io.open(Stitch.opts.out, 'w')
 
 fh:write("\n")
