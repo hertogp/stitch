@@ -13,6 +13,7 @@
 -- initiatlize only once (load vs require)
 if package.loaded.stitch then return package.loaded.stitch end
 local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
+local F = string.format
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 
 --[[-- state --]]
@@ -35,8 +36,8 @@ function I.log(lvl, action, msg, ...)
   local level = log_level[I.opts.log or I.ctx.stitch.log] or 0
   if level >= log_level[lvl] then
     local owner = I.opts.cid or 'stitch'
-    local fmt = string.format('[stitch:%d %6s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
-    io.stderr:write(string.format(fmt, ...))
+    local fmt = F('[stitch:%d %6s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
+    io.stderr:write(F(fmt, ...))
     io.stderr:flush()
   end
 end
@@ -90,7 +91,7 @@ end
 function I.tbl_yaml(t, n, seen)
   seen = seen or {}
   n = n or 0
-  if 'table' ~= type(t) then return string.format("'%s'", t) end
+  if 'table' ~= type(t) then return F("'%s'", t) end
   if seen[t] then return seen[t] end
 
   local tt = {}
@@ -98,10 +99,10 @@ function I.tbl_yaml(t, n, seen)
   for k, v in pairs(t) do
     local indent = string.rep(' ', n)
     local nl = 'table' == type(v) and '\n' or ' '
-    local kk = 'string' == type(k) and k or string.format('[%s]', k)
+    local kk = 'string' == type(k) and k or F('[%s]', k)
     local vv = I.tbl_yaml(v, n + 2, seen)
     if 'table' == type(vv) then vv = table.concat(vv, '\n') end
-    tt[#tt + 1] = string.format('%s%s:%s%s', indent, kk, nl, vv)
+    tt[#tt + 1] = F('%s%s:%s%s', indent, kk, nl, vv)
   end
   return tt
 end
@@ -186,8 +187,8 @@ end
 ---@return string? err message in case of invalid `name` or `value`, nil otherwise
 function I.vouch(name, value)
   local values = I.optvalues[name]
-  if not values then return false, string.format("'%s' is not a known option", name) end
-  value = string.format('%s', value) -- valid values listed as strings
+  if not values then return false, F("'%s' is not a known option", name) end
+  value = F('%s', value) -- valid values listed as strings
 
   for _, v in ipairs(values) do
     if value == v then return true, nil end
@@ -196,10 +197,10 @@ function I.vouch(name, value)
   local err = "option '%s' expects one of {%s}, got %q"
   local valid = {}
   for _, v in ipairs(values) do
-    valid[#valid + 1] = string.format('%q', v)
+    valid[#valid + 1] = F('%q', v)
   end
 
-  err = string.format(err, name, table.concat(valid, ', '), value)
+  err = F(err, name, table.concat(valid, ', '), value)
   return false, err
 end
 
@@ -437,11 +438,11 @@ setmetatable(I.mkelm, {
   __index = function(t, how)
     local keys = {}
     for k, _ in pairs(t) do
-      keys[#keys + 1] = string.format('%q', k)
+      keys[#keys + 1] = F('%q', k)
     end
     table.sort(keys)
     local valid = table.concat(keys, ', ')
-    local msg = string.format("expected `how` to be one of {%s}, got '%s'", valid, how)
+    local msg = F("expected `how` to be one of {%s}, got '%s'", valid, how)
     I.log('error', 'include', msg)
     return function() return {} end
   end,
@@ -525,12 +526,11 @@ end
 
 -- find and load module given by `m`, dropping labels during search
 --- @param m string module name, with or without path and or function labels
---- @param f string? collects labels that are stripped while searching `m`
+--- @param f string? collects labels that are stripped while searching for `m`
 --- @return any mod the result of requiring a module, or nil otherwise
 --- @return string? name the name that was required as a module, nil otherwise
 --- @return string? func the stripped labels (on the right) while searching, or nil
 function I.load(m, f)
-  -- return module, module_name, function_name (may be nil)
   if nil == m or 0 == #m then return nil, m, f end
   I.log('debug', 'load', 'trying module %q', m)
 
@@ -539,7 +539,7 @@ function I.load(m, f)
     local last_dot = m:find('%.[^%.]+$')
     if not last_dot then return nil, m, f end
     local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
-    if ff and f then ff = string.format('%s.%s', ff, f) end
+    if ff and f then ff = F('%s.%s', ff, f) end
     return I.load(mm, ff)
   else
     I.log('debug', 'load', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
@@ -628,7 +628,7 @@ function I.result(cb)
       -- a function (!).  @_G.load -> would load cbx as a chunk
 
       local fcb = I.mkfcb(cb) -- need fresh fcb per inclusion(!)
-      fcb.attr.identifier = string.format('%s-%d-%s', I.opts.cid, idx, what)
+      fcb.attr.identifier = F('%s-%d-%s', I.opts.cid, idx, what)
       local new = I.mkelm[how](fcb, cb, doc, what) -- returns either Block or Blocks
 
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
@@ -658,7 +658,7 @@ end
 function I.mkopt(cb, section)
   -- resolution: cb->stitch.section->stitch.defaults->hardcoded
   I.opts = I.xlate(cb.attributes)
-  I.opts.cid = #cb.identifier > 0 and cb.identifier or string.format('cb%02d', I.cbc)
+  I.opts.cid = #cb.identifier > 0 and cb.identifier or F('cb%02d', I.cbc)
   I.opts = I.check(I.opts)
   local cfg = I.opts.stitch or section -- {.. stitch=cfg .. }, pickup cfg section name
   local x = section == 'defaults' and '' or '> stitch.defaults '
@@ -733,7 +733,7 @@ function I.eligible(cb)
   end
   if cb.classes:find('stitch') then return 'defaults' end
   -- TODO: cb does not always have an identifier
-  local tag = #cb.identifier > 0 and cb.identifier or string.format('cb%s', I.cbc)
+  local tag = #cb.identifier > 0 and cb.identifier or F('cb%s', I.cbc)
   I.log('note', 'select', '%s is not eligible for stitch processing', tag)
   return false
 end
