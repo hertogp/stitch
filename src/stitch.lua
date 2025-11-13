@@ -46,6 +46,7 @@ function I.log(lvl, action, msg, ...)
     local owner = I.opts.cid or 'stitch'
     local fmt = string.format('[stitch:%d %6s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
     io.stderr:write(string.format(fmt, ...))
+    io.stderr:flush()
   end
 end
 
@@ -71,11 +72,12 @@ end
 --- @param d table? destination table
 --- @param s table source table
 --- @return table d the merged table
-function I.merge(d, s)
+function I.merge(d, s, forced)
   -- TODO: cfg = I.merge(I.xlate(dta.meta), {stitch=I.ctx}) fails?
   if not d then return I.dcopy(s) end
   assert('table' == type(d), "expected d to be a table, got '%s'", type(d))
   assert('table' == type(s), "expected s to be a table, got '%s'", type(s))
+  forced = forced or false
 
   for k, v in pairs(s) do
     if not d[k] then
@@ -83,6 +85,8 @@ function I.merge(d, s)
     elseif 'table' == type(d[k]) and 'table' == type(v) then
       d[k] = I.merge(d[k], v)
       if not getmetatable(d[k]) then setmetatable(d[k], I.dcopy(getmetatable(v))) end
+    elseif forced then
+      d[k] = I.dcopy(v)
     end
   end
   if not getmetatable(d) then setmetatable(d, I.dcopy(getmetatable(s))) end
@@ -583,14 +587,16 @@ function I.xform(dta, filter)
     -- merge pass along stitch's config when filtering subdoc's
 
     local dump = require 'dump'
-    print('dta.meta', pd.utils.stringify(dta.meta))
-    local cfg = I.merge(I.xlate(dta.meta), { stitch = I.ctx })
-    local cb_transfer = { hdr = I.opts.hdr, log = I.opts.log }
-    cfg.stitch.defaults = I.merge(cfg.stitch.defaults, cb_transfer)
-    cfg.stitch = I.merge(cfg.stitch, { hdr = I.opts.hdr }) -- same for shifting headers
-    print(cfg.stitch.youplot.log)
+    print('dta.meta', dump(dta.meta))
+    local mta = I.merge(I.xlate(dta.meta), { stitch = I.ctx })
+    local cb2defaults = { cls = I.opts.cls, hdr = I.opts.hdr, log = I.opts.log }
+    mta.stitch.defaults = I.merge(mta.stitch.defaults, cb2defaults)
+    print('dump mta.stitch 1', dump(mta.stitch.stitch))
+    mta.stitch.stitch = I.merge(mta.stitch.stitch, { hdr = I.opts.hdr }, true) -- same for shifting headers
+    print('dump mta.stitch 2', dump(mta.stitch.stitch))
+    print(mta.stitch.youplot.log)
 
-    dta.meta = pd.MetaMap(cfg)
+    dta.meta = pd.MetaMap(mta)
     print('new dta.meta', dump(dta.meta))
 
     I.opts = {} -- reset in case a filter recurses onto stitch
@@ -832,19 +838,11 @@ local Stitch = {
     local cbc = I.cbc -- keep count (in case we're recursing
     local hdc = I.hdc
 
-    local s = I.ctx.stitch -- shorthand
-    if #tail > 0 then
-      -- adopt some settings from caller's cb / doc
-      -- TODO: RECURSE OR NOT we should be looking at doc.meta.stitch.stitch.hdr (!)
-      -- codeblock that's pulling in another doc is the only one who knows:
-      -- * whether headers should be shifted for the subdoc
-      -- * which classes can/should be matched up against stitch's meta sections
-      s.header = s.header or tail[#tail].opts.hdr
-      s.log = s.log or tail[#tail].opts.log
-    end
-
-    s.header = math.floor(tonumber(s.header) or 0)
-    local header = 0 ~= s.header and I.Header
+    local dump = require 'dump'
+    print('CodeBlock ctx', dump(I.ctx))
+    print('CodeBlock.ctx.defaults', dump(I.ctx.defaults))
+    I.ctx.stitch.hdr = math.floor(tonumber(I.ctx.stitch.hdr) or 0)
+    local header = 0 ~= I.ctx.stitch.hdr and I.Header or nil
     I.log('info', 'stitch', 'processing CodeBlocks and %sHeaders', header and '' or 'not ')
 
     local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })

@@ -964,8 +964,9 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
 
-## Gnuplot again
+\newpage
 
+## Gnuplot again
 
 ```{#nd-gnu .gnuplot}
 set terminal png
@@ -983,13 +984,13 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
 ```
 
-
 ## poor man's yaml
 
-```{#nd-yaml out:fcb stitch=chunk exe=yes}
+```{.lua #nd-yaml out=fcb stitch=chunk exe=yes lua=chunk log=debug}
 local fh = io.open(Stitch.opts.out, 'w')
 
-fh:write("\nIn doc.meta\n---\nstitch:\n")
+fh:write("\n")
+fh:write('\nIn doc.meta\n---\nstitch:\n')
 local yaml = Stitch.yaml(Stitch.ctx, 2)
 fh:write(table.concat(yaml, "\n"))
 -- defaults was "protomoted" to metatable of ctx
@@ -1012,7 +1013,7 @@ yaml = Stitch.yaml(Stitch.optvalues.log)
 fh:write("[", table.concat(yaml, ', '), "]")
 fh:close()
 ```
-
 ]]
 
 ````
+

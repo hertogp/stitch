@@ -1,0 +1,63 @@
+
+
+In doc.meta
+---
+stitch:
+  cetz:
+    arg: 'compile'
+    inc: 'art cbx:fcb'
+    dir: '.stitch/readme/cetz'
+    cmd: 'typst #arg #cbx #art'
+  gnuplot:
+    dir: '.stitch/readme/gnuplot'
+    inc: 'art:fig cbx:fcb'
+    cmd: 'gnuplot #cbx 1>#art 2>#err'
+  stitch:
+    hdr: '2'
+    log: 'debug'
+  chunk:
+    dir: '.stitch/readme/chunk'
+    inc: 'out'
+    lua: 'chunk'
+    cmd: ''
+  boxes:
+    cls: 'true'
+    inc: 'out'
+    cmd: '#cbx #arg 1>#out'
+  diagon:
+    dir: '.stitch/readme/diagon'
+    cmd: 'diagon #arg <#cbx 1>#out'
+  youplot:
+    dir: '.stitch/readme/youplot'
+    cmd: '#cbx 1>#out'
+  download:
+    dir: '.stitch/readme/download'
+    inc: 'cbx:fcb'
+    out: '#dir/#arg'
+    exe: 'yes'
+  defaults:
+    cls: 'yes'
+    dir: '.stitch/readme/nested'
+    log: 'debug'
+    hdr: '2'
+...
+
+codeblock opts:
+{
+  arg: ''
+  cid: 'nd-yaml'
+  out: 'fcb'
+  cls: 'yes'
+  log: 'debug'
+  lua: 'chunk'
+  old: 'purge'
+  dir: '.stitch/readme/chunk'
+  inc: 'out'
+  cbx: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.cbx'
+  err: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.err'
+  exe: 'yes'
+  fmt: 'png'
+  art: '.stitch/readme/chunk/nd-yaml-94f996fcb045f6afbca630741bb3f8c7e921c591.png'
+  cmd: ''
+}
+[[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']

@@ -1,4 +1,4 @@
-``` doc
+``` boxes
                                 \\\///
                                / _  _ \
                              (| (.)(.) |)
@@ -381,8 +381,8 @@ The filter will process a codeblock if it has a:
 - `.stitch` class,
 - `stitch=name` attribute, where `<name>` refers to a
   `meta.stitch`-section
-- class which has a `meta.stitch`-section with its [`cls`](#cls)-option
-  set to yes/true
+- class that matches named `meta.stitch`-section that has [`cls`](#cls)
+  set to yes
 
 Processing a codeblock follows these steps:
 
@@ -428,48 +428,105 @@ Stitch provides a few features for converting codeblocks:
 - use a codeblock for side-effects only (0 includes)
 - log levels, global, per tool or codeblock, to show all gory details
   ([`log`](#log))
-- transfer codeblock attributes to included results, if possible
-- a unique id per codeblock and its includes ([`cid`](#cid))
+- transfer a codeblock’s attributes to its included results, if possible
+- a unique id per codeblock and for each of its includes ([`cid`](#cid))
 - include after re-read an artifact using a [pandoc
   –read=format](https://pandoc.org/MANUAL.html#general-options)
 - run the [`cbx`](#cbx) or other artifact through an external filter
   - any lua program/filter that accepts string data or a pandoc doc
-  - stitch itself to do codeblocks in an externally acquired markdown
-    doc
+  - stitch itself for codeblocks in an externally acquired markdown doc
+
+Some terminology used:
+
+artifact  
+refers to the [`cbx`](#cbx)-file or one of 3 files produced by
+processing a codeblock
+
+cbx-file  
+the [`cbx`](#cbx)-file where a codeblock’s contents is stored and marked
+executable
+
+art-file  
+the [`art`](#art)-file where file-based output is to be written to
+
+out-file  
+the [`out`](#out)-file where the output on stdout is captured
+
+err-file  
+the [`err`](#err)-file where the output on stderr is captured
+
+tool  
+an external program used to process the \[cbx\]-file
+
+this usually has its own `stitch section` in the doc’s meta data
+
+stitch section  
+a `name`’d table of options under `stitch:` in the doc’s meta data
+
+defaults  
+a `defaults` section under `stitch` to fall back on when resolving
+options
+
+hardcoded  
+the option values hardcoded in stitch and used if option resolution
+fails
+
+option resolution  
+where stitch looks for options and their values.
+
+order is: codeblock attr -\> stitch\[name\] -\> stitch\[defaults\] -\>
+hardcoded
 
 ## Configuration
 
-Stitch options are resolved in the following, *most to least*, specific
-order:
+Stitch options are resolved in *most to least* specific order:
 
 1.  codeblock attributes
-2.  a `name` section, in `meta.stitch`
-3.  the `defaults` section, again in `meta.stitch`
-4.  hardcoded Stitch defaults
+2.  a codeblock’s `name` section, in stitch’s meta data
+3.  the `defaults` section, again in stitch’s meta data
+4.  hardcoded stitch defaults
 
 The list of options and default values are:
 
-| Opt | Value                            | Description                     |
-|:----|:---------------------------------|:--------------------------------|
-| arg | `''`                             | for use in `cmd` (on the cli)   |
-| cls | `'no'`                           | select codeblock by class       |
-| cid | `'x'`                            | the cb’s `#id` or generated     |
-| dir | `'.stitch'`                      | the working directory           |
-| exe | `'maybe'`                        | execute codeblock (possibly)    |
-| fmt | `'png'`                          | for use in `art`                |
-| hdr | `'0'`                            | shift headers of included doc’s |
-| inc | `'cbx:fcb out art:img err'`      | what to include in which order  |
-| log | `'info'`                         | log verbosity                   |
-| lua | `''`                             | run codeblock as a chunk        |
-| old | `'purge'`                        | what to do with old files       |
-| —   | ——————————–                      | ——————————–                     |
-| art | `'#dir/#cid-#sha.#fmt'`          | cmd file output template        |
-| cbx | `'#dir/#cid-#sha.cbx'`           | codeblock ‘exec’ file template  |
-| cmd | `'#cbx #arg #art 1>#out 2>#err'` | command line template           |
-| err | `'#dir/#cid-#sha.err'`           | stderr file capture template    |
-| out | `'#dir/#cid-#sha.out'`           | stdout file capture template    |
+| Opt | Value                            | Description                        |
+|:----|:---------------------------------|:-----------------------------------|
+| arg | `''`                             | extra argument(s) for the cli      |
+| art | `'#dir/#cid-#sha.#fmt'`          | template for cmd output file       |
+| cbx | `'#dir/#cid-#sha.cbx'`           | template for cb’s `cbx`-file       |
+| cls | `'no'`                           | select codeblock by class          |
+| cmd | `'#cbx #arg #art 1>#out 2>#err'` | template for the command line      |
+| dir | `'.stitch'`                      | stitch’s working directory         |
+| err | `'#dir/#cid-#sha.err'`           | template for stderr file redirect  |
+| exe | `'maybe'`                        | execute codeblock, or not          |
+| fmt | `'png'`                          | intended `art`-file extension      |
+| hdr | `'0'`                            | simple shift of headers            |
+| inc | `'cbx:fcb out art:img err'`      | what to include in which order     |
+| log | `'info'`                         | log verbosity                      |
+| lua | `''`                             | run codeblock as a chunk           |
+| old | `'purge'`                        | what to do with old files          |
+| out | `'#dir/#cid-#sha.out'`           | template for stdout file redirect  |
+| —   | ——————————–                      | ——————————–                        |
+| cid | `set by stitch`                  | the codeblock’s `#id` or generated |
+| sha | `set by stitch`                  | sha1 hash of options & cb.text     |
 
 Table Stitch options
+
+The defaults are basically setup to:
+
+- run the \[`cbx`’\]-file as a command on the system
+- provide additional [`arg`](#arg)’s (if any)
+- provide and an output filename [`art`](#art) as last argument
+- capture stdout and stderr to [`out`](#out), resp. [`err`](#err)-files
+- include some artifacts in the current doc:
+  - `cbx:fcb`, the original codeblock with its attributes
+  - `out`, whatever was captured on stdout in a codeblock
+  - `art:img` a link to an image file given by [`art`](#art)
+  - `err`, whatever was captures on stderr in another codeblock
+
+It is then up to the codeblock’s code to actually produce any of the
+artifacts to be included. Tweaking a codeblock is then usually limited
+to specifying an [`arg`](#arg) attribute and possibly changing its
+[`inc`](#inc) attribute.
 
 ### `arg`
 
@@ -485,8 +542,20 @@ is a multi word string in the codeblock’s attributes. There is no output
 on stderr so the redirect does not create a file and the output file
 argument is ignored by the script.
 
+``` stitched
+--------------
+script name  :  .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.cbx
+nr of args   :  3
+all args     :  two words .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.png
+1st arg      :  two
+2nd arg      :  words
+last arg     :  .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.png
+alt last arg :  .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.png
+--------------
+```
+
 ```` stitched
-``` {#arg .stitch inc="cbx:fcb out" arg="two words"}
+``` {#arg .stitch arg="two words"}
 #!/usr/bin/env bash
 echo "--------------"
 echo "script name  :  ${0}"
@@ -500,18 +569,6 @@ echo "--------------"
 ```
 ````
 
-``` stitched
---------------
-script name  :  .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.cbx
-nr of args   :  3
-all args     :  two words .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.png
-1st arg      :  two
-2nd arg      :  words
-last arg     :  .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.png
-alt last arg :  .stitch/readme/defaults/arg-01c80997b441d7dcfa2cd1714f667a5668335ce4.png
---------------
-```
-
 ### `cid`
 
 *cid* is a unique, codeblock identifier, used in file templates.
@@ -521,17 +578,17 @@ It is set to either:
 - cb.attr.identifier, or
 - cb\<nth\>, where it’s the nth codeblock seen by stitch
 
-When generating an element `id` to assign to included elements,
-`id=cid-nth-what` is used, where `nth` is the nth directive of the
-`inc`-option being inserted and the `what` is the part being included
-(one of `cbx`, `out`, `err` or `art`).
+Each time an artifact is included as per the codeblock’s [`inc`](#inc),
+an `id` is generated and assigned to the element to be inserted (if
+possible). That id consists of the codeblock’s identifier
+([`cid`](#cid)), a counter of the nth artifact being included and the
+kind of artifact.
 
-So `csv-3-err` is the id for the element inserted for a codeblock
-with:  
+An example of such an element id is: `csv-3-err` where
 
-- identifier `csv`, and  
-- where the 3rd directive in its `inc` option includes an artifact and
-  where  
+- the codeblock identifier is `csv`,
+- it’s the third [`inc`](#inc)-directive that causes the include, and
+  where
 - `err` is the artificat to be included
 
 ### `cls`
@@ -544,41 +601,54 @@ Valid values:
 [true,false,"true","false","yes","no"]
 ```
 
-When used as a codeblock attribute `{.. cls=true ..}` then the codeblock
-will be processed by stitch if stitch has a section for one of the cb’s
-classes.
+Normally, codeblocks are marked by:
 
-When used as part of a stitch named section in the document’s meta data,
-all codeblocks that have that class will be processed by stitch.
+- setting an attribute like `stitch=name`, or
+- adding `.stitch` as a class to a codeblock.
 
-The main purpose is to allow for processing of markdown documents that
-are pulled in by a codeblock and which are not necessarily
-‘stitch-aware’.
+Hence, converting an externally acquired markdown document would require
+touching all relevant codeblocks in order for them to get processed. The
+`cls` option alleviates that need by allowing stitch to select
+codeblock’s based on (one of) its classes.
+
+When used as a codeblock attribute `{.. cls=true ..}`, stitch will match
+any of the codeblock’s classes to named stitch sections in the doc’s
+meta data. The first match is then used to process the codeblock. When
+no class matches, the codeblock is ignored. This will happen for this
+codeblock specifically.
+
+To enable the same for all codeblocks that have a certain class, set the
+`cls=true` in the corresponding stitch name’d section in the doc’s meta
+data.
+
+So the main purpose is to allow for processing of markdown documents
+that are produced externally and pulled in by a codeblock and that are
+not necessarily ‘stitch-aware’.
 
 For example, suppose your main document’s meta data looks something
 like:
 
      ---
      author: abc
-     stitch:
-       gnuplot:
+     stitch:                     # the stitch meta data section
+       gnuplot:                  # a named stitch section
          dir: '.stitch/gnuplot'
          .. : more options
-         cls: true
-       other:
+         cls: true               # -> select codeblocks with class .gnuplot
+       other:                    # a named stitch section
          dir: ..
      ...
 
-Then all codeblocks with a `.gnuplot` class will be processed according
-to the settings of `gnuplot` in the meta data of the document. That
-means less noise in the attributes of gnuplot codeblocks.
-
 If a codeblock in the main document pulls in another markdown document,
 which is to be filtered by stitch as well (see [Nested
-doc](#nested-doc)), stitch add its own configuration to the
-subdocument’s meta data before calling itself. That way all
-`{#id .gnuplot ..}` codeblocks will also be processed without touching
-the subdocument itself.
+doc](#nested-doc)), stitch adds its own configuration to the
+subdocument’s meta data before calling itself (or another filter) with
+that document. That way all `{#id .gnuplot ..}` codeblocks will also be
+processed without touching the subdocument itself.
+
+This feature can also be used when writing a document to further reduce
+the noise in the attributes of codeblocks and allows for consistent
+processing of said codeblocks.
 
 ### `dir`
 
@@ -590,19 +660,19 @@ default in one or more of:
 
 - the codeblock attributes
 - a named stitch section in the doc’s meta data
-- a stitch section named `defaults`
+- a stitch section named `defaults` in the doc’s meta data
 
-Setting `dir` in a codeblock’s attributes is then specific for that
-codeblock. Mainly useful when debugging a particular defiant codeblock
+Setting `dir` in a codeblock’s attributes is specific for that
+codeblock. Mainly useful when debugging a particular defiant codeblock,
 since it makes the artifact files easier to find/view.
 
-When set on in a stitch section in the meta data, it allows to store
-artifact files per type of tool used. Useful if the document being
-processed uses multiple tools for various codeblocks.
+When set in a named stitch section in the document’s meta data, it
+allows to store artifact files per type of tool used. Useful if the
+document being processed uses multiple tools for various codeblocks.
 
-If just want to collect all artifacts in the same directory, just not in
-`.stitch`, set dir as desired in the meta data stitch section named
-`defaults`.
+For dumping all artifacts in the same directory, just not in `.stitch`,
+set dir as desired in the `defaults`-section of stitch in the doc’s meta
+data.
 
 ### `exe`
 
@@ -614,19 +684,34 @@ Valid values:
 [true,false,"true","false","yes","no","maybe"]
 ```
 
-Stitch calculates a sha-hash using all option values (sorted by key),
-excluding the `exe`’s value plus the codeblock contents and with all
-spaces removed. That fingerprint is then used (`#sha`) in filenames and
-allows for unique names as well as old/new file detection. Files that
-match the path of the current codeblock’s new files, except for the
-`-#sha.ext` part, are considered old and candidates for removal (see
-**old**).
+If *exe* is either `yes`, `true` or true, the codeblock is always run.
+Values like `no`, `false` or false means it won’t be run.
 
-So if `exe=maybe` and files exists for the newly calculated fingerprint,
-the codeblock doesn’t run again and previous results will be used
-instead.
+When the value is `maybe` (the default), the codeblock is only executed
+when something changed and new or different results are expected. To
+detect changes, stitch uses a fingerprint of the codeblock.
 
-Swapping `exe` to a different value won’t affect the sha-fingerprint.
+A codeblock’s fingerprint is calculated using:
+
+- almost all option values (sorted by key), and
+- the codeblock’s contents
+
+All values are combined to a single string with all whitespace removed.
+The fingerprint is then the sha1-hash of that string.
+
+Options that do not influence any actual results are omitted (like `exe`
+itself or `log` etc.). Sorting and whitespace removal means consistent
+fingerprints and makes it useful to detect changes in the codeblock
+and/or its options.
+
+However, sometimes a codeblock simply serves to download some
+periodically updated file from somewhere. Since nothing changed in the
+codeblock itself, a downloaded file seems up-to-date. Setting `exe=yes`
+will ensure the download is performed when converting the document.
+
+Set `exe=no` to avoid downloading each time the document is converted or
+to avoid heavy computations caused by a codeblock while working on other
+parts of the document.
 
 ### `fmt`
 
@@ -1111,8 +1196,9 @@ filter after re-reading it as markdown. In this case, the filter is
 stitch itself.
 
 ````` lua
-```` {#nested .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="2"}
+```` {#nested .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls="yes" hdr="2"}
 #! /usr/bin/env lua
+
 print [[---
 author: nested
 stitch:
@@ -1128,7 +1214,7 @@ This could be some report created by a command line tool, producing
 a markdown report on some topic.  Here, it's just the text as printed
 by lua.  Any (nested) codeblocks can also be processed by stitch.
 
-```{.stitch inc="cbx!csv" log=debug exe=no}
+```{#nd-csv .stitch inc="cbx!csv" log=debug exe=no}
 day,count
 mon,1
 tue,2
@@ -1136,17 +1222,37 @@ tue,2
 
 ## The weather today
 
-```{.stitch inc="out"}
+```{#nd-temps .stitch inc="out"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
+
+## Gnuplot again
+
+
+```{#nd-gnu .gnuplot}
+set terminal png
+set dummy u,v
+set key bmargin center horizontal Right noreverse enhanced autotitles nobox
+set parametric
+set view 50, 30, 1, 1
+set isosamples 50, 20
+set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
+set ticslevel 0
+set title "Interlocking Tori"
+set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
+set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
+splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
+1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
+```
+
 ]]
 ````
 `````
 
-### Nested report
+# Nested report
 
 This could be some report created by a command line tool, producing a
 markdown report on some topic. Here, it’s just the text as printed by
@@ -1157,101 +1263,79 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 | mon | 1     |
 | tue | 2     |
 
-#### The weather today
+## The weather today
 
 ``` stitched
                   Temperature (˚C) Today
          ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■ 6.6                    
-   01:00 ┤■■■■■■■■■■■■■■■■ 5.9                      
-   02:00 ┤■■■■■■■■■■■■■■■■ 5.6                      
-   03:00 ┤■■■■■■■■■■■■■■ 5.1                        
-   04:00 ┤■■■■■■■■■■■■■■ 5.1                        
-   05:00 ┤■■■■■■■■■■■■■■ 5.0                        
-   06:00 ┤■■■■■■■■■■■■■ 4.8                         
-   07:00 ┤■■■■■■■■■■■■■ 4.5                         
-   08:00 ┤■■■■■■■■■■■■■■ 4.9                        
-   09:00 ┤■■■■■■■■■■■■■■■■■■ 6.5                    
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■ 7.9                
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.6           
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.4     
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.0    
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.2   
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.6     
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.9       
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.3        
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.9          
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.7           
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4            
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 9.0             
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 8.6              
+   00:00 ┤■■■■■■■■■■■■■■■■■■ 8.3                    
+   01:00 ┤■■■■■■■■■■■■■■■■■ 8.0                     
+   02:00 ┤■■■■■■■■■■■■■■■■■ 7.8                     
+   03:00 ┤■■■■■■■■■■■■■■■■ 7.6                      
+   04:00 ┤■■■■■■■■■■■■■■■■ 7.5                      
+   05:00 ┤■■■■■■■■■■■■■■■■ 7.5                      
+   06:00 ┤■■■■■■■■■■■■■■■■ 7.5                      
+   07:00 ┤■■■■■■■■■■■■■■■■■■ 8.2                    
+   08:00 ┤■■■■■■■■■■■■■■■■■■■ 9.0                   
+   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■ 10.5               
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.4          
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 14.0       
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.4    
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.8   
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.9   
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.3    
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 14.3      
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 13.4        
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.7          
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.3           
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.0           
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 11.8            
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 11.7            
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 11.5            
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 11.2             
          └                                        ┘ 
 ```
 
-# poor man’s yaml
+## Gnuplot again
 
+<figure id="nd-gnu-1-art" class="gnuplot">
+<img
+src=".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.png"
+id="nd-gnu-1-art-img" />
+</figure>
+
+```` gnuplot
+``` {#nd-gnu .gnuplot}
+set terminal png
+set dummy u,v
+set key bmargin center horizontal Right noreverse enhanced autotitles nobox
+set parametric
+set view 50, 30, 1, 1
+set isosamples 50, 20
+set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
+set ticslevel 0
+set title "Interlocking Tori"
+set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
+set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
+splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
+1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
 ```
+````
 
-In doc.meta
----
-stitch:
-  cetz:
-    cmd: 'typst #arg #cbx #art'
-    arg: 'compile'
-    dir: '.stitch/readme/cetz'
-    inc: 'art cbx:fcb'
-  download:
-    exe: 'yes'
-    inc: 'cbx:fcb'
-    dir: '.stitch/readme/download'
-    out: '#dir/#arg'
-  stitch:
-    log: 'debug'
-    header: '0'
-  gnuplot:
-    cmd: 'gnuplot #cbx 1>#art 2>#err'
-    dir: '.stitch/readme/gnuplot'
-    inc: 'art:fig cbx:fcb'
-  doc:
-    cmd: '#cbx 1>#out'
-    inc: 'out'
-    cls: 'true'
-    dir: '.stitch/readme/doc'
-  chunk:
-    cmd: ''
-    dir: '.stitch/readme/chunk'
-    inc: 'out'
-    lua: 'chunk'
-  diagon:
-    cmd: 'diagon #arg <#cbx 1>#out'
-    dir: '.stitch/readme/diagon'
-  youplot:
-    cmd: '#cbx 1>#out'
-    dir: '.stitch/readme/youplot'
-  defaults:
-    dir: '.stitch/readme/defaults'
-    inc: 'out cbx:fcb'
-...
+## poor man’s yaml
 
-codeblock opts:
-{
-  cmd: ''
-  dir: '.stitch/readme/chunk'
-  art: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.png'
-  fmt: 'png'
-  cbx: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.cbx'
-  inc: 'out'
-  cid: 'opt-xxx'
-  old: 'purge'
-  arg: ''
-  out: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.out'
-  lua: 'chunk'
-  log: 'info'
-  err: '.stitch/readme/chunk/opt-xxx-78f2355729bca5aeb1d5609a5ab068cd5c526ff0.err'
-  cls: 'no'
-  exe: 'yes'
-}
-[[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']
-```
+\`\`\`{#nd-yaml out:fcb stitch=chunk exe=yes lua=chunk log=debug} local
+fh = io.open(Stitch.opts.out, ‘w’)
+
+fh:write(“”) fh:write(‘doc.meta—:’) local yaml = Stitch.yaml(Stitch.ctx,
+2) fh:write(table.concat(yaml, “”)) – defaults was “protomoted” to
+metatable of ctx yaml = Stitch.yaml(Stitch.ctx.defaults, 4) if \#yaml \>
+0 then fh:write(“defaults:”) fh:write(table.concat(yaml, “”)) end
+
+fh:write(“…”) fh:write(“codeblock opts:”) local opts = {} – augment cb
+attr opts to full list of opts for k, \_ in pairs(Stitch.hardcoded) do
+opts\[k\] = Stitch.opts\[k\] end yaml = Stitch.yaml(opts, 2)
+fh:write(“{”, table.concat(yaml, “”), “}”)
+
+yaml = Stitch.yaml(Stitch.optvalues.log) fh:write(“\[”,
+table.concat(yaml, ‘,’), ”\]”) fh:close() \`\`\`
