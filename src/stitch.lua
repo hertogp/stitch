@@ -49,7 +49,7 @@ function I.log(lvl, action, msg, ...)
   end
 end
 
-I.log('note', 'stitch', 'module is being loaded/initialized')
+I.log('note', 'stitch', 'loading module ..')
 
 -- return a semi-deep copy of table t
 -- (used to provide a copy of I to external filters)
@@ -65,6 +65,28 @@ function I.dcopy(t, seen)
   end
   setmetatable(tt, I.dcopy(getmetatable(t), seen))
   return tt
+end
+
+-- recursively merge s onto d without overwriting anything
+--- @param d table? destination table
+--- @param s table source table
+--- @return table d the merged table
+function I.merge(d, s)
+  -- TODO: cfg = I.merge(I.xlate(dta.meta), {stitch=I.ctx}) fails?
+  if not d then return I.dcopy(s) end
+  assert('table' == type(d), "expected d to be a table, got '%s'", type(d))
+  assert('table' == type(s), "expected s to be a table, got '%s'", type(s))
+
+  for k, v in pairs(s) do
+    if not d[k] then
+      d[k] = I.dcopy(v)
+    elseif 'table' == type(d[k]) and 'table' == type(v) then
+      d[k] = I.merge(d[k], v)
+      if not getmetatable(d[k]) then setmetatable(d[k], I.dcopy(getmetatable(v))) end
+    end
+  end
+  if not getmetatable(d) then setmetatable(d, I.dcopy(getmetatable(s))) end
+  return d
 end
 
 -- poor man's yaml representation of a table as a list of lines
@@ -555,30 +577,28 @@ function I.xform(dta, filter)
     return dta, count
   end
 
-  fun = fun or 'Pandoc' -- in case `filter` was a module itself
-  if mod[fun] then
-    I.log('debug', 'xform', '@%s, found %s.%s', filter, name, fun)
-  else
-    I.log('warn', 'xform', '@%s, found mod %s, presumably a list of filters', filter, name)
-  end
-
-  -- STATE SAVE: a *copy* of current state before calling any filter(s)
+  -- save state before calling any filters
   tail[#tail + 1] = { opts = I.dcopy(I.opts), ctx = I.dcopy(I.ctx), meta = I.xlate(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
-    -- PASS IN stitch cfg on RECURSION TODO: needs to be a merge, no overwriting!
-    -- TODO: should merge stitch options into dta.meta.stitch (not stitched!)
-    -- TODO: only need to merge(dta.meta.stich, I.ctx) since any I.opts will be
-    -- REVIEW:
-    -- * we're not using dta.meta.stitched ourselves, so why bother?
-    -- * we are using tail to peak at caller's incarnation to borrow options
-    -- recalculated for each codeblock when we recurse onto ourselves.
-    dta.meta.stitched = { opts = I.opts, ctx = I.ctx } -- pass in, current cb opts & context
-    I.opts = {} -- reset in case we recurse later on
+    -- merge pass along stitch's config when filtering subdoc's
+
+    local dump = require 'dump'
+    print('dta.meta', pd.utils.stringify(dta.meta))
+    local cfg = I.merge(I.xlate(dta.meta), { stitch = I.ctx })
+    local cb_transfer = { hdr = I.opts.hdr, log = I.opts.log }
+    cfg.stitch.defaults = I.merge(cfg.stitch.defaults, cb_transfer)
+    cfg.stitch = I.merge(cfg.stitch, { hdr = I.opts.hdr }) -- same for shifting headers
+    print(cfg.stitch.youplot.log)
+
+    dta.meta = pd.MetaMap(cfg)
+    print('new dta.meta', dump(dta.meta))
+
+    I.opts = {} -- reset in case a filter recurses onto stitch
   end
 
-  -- ensure filters is a *list* of filters (as expected by pandoc version <3.5)
-  -- see `:Open https://pandoc.org/lua-filters.html#lua-filter-structure`
+  fun = fun or 'Pandoc' -- no exported function, so default to `Pandoc`
   local filters = mod[fun] and { mod } or mod
+  I.log('debug', 'xform', '@%s yields %d filter(s)', filter, #filters)
   for n, f in ipairs(filters) do
     if f[fun] then
       local ok, tmp = pcall(f[fun], dta)
@@ -595,7 +615,7 @@ function I.xform(dta, filter)
     end
   end
 
-  -- STATE RESTORE: after filter(s) are done
+  -- restore state after filters are done
   I.opts = tail[#tail].opts
   I.ctx = tail[#tail].ctx
   tail[#tail] = nil
@@ -809,16 +829,16 @@ local Stitch = {
     end
 
     I.mkctx(doc)
-    local cbc = I.cbc
+    local cbc = I.cbc -- keep count (in case we're recursing
     local hdc = I.hdc
 
     local s = I.ctx.stitch -- shorthand
     if #tail > 0 then
       -- adopt some settings from caller's cb / doc
       -- TODO: RECURSE OR NOT we should be looking at doc.meta.stitch.stitch.hdr (!)
-      -- codeblock that's pulling in another doc should have attr hdr=2 (e.g.)
-      -- since that's the only one who knows by how much the new doc's headers
-      -- need to shift.
+      -- codeblock that's pulling in another doc is the only one who knows:
+      -- * whether headers should be shifted for the subdoc
+      -- * which classes can/should be matched up against stitch's meta sections
       s.header = s.header or tail[#tail].opts.hdr
       s.log = s.log or tail[#tail].opts.log
     end

@@ -303,7 +303,7 @@ Installation is straightforward:
 The filter will process a codeblock if it has a:
   * `.stitch` class,
   * `stitch=name` attribute, where `<name>` refers to a `meta.stitch`-section
-  * class which has a `meta.stitch`-section with its [`cls`]-option set to yes/true
+  * class that matches named `meta.stitch`-section that has [`cls`] set to yes
 
 Processing a codeblock follows these steps:
 
@@ -931,8 +931,9 @@ exe, maybe, execute?
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
 
-````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" hdr="2"}
+````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls=yes hdr=2}
 #! /usr/bin/env lua
+
 print [[---
 author: nested
 stitch:
@@ -948,7 +949,7 @@ This could be some report created by a command line tool, producing
 a markdown report on some topic.  Here, it's just the text as printed
 by lua.  Any (nested) codeblocks can also be processed by stitch.
 
-```{.stitch inc="cbx!csv" log=debug exe=no}
+```{#nd-csv .stitch inc="cbx!csv" log=debug exe=no}
 day,count
 mon,1
 tue,2
@@ -956,21 +957,36 @@ tue,2
 
 ## The weather today
 
-```{.stitch inc="out"}
+```{#nd-temps .stitch inc="out"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
-]]
 
-````
+## Gnuplot again
 
-\newpage
 
-# poor man's yaml
+```{#nd-gnu .gnuplot}
+set terminal png
+set dummy u,v
+set key bmargin center horizontal Right noreverse enhanced autotitles nobox
+set parametric
+set view 50, 30, 1, 1
+set isosamples 50, 20
+set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
+set ticslevel 0
+set title "Interlocking Tori"
+set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
+set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
+splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
+1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
+```
 
-```{#opt-xxx stitch=chunk exe=yes}
+
+## poor man's yaml
+
+```{#nd-yaml out:fcb stitch=chunk exe=yes}
 local fh = io.open(Stitch.opts.out, 'w')
 
 fh:write("\nIn doc.meta\n---\nstitch:\n")
@@ -996,3 +1012,7 @@ yaml = Stitch.yaml(Stitch.optvalues.log)
 fh:write("[", table.concat(yaml, ', '), "]")
 fh:close()
 ```
+
+]]
+
+````

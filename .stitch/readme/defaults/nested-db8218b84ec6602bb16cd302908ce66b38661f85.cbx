@@ -1,0 +1,82 @@
+#! /usr/bin/env lua
+
+print [[---
+author: nested
+stitch:
+  defaults:
+    dir: ".stitch/readme/nested"
+...
+
+\newpage
+
+# Nested report
+
+This could be some report created by a command line tool, producing
+a markdown report on some topic.  Here, it's just the text as printed
+by lua.  Any (nested) codeblocks can also be processed by stitch.
+
+```{#nd-csv .stitch inc="cbx!csv" log=debug exe=no}
+day,count
+mon,1
+tue,2
+```
+
+## The weather today
+
+```{#nd-temps .stitch inc="out"}
+curl -sL 'https://api.open-meteo.com/v1/forecast?'\
+'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+| head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
+|  uplot bar -d, -t "Temperature (˚C) Today" -o
+```
+
+## Gnuplot again
+
+
+```{#nd-gnu .gnuplot}
+set terminal png
+set dummy u,v
+set key bmargin center horizontal Right noreverse enhanced autotitles nobox
+set parametric
+set view 50, 30, 1, 1
+set isosamples 50, 20
+set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
+set ticslevel 0
+set title "Interlocking Tori"
+set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
+set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
+splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
+1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
+```
+
+
+## poor man's yaml
+
+```{#opt-xxx out:fcb stitch=chunk exe=yes}
+local fh = io.open(Stitch.opts.out, 'w')
+
+fh:write("\nIn doc.meta\n---\nstitch:\n")
+local yaml = Stitch.yaml(Stitch.ctx, 2)
+fh:write(table.concat(yaml, "\n"))
+-- defaults was "protomoted" to metatable of ctx
+yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
+if #yaml > 0 then
+  fh:write("\n  defaults:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
+
+fh:write("\n...\n\n")
+fh:write("codeblock opts:\n")
+local opts = {} -- augment cb attr opts to full list of opts
+for k, _ in pairs(Stitch.hardcoded) do
+  opts[k] = Stitch.opts[k]
+end
+yaml = Stitch.yaml(opts, 2)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
+yaml = Stitch.yaml(Stitch.optvalues.log)
+fh:write("[", table.concat(yaml, ', '), "]")
+fh:close()
+```
+
+]]
