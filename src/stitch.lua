@@ -25,16 +25,8 @@ I.cbc = 0 -- codeblock counter, across recursive calls
 I.hdc = 0 -- header counter, dito
 I.ctx = {} -- this doc's context (= meta.stitch)
 
---[[ logging ]]
-
-local log_level = {
-  silent = 0,
-  error = 1,
-  warn = 2,
-  note = 3,
-  info = 4,
-  debug = 5,
-}
+--[[-- logging --]]
+local log_level = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
 
 -- print a formatted log to stderr (if cb's log level permits it)
 -- uses `I.opts.cid` or 'stitch' as log entry originator
@@ -48,8 +40,6 @@ function I.log(lvl, action, msg, ...)
     io.stderr:flush()
   end
 end
-
-I.log('note', 'stitch', 'loading module ..')
 
 --[[-- tables --]]
 
@@ -699,8 +689,9 @@ end
 ---@param doc table the doc's ast
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
 function I.mkctx(doc)
-  -- pickup named cfg sections in meta.stitch, resolution order:
-  -- I.opts (cb) -> stitch[section] -> defaults -> hardcoded
+  -- create context from doc.meta.stitch for resolving opts
+  -- cb -> context[section] -> defaults -> hardcoded
+  -- note: ctx takes in all cb.attr's, not just those known to stitch
   I.ctx = I.xlate(doc.meta.stitch or {})
 
   -- defaults -> hardcoded
