@@ -74,7 +74,7 @@ function I.merge(d, s, forced)
     if not d[k] then
       d[k] = I.dcopy(v)
     elseif 'table' == type(d[k]) and 'table' == type(v) then
-      d[k] = I.merge(d[k], v)
+      d[k] = I.merge(d[k], v, forced)
       if not getmetatable(d[k]) then setmetatable(d[k], I.dcopy(getmetatable(v))) end
     elseif forced then
       d[k] = I.dcopy(v)
