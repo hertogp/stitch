@@ -10,6 +10,14 @@
 -- [?] REVIEW: option lua=chunk just runs dofile(cbx)()() ?
 -- [ ] add I.dump(table) -> list of strings, shallow dump of table
 
+-- tmp
+local dump = require 'dump'
+print('debug.getinfo(1)', dump(debug.getinfo(1)))
+print('debug.getinfo(2)', dump(debug.getinfo(2)))
+print('debug.getinfo(3)', dump(debug.getinfo(3)))
+
+-- /tmp
+
 -- initiatlize only once (load vs require)
 if package.loaded.stitch then return package.loaded.stitch end
 
@@ -23,7 +31,7 @@ _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 local MAXTAIL = 4 -- max recursion depth
 local tail = {} -- stack of saved states during recursion
 local I = {} -- I[mplementation]; for testing
-I.opts = { log = 'info' } --> for initial logging, is reset for each cb
+I.opts = {} -- { log = 'info' } --> for initial logging, is reset for each cb
 I.cbc = 0 -- codeblock counter, across recursive calls
 I.hdc = 0 -- header counter, dito
 I.ctx = {} -- this doc's context (= meta.stitch)
@@ -281,13 +289,12 @@ function I.fingerprint(cb)
   return pd.utils.sha1(table.concat(vals, ''))
 end
 
--- create conditions for codeblock execution and set I.opts.exe
+-- save cb.text to its `cbx`-path, mark executable & expand cmd for the cli
 ---@param cb table pandoc codeblock
----@return boolean ok success indicator
-function I.mkcmd(cb)
+---@return boolean ok false on any failure(s), true otherwise
+function I.command(cb)
   -- create dirs for cb's possible output files
   for _, fpath in ipairs({ 'cbx', 'out', 'err', 'art' }) do
-    -- `normalize` (v2.12) makes dir platform independent
     local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
     if not os.execute('mkdir -p ' .. dir) then
       I.log('error', 'command', 'permission denied when creating ' .. dir)
@@ -437,8 +444,8 @@ end
 
 --[[-- AST --]]
 
-I.mk_elm = {}
-setmetatable(I.mk_elm, {
+I.element = {}
+setmetatable(I.element, {
   __index = function(t, how)
     -- local keys = {}
     -- for k, _ in pairs(t) do
@@ -454,7 +461,7 @@ setmetatable(I.mk_elm, {
 })
 
 -- functions result should be either type Block or type Blocks
-function I.mk_elm.fcb(fcb, cb, doc, what)
+function I.element.fcb(fcb, cb, doc, what)
   -- pandoc.CodeBlock type is Block
 
   if 'Pandoc' == pd.utils.type(doc) then
@@ -475,7 +482,7 @@ function I.mk_elm.fcb(fcb, cb, doc, what)
   return fcb
 end
 
-function I.mk_elm.img(fcb, _, _, what)
+function I.element.img(fcb, _, _, what)
   -- wrap pandoc.Image (type Inline) in a pandoc.Para (type Block)
   -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
   --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
@@ -485,14 +492,14 @@ function I.mk_elm.img(fcb, _, _, what)
   return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
 end
 
-function I.mk_elm.fig(fcb, _, _, what)
+function I.element.fig(fcb, _, _, what)
   local img = pd.Image({}, I.opts[what], '', {})
   img.attr.identifier = fcb.attr.identifier .. '-img'
   I.log('info', 'include', "'#%s' for '%s:fig' as pandoc.Figure", fcb.attr.identifier, what)
   return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
 end
 
-function I.mk_elm.any(fcb, cb, doc, what)
+function I.element.any(fcb, cb, doc, what)
   -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
   local cid = fcb.attr.identifier
   I.log('debug', 'include', "'%s' for '%s' -> no type specified (using default)", cid, what)
@@ -503,13 +510,13 @@ function I.mk_elm.any(fcb, cb, doc, what)
     I.log('info', 'include', "'%s' for '%s' ~> merging %d pandoc.Block's", cid, what, #doc.blocks)
     return doc.blocks
   elseif 'art' == what then
-    return I.mk_elm.fig(fcb, cb, doc, what)
+    return I.element.fig(fcb, cb, doc, what)
   elseif 'cbx' == what then
     fcb.text = doc
     I.log('info', 'include', "'%s' for id %s as plain pandoc.CodeBlock", cid, what)
     return fcb
   else
-    return I.mk_elm.fcb(fcb, cb, doc, what) -- for cbx, out or err
+    return I.element.fcb(fcb, cb, doc, what) -- for cbx, out or err
   end
 end
 
@@ -634,7 +641,7 @@ function I.result(cb)
 
       local fcb = I.clone(cb) -- need fresh fcb per inclusion(!)
       fcb.attr.identifier = F('%s-%d-%s', I.opts.cid, idx, what)
-      local new = I.mk_elm[how](fcb, cb, doc, what) -- returns either Block or Blocks
+      local new = I.element[how](fcb, cb, doc, what) -- returns either Block or Blocks
 
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
       for _, block in ipairs(new) do
@@ -660,7 +667,7 @@ end
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@param section string name of section that made cb eligible
 ---@return boolean ok success indicator
-function I.mk_options(cb, section)
+function I.options(cb, section)
   -- resolution: cb->stitch.section->stitch.defaults->hardcoded
   I.opts = I.mta_tolua(cb.attributes)
   I.opts.cid = #cb.identifier > 0 and cb.identifier or F('cb%02d', I.cbc)
@@ -691,10 +698,10 @@ function I.mk_options(cb, section)
   return ok
 end
 
---- extract `doc.meta.stitch` config from a doc's meta block (if any)
+--- create I.ctx using `doc.meta.stitch`, always creates I.ctx.stitch as well
 ---@param doc table the doc's ast
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
-function I.mk_context(doc)
+function I.context(doc)
   -- create context from doc.meta.stitch for resolving opts
   -- cb -> context[section] -> defaults -> hardcoded
   -- note: ctx takes in all cb.attr's, not just those known to stitch
@@ -703,7 +710,7 @@ function I.mk_context(doc)
   -- defaults -> hardcoded
   local defaults = I.ctx.defaults or {}
   setmetatable(defaults, { __index = I.hardcoded })
-  I.ctx.defaults = nil -- will be metatable, not a section
+  I.ctx.defaults = nil -- defaults will be metatable, not a section
   I.ctx.stitch = I.ctx.stitch or {}
 
   -- sections -> defaults -> hardcoded
@@ -711,11 +718,12 @@ function I.mk_context(doc)
     setmetatable(options, { __index = defaults })
   end
 
-  -- missing sections (I.ctx keys) also fallback to defaults -> hardcoded
+  -- missing stitch sections also fallback to defaults -> hardcoded
   setmetatable(I.ctx, {
     __index = function() return defaults end,
   })
-  setmetatable(I.ctx.stitch, nil) -- no metable for stitch section
+  setmetatable(I.ctx.stitch, nil) -- no metable for stitch.stitch section
+  -- REVIEW: why no mta table for stitch.stitch (aka I.ctx.stitch) ?
 
   defaults = I.check(defaults)
   for section, map in pairs(I.ctx) do
@@ -729,8 +737,10 @@ end
 
 -- return meta section name that makes this cb eligible or nil
 function I.eligible(cb)
-  -- more to less specific: attr.stitch=name, cls=yes, .stitch (defaults)
-  -- at this point, no I.opts available & cb may not have an identifier
+  -- a cb is 'stitchable' iff it has:
+  -- 1. a stitch=section attribute (section need not exist)
+  -- 2. a class that matches a section with cls=yes
+  -- 3. a .stitch class (uses defaults)
   if cb.attributes.stitch then return cb.attributes.stitch end
   for _, class in ipairs(cb.classes) do
     local cls = tostring(I.ctx[class].cls)
@@ -751,7 +761,7 @@ function I.CodeBlock(cb)
   local section = I.eligible(cb)
   if not section then return nil end
 
-  if I.mk_options(cb, section) and I.mkcmd(cb) then
+  if I.options(cb, section) and I.command(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
     elseif I.deja_vu() and 'maybe' == I.opts.exe then
@@ -814,7 +824,7 @@ local Stitch = {
       error('maximum recursion level exceeded') -- simply skips doc
     end
 
-    I.mk_context(doc)
+    I.context(doc)
     local cbc, hdc = I.cbc, I.hdc -- keep count (in case we're recursing)
     I.ctx.stitch.hdr = math.floor(tonumber(I.ctx.stitch.hdr) or 0)
     local header = 0 ~= I.ctx.stitch.hdr and I.Header or nil
@@ -830,5 +840,9 @@ local Stitch = {
 -- * just returning Stitch requires pandoc version >=3.5
 -- * pandoc loads filters as a chunk, we require ourselves (potentially)
 --   so claim a spot to avoid initializing twice
+
 package.loaded.stitch = { Stitch }
 return package.loaded.stitch
+
+-- package.loaded.stitch = I
+-- return { Stitch }

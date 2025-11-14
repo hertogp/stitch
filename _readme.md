@@ -301,33 +301,25 @@ Installation is straightforward:
 `% pandoc --lua-filter stitch.lua doc.md ..`
 
 The filter will process a codeblock if it has a:
-  * `.stitch` class,
-  * `stitch=name` attribute, where `<name>` refers to a `meta.stitch`-section
-  * class that matches named `meta.stitch`-section that has [`cls`] set to yes
+  * `stitch=name` attribute, linking it to a `meta.stitch`-section
+  * class that matches a `meta.stitch`-section which has [`cls`] set to yes
+  * `.stitch` class (which uses `meta.stitch.defaults`)
 
 Processing a codeblock follows these steps:
 
   1. resolve all options and expand them (once)
   2. save `cb.text` to [`cbx`]-file & mark it as executable (always)
   3. check if anything has changed [`cid`] (1+ of the other artifacts exist)
-  4. conditionally run [`cmd`] to produce new artifacts:
+  4. conditionally run [`cmd`] or [`lua`] load [`cbx`]-file & run, producing artifacts
      a. an [`art`]-file (usually an image file, depends on [`cmd`]),
      b. an [`out`]-file (if [`cmd`] redirects `stdout` here)
      c. an [`err`]-file (if [`cmd`] redirects `stderr` here)
   5. check for [`old`] files and conditionally remove them
   6. parse the [`inc`]-option and include artifacts in order (if any)
 
-As a special case, the [`lua`]-option will override step 4 and loads the
-[`cbx`]-file as a chunk and executes it.  Regardless, the last step will try to
-include 0 or more of the resulting files.
-
-Another special case is the [`hdr`]-option which specifies a delta to apply
-to headers encountered in the document.  Mainly meant for incorporating externally
-acquired documents.
-
-In the face of errors, stitch just complains and carries on if possible usually
-skipping the offending codeblock.  If things don't pan out,
-check the logs and perhaps set the codeblock's [`log`]-option to `debug`.
+In the face of errors, stitch just complains and carries on, if possible,
+usually skipping the offending codeblock or artifact.  If things don't pan
+out, check the logs and perhaps set the codeblock's [`log`]-option to `debug`.
 
 
 ## Features
