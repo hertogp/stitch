@@ -12,8 +12,10 @@
 
 -- initiatlize only once (load vs require)
 if package.loaded.stitch then return package.loaded.stitch end
+
 local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
 local F = string.format
+
 _ENV.PANDOC_VERSION:must_be_at_least('3.0')
 
 --[[-- state --]]
@@ -29,15 +31,13 @@ I.ctx = {} -- this doc's context (= meta.stitch)
 --[[-- logging --]]
 local log_level = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
 
--- print a formatted log to stderr (if cb's log level permits it)
--- uses `I.opts.cid` or 'stitch' as log entry originator
-function I.log(lvl, action, msg, ...)
-  -- log format: [stitch:recursLevel logLevel] owner :action | msg
+function I.log(tier, action, msg, ...)
+  -- format: [stitch:depth log_level] caller : action| msg
   local level = log_level[I.opts.log or I.ctx.stitch.log] or 0
-  if level >= log_level[lvl] then
-    local owner = I.opts.cid or 'stitch'
-    local fmt = F('[stitch:%d %6s] %-7s:%7s| %s\n', #tail, lvl, owner, action, msg)
-    io.stderr:write(F(fmt, ...))
+  if level >= log_level[tier] then
+    local caller = I.opts.cid or 'stitch'
+    local fmt = F('[stitch:%d %6s] %-7s:%7s| %s', #tail, tier, caller, action, msg)
+    io.stderr:write(F(fmt, ...), '\n')
     io.stderr:flush()
   end
 end
@@ -60,12 +60,23 @@ function I.tbl_copy(t, seen)
   return tt
 end
 
+-- return a table's keys in sorted order
+--- @param t table with k,v-pairs
+--- @return table keys the sorted list of keys
+function I.tbl_keys(t)
+  local keys = {}
+  for k, _ in pairs(t) do
+    keys[#keys + 1] = k
+  end
+  table.sort(keys)
+  return keys
+end
 -- recursively merge s onto d without overwriting anything, unless `forced`
 --- @param d table? destination table
 --- @param s table source table
 --- @return table m the (new) merged table m
 function I.tbl_merge(d, s, forced)
-  -- TODO: cfg = I.tbl_merge(I.xlate(dta.meta), {stitch=I.ctx}) fails?
+  -- TODO: cfg = I.tbl_merge(I.mta_tolua(dta.meta), {stitch=I.ctx}) fails?
   if not d then return I.tbl_copy(s) end
   assert('table' == type(d), 'expected d to be a table, got ' .. type(d))
   assert('table' == type(s), 'expected s to be a table, got ' .. type(s))
@@ -204,10 +215,10 @@ function I.vouch(name, value)
   return false, err
 end
 
--- translate an AST to a lua table (wildy incomplete, covers just doc.meta)
+-- translate an AST to a lua table (wildly incomplete, covers just doc.meta)
 ---@param elm any either `doc.meta`, a `CodeBlock` or lua table
 ---@return any regular table with lua key,values-pairs
-function I.xlate(elm)
+function I.mta_tolua(elm)
   -- note: xlate(doc.blocks) -> list of cb tables.
   -- `:Open https://pandoc.org/MANUAL.html#extension-fenced_code_attributes`
   -- `:Open https://pandoc.org/MANUAL.html#extension-fenced_code_blocks`
@@ -215,13 +226,13 @@ function I.xlate(elm)
   if 'Meta' == ptype or 'table' == ptype or 'AttributeList' == ptype then
     local t = {}
     for k, v in pairs(elm) do
-      t[k] = I.xlate(v)
+      t[k] = I.mta_tolua(v)
     end
     return t
   elseif 'List' == ptype or 'Blocks' == ptype then
     local l = {}
     for _, v in ipairs(elm) do
-      l[#l + 1] = I.xlate(v)
+      l[#l + 1] = I.mta_tolua(v)
     end
     return l
   elseif 'Inlines' == ptype or 'string' == ptype then
@@ -233,18 +244,18 @@ function I.xlate(elm)
   elseif 'attr' == ptype then
     local t = {
       identifier = elm.identifier,
-      classes = I.xlate(elm.classes),
+      classes = I.mta_tolua(elm.classes),
       attributes = {},
     }
     for k, v in pairs(elm.attributes) do
-      t.attributes[k] = I.xlate(v)
+      t.attributes[k] = I.mta_tolua(v)
     end
     return t
   elseif 'CodeBlock' == elm.tag then
     -- note: pd.utils.type(cb) == Block, while cb.tag == CodeBlock
     return {
       text = elm.text,
-      attr = I.xlate(elm.attr),
+      attr = I.mta_tolua(elm.attr),
     }
   else
     I.log('warn', 'xlate', "skipping unknown type '%s'? for %s", ptype, tostring(elm))
@@ -258,17 +269,12 @@ end
 ---@param cb table a pandoc codeblock
 ---@return string sha1 hash of option values and codeblock content
 function I.fingerprint(cb)
-  -- for repeatable fingerprints: keys are sorted, whitespace removed
-  local hardcoded_keys = {}
-  local skip_keys = 'exe old log' -- these don't change cb-results
-  for key in pairs(I.hardcoded) do
-    if not skip_keys:match(key) then hardcoded_keys[#hardcoded_keys + 1] = key end
-  end
-  table.sort(hardcoded_keys) -- sorts inplace
-
+  local skip = 'exe old log'
+  local keys = I.tbl_keys(I.hardcoded)
   local vals = {}
-  for _, key in ipairs(hardcoded_keys) do
-    vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub('%s', '')
+
+  for _, key in ipairs(keys) do
+    if not skip:match(key) then vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub('%s', '') end
   end
   vals[#vals + 1] = cb.text:gsub('%s', '') -- also no wspace
 
@@ -289,8 +295,6 @@ function I.mkcmd(cb)
     end
   end
 
-  -- cb.text becomes executable on disk (TODO:
-  -- if not flive(fname) then .. else I.log(reuse) end
   local fh = io.open(I.opts.cbx, 'w')
   if not fh then
     I.log('error', 'command', 'cbx could not open file: ' .. I.opts.cbx)
@@ -433,14 +437,15 @@ end
 
 --[[-- AST --]]
 
-I.mkelm = {}
-setmetatable(I.mkelm, {
+I.mk_elm = {}
+setmetatable(I.mk_elm, {
   __index = function(t, how)
-    local keys = {}
-    for k, _ in pairs(t) do
-      keys[#keys + 1] = F('%q', k)
-    end
-    table.sort(keys)
+    -- local keys = {}
+    -- for k, _ in pairs(t) do
+    --   keys[#keys + 1] = F('%q', k)
+    -- end
+    -- table.sort(keys)
+    local keys = I.tbl_keys(t)
     local valid = table.concat(keys, ', ')
     local msg = F("expected `how` to be one of {%s}, got '%s'", valid, how)
     I.log('error', 'include', msg)
@@ -449,7 +454,7 @@ setmetatable(I.mkelm, {
 })
 
 -- functions result should be either type Block or type Blocks
-function I.mkelm.fcb(fcb, cb, doc, what)
+function I.mk_elm.fcb(fcb, cb, doc, what)
   -- pandoc.CodeBlock type is Block
 
   if 'Pandoc' == pd.utils.type(doc) then
@@ -470,7 +475,7 @@ function I.mkelm.fcb(fcb, cb, doc, what)
   return fcb
 end
 
-function I.mkelm.img(fcb, _, _, what)
+function I.mk_elm.img(fcb, _, _, what)
   -- wrap pandoc.Image (type Inline) in a pandoc.Para (type Block)
   -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
   --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
@@ -480,14 +485,14 @@ function I.mkelm.img(fcb, _, _, what)
   return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
 end
 
-function I.mkelm.fig(fcb, _, _, what)
+function I.mk_elm.fig(fcb, _, _, what)
   local img = pd.Image({}, I.opts[what], '', {})
   img.attr.identifier = fcb.attr.identifier .. '-img'
   I.log('info', 'include', "'#%s' for '%s:fig' as pandoc.Figure", fcb.attr.identifier, what)
   return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
 end
 
-function I.mkelm.any(fcb, cb, doc, what)
+function I.mk_elm.any(fcb, cb, doc, what)
   -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
   local cid = fcb.attr.identifier
   I.log('debug', 'include', "'%s' for '%s' -> no type specified (using default)", cid, what)
@@ -498,20 +503,20 @@ function I.mkelm.any(fcb, cb, doc, what)
     I.log('info', 'include', "'%s' for '%s' ~> merging %d pandoc.Block's", cid, what, #doc.blocks)
     return doc.blocks
   elseif 'art' == what then
-    return I.mkelm.fig(fcb, cb, doc, what)
+    return I.mk_elm.fig(fcb, cb, doc, what)
   elseif 'cbx' == what then
     fcb.text = doc
     I.log('info', 'include', "'%s' for id %s as plain pandoc.CodeBlock", cid, what)
     return fcb
   else
-    return I.mkelm.fcb(fcb, cb, doc, what) -- for cbx, out or err
+    return I.mk_elm.fcb(fcb, cb, doc, what) -- for cbx, out or err
   end
 end
 
 -- clones `cb`, removes stitch properties, adds a 'stitched' class
 ---@param cb table a codeblock instance
 ---@return table clone a new codeblock instance
-function I.mkfcb(cb)
+function I.clone(cb)
   local clone = cb:clone()
 
   clone.classes = cb.classes:map(function(class) return class:gsub('^stitch$', 'stitched') end)
@@ -566,10 +571,10 @@ function I.filter(dta, filter)
   end
 
   -- save state before calling any filters
-  tail[#tail + 1] = { opts = I.tbl_copy(I.opts), ctx = I.tbl_copy(I.ctx), meta = I.xlate(dta.meta) }
+  tail[#tail + 1] = { opts = I.tbl_copy(I.opts), ctx = I.tbl_copy(I.ctx), meta = I.mta_tolua(dta.meta) }
   if dta and 'Pandoc' == pd.utils.type(dta) then
     -- pass along stitch's config when filtering subdoc's
-    local mta = I.tbl_merge(I.xlate(dta.meta), { stitch = I.ctx })
+    local mta = I.tbl_merge(I.mta_tolua(dta.meta), { stitch = I.ctx })
     local cb2defaults = { cls = I.opts.cls, hdr = I.opts.hdr, log = I.opts.log }
     mta.stitch.defaults = I.tbl_merge(mta.stitch.defaults, cb2defaults)
     mta.stitch.stitch = I.tbl_merge(mta.stitch.stitch, { hdr = I.opts.hdr }, true) -- same for shifting headers
@@ -627,9 +632,9 @@ function I.result(cb)
       -- either data or a pandoc doc.  Could be a table, userdata or even
       -- a function (!).  @_G.load -> would load cbx as a chunk
 
-      local fcb = I.mkfcb(cb) -- need fresh fcb per inclusion(!)
+      local fcb = I.clone(cb) -- need fresh fcb per inclusion(!)
       fcb.attr.identifier = F('%s-%d-%s', I.opts.cid, idx, what)
-      local new = I.mkelm[how](fcb, cb, doc, what) -- returns either Block or Blocks
+      local new = I.mk_elm[how](fcb, cb, doc, what) -- returns either Block or Blocks
 
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
       for _, block in ipairs(new) do
@@ -655,14 +660,14 @@ end
 ---@param cb table codeblock with `.stitch` class (or not)
 ---@param section string name of section that made cb eligible
 ---@return boolean ok success indicator
-function I.mkopt(cb, section)
+function I.mk_options(cb, section)
   -- resolution: cb->stitch.section->stitch.defaults->hardcoded
-  I.opts = I.xlate(cb.attributes)
+  I.opts = I.mta_tolua(cb.attributes)
   I.opts.cid = #cb.identifier > 0 and cb.identifier or F('cb%02d', I.cbc)
   I.opts = I.check(I.opts)
   local cfg = I.opts.stitch or section -- {.. stitch=cfg .. }, pickup cfg section name
-  local x = section == 'defaults' and '' or '> stitch.defaults '
-  I.log('note', 'option', "'%s' uses cb attr > stitch.%s %s> hardcoded.", I.opts.cid, cfg, x)
+  local x = section == 'defaults' and '' or '->defaults'
+  I.log('note', 'option', "'%s' uses cb->%s%s->hardcoded.", I.opts.cid, cfg, x)
   setmetatable(I.opts, { __index = I.ctx[cfg] })
   I.opts.sha = I.fingerprint(cb) -- derived only
 
@@ -689,11 +694,11 @@ end
 --- extract `doc.meta.stitch` config from a doc's meta block (if any)
 ---@param doc table the doc's ast
 ---@return table config doc.meta.stitch's named configs: option,value-pairs
-function I.mkctx(doc)
+function I.mk_context(doc)
   -- create context from doc.meta.stitch for resolving opts
   -- cb -> context[section] -> defaults -> hardcoded
   -- note: ctx takes in all cb.attr's, not just those known to stitch
-  I.ctx = I.xlate(doc.meta.stitch or {})
+  I.ctx = I.mta_tolua(doc.meta.stitch or {})
 
   -- defaults -> hardcoded
   local defaults = I.ctx.defaults or {}
@@ -746,7 +751,7 @@ function I.CodeBlock(cb)
   local section = I.eligible(cb)
   if not section then return nil end
 
-  if I.mkopt(cb, section) and I.mkcmd(cb) then
+  if I.mk_options(cb, section) and I.mkcmd(cb) then
     if 'no' == I.opts.exe then
       I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
     elseif I.deja_vu() and 'maybe' == I.opts.exe then
@@ -806,10 +811,10 @@ local Stitch = {
   Pandoc = function(doc)
     if #tail > MAXTAIL then
       I.log('error', 'stitch', 'recursion level %d too deep, max is %d', #tail, MAXTAIL)
-      assert(false, 'maximum recursion level exceeded') -- simply skips doc
+      error('maximum recursion level exceeded') -- simply skips doc
     end
 
-    I.mkctx(doc)
+    I.mk_context(doc)
     local cbc, hdc = I.cbc, I.hdc -- keep count (in case we're recursing)
     I.ctx.stitch.hdr = math.floor(tonumber(I.ctx.stitch.hdr) or 0)
     local header = 0 ~= I.ctx.stitch.hdr and I.Header or nil

@@ -846,17 +846,17 @@ environment, which enables introspection.
 ``` {#opt-lua .lua stitch="chunk" inc="cbx:fcb out:fcb" lua="chunk"}
 local out = io.open(Stitch.opts.out, 'w')
 out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
-out:write("{\n", table.concat(Stitch.yaml(Stitch.opts, 2), "\n"), "\n}\n")
+out:write("{\n", table.concat(Stitch.tbl_yaml(Stitch.opts, 2), "\n"), "\n}\n")
 
 out:write("\nFrom doc.meta:\n")
-local yaml = table.concat(Stitch.yaml(Stitch.ctx, 2), "\n")
-local mta = Stitch.yaml(Stitch.ctx.defaults, 4)
+local yaml = table.concat(Stitch.tbl_yaml(Stitch.ctx, 2), "\n")
+local mta = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
 table.insert(mta, 1, "\n  defaults:")
 mta = table.concat(mta, "\n")
 out:write("stitch:\n", yaml, mta, "\n\n")
 
 out:write("\nHardcoded option defaults:\n")
-out:write(table.concat(Stitch.yaml(Stitch.hardcoded, 2), "\n"))
+out:write(table.concat(Stitch.tbl_yaml(Stitch.hardcoded, 2), "\n"))
 out:write("\n")
 
 out:close()
@@ -868,74 +868,73 @@ out:close()
 
 codeblock #opt-lua options:
 {
-  lua: 'chunk'
-  cbx: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.cbx'
-  err: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.err'
-  sha: 'cf6a30d5aae63af73ebc70232eb64cd290d8e77b'
-  inc: 'cbx:fcb out:fcb'
-  art: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.png'
-  cid: 'opt-lua'
+  out: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.out'
+  art: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.png'
   cmd: ''
+  cid: 'opt-lua'
+  err: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.err'
+  inc: 'cbx:fcb out:fcb'
+  lua: 'chunk'
+  cbx: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.cbx'
+  sha: 'c61abaacae56d570ce942ff5308e0ed3882b276b'
   stitch: 'chunk'
-  out: '.stitch/readme/chunk/opt-lua-cf6a30d5aae63af73ebc70232eb64cd290d8e77b.out'
 }
 
 From doc.meta:
 stitch:
+  chunk:
+    dir: '.stitch/readme/chunk'
+    lua: 'chunk'
+    inc: 'out'
+    cmd: ''
+  cetz:
+    arg: 'compile'
+    dir: '.stitch/readme/cetz'
+    inc: 'art cbx:fcb'
+    cmd: 'typst #arg #cbx #art'
+  boxes:
+    inc: 'out'
+    cls: 'true'
+    cmd: '#cbx #arg 1>#out'
   youplot:
     dir: '.stitch/readme/youplot'
     cmd: '#cbx 1>#out'
+  download:
+    dir: '.stitch/readme/download'
+    out: '#dir/#arg'
+    inc: 'cbx:fcb'
+    exe: 'yes'
   gnuplot:
     dir: '.stitch/readme/gnuplot'
     inc: 'art:fig cbx:fcb'
     cmd: 'gnuplot #cbx 1>#art 2>#err'
-  cetz:
-    dir: '.stitch/readme/cetz'
-    arg: 'compile'
-    inc: 'art cbx:fcb'
-    cmd: 'typst #arg #cbx #art'
+  stitch:
+    log: 'debug'
+    hdr: '0'
   diagon:
     dir: '.stitch/readme/diagon'
     cmd: 'diagon #arg <#cbx 1>#out'
-  stitch:
-    log: 'debug'
-    header: '0'
-  doc:
-    dir: '.stitch/readme/doc'
-    inc: 'out'
-    cls: 'true'
-    cmd: '#cbx 1>#out'
-  chunk:
-    dir: '.stitch/readme/chunk'
-    inc: 'out'
-    lua: 'chunk'
-    cmd: ''
-  download:
-    dir: '.stitch/readme/download'
-    exe: 'yes'
-    out: '#dir/#arg'
-    inc: 'cbx:fcb'
   defaults:
     dir: '.stitch/readme/defaults'
     inc: 'out cbx:fcb'
 
 
 Hardcoded option defaults:
-  lua: ''
-  arg: ''
   log: 'info'
-  cbx: '#dir/#cid-#sha.cbx'
-  err: '#dir/#cid-#sha.err'
-  fmt: 'png'
-  cls: 'no'
-  out: '#dir/#cid-#sha.out'
-  exe: 'maybe'
   art: '#dir/#cid-#sha.#fmt'
-  inc: 'cbx:fcb out:fcb art:img err:fcb'
-  dir: '.stitch'
-  old: 'purge'
-  cid: 'x'
   cmd: '#cbx #arg #art 1>#out 2>#err'
+  cid: 'x'
+  dir: '.stitch'
+  cls: 'no'
+  err: '#dir/#cid-#sha.err'
+  arg: ''
+  old: 'purge'
+  inc: 'cbx:fcb out:fcb art:img err:fcb'
+  lua: ''
+  cbx: '#dir/#cid-#sha.cbx'
+  fmt: 'png'
+  exe: 'maybe'
+  out: '#dir/#cid-#sha.out'
 ```
 
 ### `old`
@@ -1258,10 +1257,10 @@ local fh = io.open(Stitch.opts.out, 'w')
 
 fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
-local yaml = Stitch.yaml(Stitch.ctx, 2)
+local yaml = Stitch.tbl_yaml(Stitch.ctx, 2)
 fh:write(table.concat(yaml, "\n"))
 -- defaults was "promoted" to metatable of ctx
-yaml = Stitch.yaml(Stitch.ctx.defaults, 4)
+yaml = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")
   fh:write(table.concat(yaml, "\n"))
@@ -1273,11 +1272,8 @@ local opts = {} -- augment cb attr opts to full list of opts
 for k, _ in pairs(Stitch.hardcoded) do
   opts[k] = Stitch.opts[k]
 end
-yaml = Stitch.yaml(opts, 2)
+yaml = Stitch.tbl_yaml(opts, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
-
-yaml = Stitch.yaml(Stitch.optvalues.log)
-fh:write("[", table.concat(yaml, ', '), "]")
 fh:close()
 ```
 ]]
@@ -1362,38 +1358,38 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 In doc.meta
 ---
 stitch:
-  boxes:
-    cls: 'true'
-    cmd: '#cbx #arg 1>#out'
-    inc: 'out'
-  stitch:
-    hdr: '2'
-    log: 'debug'
   gnuplot:
+    inc: 'art:fig cbx:fcb'
     dir: '.stitch/readme/gnuplot'
     cmd: 'gnuplot #cbx 1>#art 2>#err'
-    inc: 'art:fig cbx:fcb'
   diagon:
     dir: '.stitch/readme/diagon'
     cmd: 'diagon #arg <#cbx 1>#out'
+  stitch:
+    hdr: '2'
+    log: 'debug'
+  chunk:
+    inc: 'out'
+    dir: '.stitch/readme/chunk'
+    lua: 'chunk'
+    cmd: ''
+  boxes:
+    cls: 'true'
+    inc: 'out'
+    cmd: '#cbx #arg 1>#out'
   youplot:
     dir: '.stitch/readme/youplot'
     cmd: '#cbx 1>#out'
-  cetz:
-    dir: '.stitch/readme/cetz'
-    cmd: 'typst #arg #cbx #art'
-    arg: 'compile'
-    inc: 'art cbx:fcb'
   download:
-    dir: '.stitch/readme/download'
-    out: '#dir/#arg'
-    exe: 'yes'
     inc: 'cbx:fcb'
-  chunk:
-    dir: '.stitch/readme/chunk'
-    cmd: ''
-    lua: 'chunk'
-    inc: 'out'
+    dir: '.stitch/readme/download'
+    exe: 'yes'
+    out: '#dir/#arg'
+  cetz:
+    inc: 'art cbx:fcb'
+    dir: '.stitch/readme/cetz'
+    arg: 'compile'
+    cmd: 'typst #arg #cbx #art'
   defaults:
     cls: 'yes'
     dir: '.stitch/readme/nested'
@@ -1403,21 +1399,20 @@ stitch:
 
 codeblock opts:
 {
-  err: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.err'
-  arg: ''
-  cbx: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.cbx'
-  art: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.png'
-  lua: 'chunk'
-  dir: '.stitch/readme/chunk'
   fmt: 'png'
   cid: 'nd-yaml'
-  cmd: ''
-  exe: 'yes'
-  inc: 'out'
-  log: 'debug'
-  out: '.stitch/readme/chunk/nd-yaml-8bfce3b1f887d06c04d315475d26bc2af0f0390a.out'
-  old: 'purge'
+  err: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.err'
   cls: 'yes'
+  lua: 'chunk'
+  old: 'purge'
+  arg: ''
+  art: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.png'
+  dir: '.stitch/readme/chunk'
+  out: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.out'
+  cmd: ''
+  inc: 'out'
+  cbx: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.cbx'
+  exe: 'yes'
+  log: 'debug'
 }
-[[1]: 'silent', [2]: 'error', [3]: 'warn', [4]: 'notify', [5]: 'info', [6]: 'debug']
 ```
