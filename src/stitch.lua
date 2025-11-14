@@ -10,14 +10,6 @@
 -- [?] REVIEW: option lua=chunk just runs dofile(cbx)()() ?
 -- [ ] add I.dump(table) -> list of strings, shallow dump of table
 
--- tmp
-local dump = require 'dump'
-print('debug.getinfo(1)', dump(debug.getinfo(1)))
-print('debug.getinfo(2)', dump(debug.getinfo(2)))
-print('debug.getinfo(3)', dump(debug.getinfo(3)))
-
--- /tmp
-
 -- initiatlize only once (load vs require)
 if package.loaded.stitch then return package.loaded.stitch end
 
@@ -37,12 +29,11 @@ I.hdc = 0 -- header counter, dito
 I.ctx = {} -- this doc's context (= meta.stitch)
 
 --[[-- logging --]]
-local log_level = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
+local levels = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
 
 function I.log(tier, action, msg, ...)
-  -- format: [stitch:depth log_level] caller : action| msg
-  local level = log_level[I.opts.log or I.ctx.stitch.log] or 0
-  if level >= log_level[tier] then
+  local level = levels[I.opts.log or I.ctx.stitch.log] or 0
+  if level >= levels[tier] then
     local caller = I.opts.cid or 'stitch'
     local fmt = F('[stitch:%d %6s] %-7s:%7s| %s', #tail, tier, caller, action, msg)
     io.stderr:write(F(fmt, ...), '\n')
@@ -131,6 +122,7 @@ end
 I.optvalues = {
   cls = { true, false, 'true', 'false', 'yes', 'no' },
   exe = { 'yes', 'no', 'maybe' },
+  -- log = I.tbl_keys(levels),
   log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
   lua = { 'chunk', '' },
   old = { 'keep', 'purge' },
@@ -198,7 +190,7 @@ function I.parse(inc)
   return directives
 end
 
--- checks if `name`,`value` is a valid pair according to `I.optsvalues`
+-- checks if `name`,`value` is a valid pair according to `I.optvalues`
 -- (not all options have predefines value ranges)
 ---@param name string the name of the option
 ---@param value any the value of the option
@@ -543,7 +535,7 @@ end
 --- @return string? name the name that was required as a module, nil otherwise
 --- @return string? func the stripped labels (on the right) while searching, or nil
 function I.load(m, f)
-  if nil == m or 0 == #m then return nil, m, f end
+  if nil == m or 0 == #m then return nil, nil, nil end
   I.log('debug', 'load', 'trying module %q', m)
 
   local suc6, mod = pcall(require, m)
@@ -628,7 +620,11 @@ function I.result(cb)
     local fname = I.opts[what]
     if fname and I.exists(fname) then
       local count = 0 -- num of filters actually applied
-      local doc = I.read(fname, format) -- format maybe "" (just reads fname)
+      local doc = I.read(fname, format) -- TODO: doc might be nil
+      if nil == doc then
+        I.log('error', 'include', "'#%s', skipping %s:%s", I.opts.cid, what, how)
+        return {}
+      end
       doc, count = I.filter(doc, filter)
       if count > 0 then
         -- a filter was actually applied, try to save altered doc
@@ -639,10 +635,10 @@ function I.result(cb)
       -- either data or a pandoc doc.  Could be a table, userdata or even
       -- a function (!).  @_G.load -> would load cbx as a chunk
 
-      local fcb = I.clone(cb) -- need fresh fcb per inclusion(!)
+      local fcb = I.clone(cb) -- must be fresh fcb per inclusion(!)
       fcb.attr.identifier = F('%s-%d-%s', I.opts.cid, idx, what)
-      local new = I.element[how](fcb, cb, doc, what) -- returns either Block or Blocks
 
+      local new = I.element[how](fcb, cb, doc, what) -- returns either Block or Blocks
       new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
       for _, block in ipairs(new) do
         elms[#elms + 1] = block
@@ -768,7 +764,7 @@ function I.CodeBlock(cb)
       I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
     elseif 'chunk' == I.opts.lua then
       I.log('info', 'execute', "codeblock as a chunk (exe='%s')", I.opts.exe)
-      _ENV.Stitch = I.tbl_copy(I) -- enables introspection by the chunk
+      _ENV.Stitch = I.tbl_copy(I) -- enables introspection by a chunk
       local f, err = loadfile(I.opts.cbx, 't', _ENV) -- lexcial scope
       if f == nil or err then
         I.log('error', 'execute', 'skipped, chunk compile error: %s', err)
@@ -835,6 +831,27 @@ local Stitch = {
     return rv
   end,
 }
+
+-- tmp
+local dump = require 'dump'
+local db1 = debug.getinfo(1)
+if db1.source:sub(1, 1) == '@' then
+  print("db1: we're being loaded, not required")
+else
+  print("db1: we're being required")
+end
+local db2 = debug.getinfo(2)
+if db2 then
+  print("db2: we're being required")
+else
+  print("db2: we're being loaded, not required")
+end
+print('package.loaded.stitch', package.loaded.stitch)
+
+print('db1', dump(db1))
+print('db2', dump(db2))
+
+-- /tmp
 
 -- Notes:
 -- * just returning Stitch requires pandoc version >=3.5

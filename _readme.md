@@ -303,7 +303,7 @@ Installation is straightforward:
 The filter will process a codeblock if it has a:
   * `stitch=name` attribute, linking it to a `meta.stitch`-section
   * class that matches a `meta.stitch`-section which has [`cls`] set to yes
-  * `.stitch` class (which uses `meta.stitch.defaults`)
+  * `.stitch` class (which uses `meta.stitch.defaults` or hardcoded defaults)
 
 Processing a codeblock follows these steps:
 
