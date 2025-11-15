@@ -243,7 +243,7 @@ function I.mta_tolua(elm)
     return elm
   elseif 'nil' == ptype then
     return nil
-  elseif 'attr' == ptype then
+  elseif 'Attr' == ptype then
     local t = {
       identifier = elm.identifier,
       classes = I.mta_tolua(elm.classes),
@@ -833,27 +833,6 @@ local Stitch = {
     return rv
   end,
 }
-
--- tmp
-local dump = require 'dump'
-local db1 = debug.getinfo(1)
-if db1.source:sub(1, 1) == '@' then
-  print("db1: we're being loaded, not required")
-else
-  print("db1: we're being required")
-end
-local db2 = debug.getinfo(2)
-if db2 then
-  print("db2: we're being required")
-else
-  print("db2: we're being loaded, not required")
-end
-print('package.loaded.stitch', package.loaded.stitch)
-
-print('db1', dump(db1))
-print('db2', dump(db2))
-
--- /tmp
 
 -- Notes:
 -- * just returning Stitch requires pandoc version >=3.5

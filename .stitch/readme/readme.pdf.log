@@ -1,23 +1,3 @@
-db1: we're being loaded, not required
-db2: we're being loaded, not required
-package.loaded.stitch	nil
-db1	{
-    currentline = 839,
-    ftransfer = 0,
-    func = "function: 0x1bc816b0",
-    istailcall = false,
-    isvararg = true,
-    lastlinedefined = 0,
-    linedefined = 0,
-    namewhat = "",
-    nparams = 0,
-    ntransfer = 0,
-    nups = 1,
-    short_src = "/home/pdh/.local/share/pandoc/filters/stitch.lua",
-    source = "@/home/pdh/.local/share/pandoc/filters/stitch.lua",
-    what = "main"
-}
-db2	"nil"
 [stitch:0   info] stitch : stitch| processing CodeBlocks and not Headers
 [stitch:0   note] preface: option| 'preface' uses cb->boxes->defaults->hardcoded.
 [stitch:0   info] preface:command| expanding template '#cbx #arg 1>#out'
@@ -77,21 +57,21 @@ db2	"nil"
 [stitch:0   info] cb06   :include| '#cb06-1-art' for 'art:fig' as pandoc.Figure
 [stitch:0   info] cb06   :include| '#cb06-2-cbx' for 'cbx:fcb' as fenced pandoc.CodeBlock
 [stitch:0   note] cb07   : option| 'cb07' uses cb->gnuplot->defaults->hardcoded.
-[stitch:0  debug] cb07   : option| cls = "no"
-[stitch:0  debug] cb07   : option| cid = "cb07"
 [stitch:0  debug] cb07   : option| fmt = "png"
-[stitch:0  debug] cb07   : option| err = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.err"
-[stitch:0  debug] cb07   : option| cmd = "gnuplot #cbx 1>#art 2>#err"
-[stitch:0  debug] cb07   : option| art = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.png"
-[stitch:0  debug] cb07   : option| exe = "maybe"
-[stitch:0  debug] cb07   : option| lua = ""
-[stitch:0  debug] cb07   : option| log = "debug"
-[stitch:0  debug] cb07   : option| old = "purge"
-[stitch:0  debug] cb07   : option| dir = ".stitch/readme/gnuplot"
-[stitch:0  debug] cb07   : option| cbx = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.cbx"
 [stitch:0  debug] cb07   : option| out = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.out"
-[stitch:0  debug] cb07   : option| arg = ""
+[stitch:0  debug] cb07   : option| old = "purge"
+[stitch:0  debug] cb07   : option| log = "debug"
+[stitch:0  debug] cb07   : option| cbx = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.cbx"
+[stitch:0  debug] cb07   : option| lua = ""
 [stitch:0  debug] cb07   : option| inc = "art:fig cbx:fcb"
+[stitch:0  debug] cb07   : option| cmd = "gnuplot #cbx 1>#art 2>#err"
+[stitch:0  debug] cb07   : option| err = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.err"
+[stitch:0  debug] cb07   : option| exe = "maybe"
+[stitch:0  debug] cb07   : option| arg = ""
+[stitch:0  debug] cb07   : option| dir = ".stitch/readme/gnuplot"
+[stitch:0  debug] cb07   : option| cid = "cb07"
+[stitch:0  debug] cb07   : option| cls = "no"
+[stitch:0  debug] cb07   : option| art = ".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.png"
 [stitch:0   info] cb07   :command| expanding template 'gnuplot #cbx 1>#art 2>#err'
 [stitch:0   info] cb07   :command| gnuplot .stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.cbx 1>.stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.png 2>.stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.err
 [stitch:0   info] cb07   :execute| skipped, output files exist (exe='maybe')
@@ -170,21 +150,21 @@ db2	"nil"
 [stitch:0   info] csv    :   read| pandoc.read as csv succeeded (got type Pandoc)
 [stitch:0   info] csv    :include| '#csv-3-cbx' for 'cbx:fcb' as fenced pandoc.CodeBlock
 [stitch:0   note] nested : option| 'nested' uses cb->defaults->hardcoded.
-[stitch:0  debug] nested : option| cls = "yes"
-[stitch:0  debug] nested : option| cid = "nested"
 [stitch:0  debug] nested : option| fmt = "png"
-[stitch:0  debug] nested : option| err = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.err"
-[stitch:0  debug] nested : option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:0  debug] nested : option| art = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.png"
-[stitch:0  debug] nested : option| exe = "maybe"
-[stitch:0  debug] nested : option| lua = ""
-[stitch:0  debug] nested : option| log = "debug"
-[stitch:0  debug] nested : option| old = "purge"
-[stitch:0  debug] nested : option| dir = ".stitch/readme/defaults"
-[stitch:0  debug] nested : option| cbx = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.cbx"
 [stitch:0  debug] nested : option| out = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.out"
-[stitch:0  debug] nested : option| arg = ""
+[stitch:0  debug] nested : option| old = "purge"
+[stitch:0  debug] nested : option| log = "debug"
+[stitch:0  debug] nested : option| cbx = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.cbx"
+[stitch:0  debug] nested : option| lua = ""
 [stitch:0  debug] nested : option| inc = "cbx:fcb out!markdown@stitch"
+[stitch:0  debug] nested : option| cmd = "#cbx #arg #art 1>#out 2>#err"
+[stitch:0  debug] nested : option| err = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.err"
+[stitch:0  debug] nested : option| exe = "maybe"
+[stitch:0  debug] nested : option| arg = ""
+[stitch:0  debug] nested : option| dir = ".stitch/readme/defaults"
+[stitch:0  debug] nested : option| cid = "nested"
+[stitch:0  debug] nested : option| cls = "yes"
+[stitch:0  debug] nested : option| art = ".stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.png"
 [stitch:0   info] nested :command| expanding template '#cbx #arg #art 1>#out 2>#err'
 [stitch:0   info] nested :command| .stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.cbx  .stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.png 1>.stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.out 2>.stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.err
 [stitch:0   info] nested :execute| skipped, output files exist (exe='maybe')
@@ -196,25 +176,25 @@ db2	"nil"
 [stitch:0  debug] nested :   read| .stitch/readme/defaults/nested-ca44c189f7d82c15f41c47eefa90f42a1d48f189.out, 1994 bytes
 [stitch:0   info] nested :   read| pandoc.read as markdown succeeded (got type Pandoc)
 [stitch:0  debug] nested :   load| trying module "stitch"
-[stitch:0  debug] nested :   load| found module "stitch", pkg.loaded=table: 0x1bc999d0
+[stitch:0  debug] nested :   load| found module "stitch", pkg.loaded=table: 0x40d030f0
 [stitch:1  debug] stitch : filter| @stitch yields 1 filter(s)
 [stitch:1   info] stitch : stitch| processing CodeBlocks and Headers
 [stitch:1   note] nd-csv : option| 'nd-csv' uses cb->defaults->hardcoded.
-[stitch:1  debug] nd-csv : option| cls = "yes"
-[stitch:1  debug] nd-csv : option| cid = "nd-csv"
 [stitch:1  debug] nd-csv : option| fmt = "png"
-[stitch:1  debug] nd-csv : option| err = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.err"
-[stitch:1  debug] nd-csv : option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:1  debug] nd-csv : option| art = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.png"
-[stitch:1  debug] nd-csv : option| exe = "no"
-[stitch:1  debug] nd-csv : option| lua = ""
-[stitch:1  debug] nd-csv : option| log = "debug"
-[stitch:1  debug] nd-csv : option| old = "purge"
-[stitch:1  debug] nd-csv : option| dir = ".stitch/readme/nested"
-[stitch:1  debug] nd-csv : option| cbx = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.cbx"
 [stitch:1  debug] nd-csv : option| out = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.out"
-[stitch:1  debug] nd-csv : option| arg = ""
+[stitch:1  debug] nd-csv : option| old = "purge"
+[stitch:1  debug] nd-csv : option| log = "debug"
+[stitch:1  debug] nd-csv : option| cbx = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.cbx"
+[stitch:1  debug] nd-csv : option| lua = ""
 [stitch:1  debug] nd-csv : option| inc = "cbx!csv"
+[stitch:1  debug] nd-csv : option| cmd = "#cbx #arg #art 1>#out 2>#err"
+[stitch:1  debug] nd-csv : option| err = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.err"
+[stitch:1  debug] nd-csv : option| exe = "no"
+[stitch:1  debug] nd-csv : option| arg = ""
+[stitch:1  debug] nd-csv : option| dir = ".stitch/readme/nested"
+[stitch:1  debug] nd-csv : option| cid = "nd-csv"
+[stitch:1  debug] nd-csv : option| cls = "yes"
+[stitch:1  debug] nd-csv : option| art = ".stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.png"
 [stitch:1   info] nd-csv :command| expanding template '#cbx #arg #art 1>#out 2>#err'
 [stitch:1   info] nd-csv :command| .stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.cbx  .stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.png 1>.stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.out 2>.stitch/readme/nested/nd-csv-79d6123e3b1baeb676a216d9616f08c50c817121.err
 [stitch:1   info] nd-csv :execute| skipped (exe='no')
@@ -226,21 +206,21 @@ db2	"nil"
 [stitch:1  debug] nd-csv :include| 'nd-csv-1-cbx' for 'cbx' -> no type specified (using default)
 [stitch:1   info] nd-csv :include| 'nd-csv-1-cbx' for 'cbx' ~> merging 1 pandoc.Block's
 [stitch:1   note] nd-temps: option| 'nd-temps' uses cb->defaults->hardcoded.
-[stitch:1  debug] nd-temps: option| cls = "yes"
-[stitch:1  debug] nd-temps: option| cid = "nd-temps"
 [stitch:1  debug] nd-temps: option| fmt = "png"
-[stitch:1  debug] nd-temps: option| err = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.err"
-[stitch:1  debug] nd-temps: option| cmd = "#cbx #arg #art 1>#out 2>#err"
-[stitch:1  debug] nd-temps: option| art = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.png"
-[stitch:1  debug] nd-temps: option| exe = "maybe"
-[stitch:1  debug] nd-temps: option| lua = ""
-[stitch:1  debug] nd-temps: option| log = "debug"
-[stitch:1  debug] nd-temps: option| old = "purge"
-[stitch:1  debug] nd-temps: option| dir = ".stitch/readme/nested"
-[stitch:1  debug] nd-temps: option| cbx = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.cbx"
 [stitch:1  debug] nd-temps: option| out = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.out"
-[stitch:1  debug] nd-temps: option| arg = ""
+[stitch:1  debug] nd-temps: option| old = "purge"
+[stitch:1  debug] nd-temps: option| log = "debug"
+[stitch:1  debug] nd-temps: option| cbx = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.cbx"
+[stitch:1  debug] nd-temps: option| lua = ""
 [stitch:1  debug] nd-temps: option| inc = "out"
+[stitch:1  debug] nd-temps: option| cmd = "#cbx #arg #art 1>#out 2>#err"
+[stitch:1  debug] nd-temps: option| err = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.err"
+[stitch:1  debug] nd-temps: option| exe = "maybe"
+[stitch:1  debug] nd-temps: option| arg = ""
+[stitch:1  debug] nd-temps: option| dir = ".stitch/readme/nested"
+[stitch:1  debug] nd-temps: option| cid = "nd-temps"
+[stitch:1  debug] nd-temps: option| cls = "yes"
+[stitch:1  debug] nd-temps: option| art = ".stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.png"
 [stitch:1   info] nd-temps:command| expanding template '#cbx #arg #art 1>#out 2>#err'
 [stitch:1   info] nd-temps:command| .stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.cbx  .stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.png 1>.stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.out 2>.stitch/readme/nested/nd-temps-25165afebcc4880885c31d7842626d64dc9010f9.err
 [stitch:1   info] nd-temps:execute| skipped, output files exist (exe='maybe')
@@ -251,21 +231,21 @@ db2	"nil"
 [stitch:1  debug] nd-temps:include| 'nd-temps-1-out' for 'out' -> no type specified (using default)
 [stitch:1   info] nd-temps:include| '#nd-temps-1-out' for 'out:fcb' as fenced pandoc.CodeBlock
 [stitch:1   note] nd-gnu : option| 'nd-gnu' uses cb->gnuplot->defaults->hardcoded.
-[stitch:1  debug] nd-gnu : option| cls = "yes"
-[stitch:1  debug] nd-gnu : option| cid = "nd-gnu"
 [stitch:1  debug] nd-gnu : option| fmt = "png"
-[stitch:1  debug] nd-gnu : option| err = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.err"
-[stitch:1  debug] nd-gnu : option| cmd = "gnuplot #cbx 1>#art 2>#err"
-[stitch:1  debug] nd-gnu : option| art = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.png"
-[stitch:1  debug] nd-gnu : option| exe = "maybe"
-[stitch:1  debug] nd-gnu : option| lua = ""
-[stitch:1  debug] nd-gnu : option| log = "debug"
-[stitch:1  debug] nd-gnu : option| old = "purge"
-[stitch:1  debug] nd-gnu : option| dir = ".stitch/readme/gnuplot"
-[stitch:1  debug] nd-gnu : option| cbx = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.cbx"
 [stitch:1  debug] nd-gnu : option| out = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.out"
-[stitch:1  debug] nd-gnu : option| arg = ""
+[stitch:1  debug] nd-gnu : option| old = "purge"
+[stitch:1  debug] nd-gnu : option| log = "debug"
+[stitch:1  debug] nd-gnu : option| cbx = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.cbx"
+[stitch:1  debug] nd-gnu : option| lua = ""
 [stitch:1  debug] nd-gnu : option| inc = "art:fig cbx:fcb"
+[stitch:1  debug] nd-gnu : option| cmd = "gnuplot #cbx 1>#art 2>#err"
+[stitch:1  debug] nd-gnu : option| err = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.err"
+[stitch:1  debug] nd-gnu : option| exe = "maybe"
+[stitch:1  debug] nd-gnu : option| arg = ""
+[stitch:1  debug] nd-gnu : option| dir = ".stitch/readme/gnuplot"
+[stitch:1  debug] nd-gnu : option| cid = "nd-gnu"
+[stitch:1  debug] nd-gnu : option| cls = "yes"
+[stitch:1  debug] nd-gnu : option| art = ".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.png"
 [stitch:1   info] nd-gnu :command| expanding template 'gnuplot #cbx 1>#art 2>#err'
 [stitch:1   info] nd-gnu :command| gnuplot .stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.cbx 1>.stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.png 2>.stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.err
 [stitch:1   info] nd-gnu :execute| skipped, output files exist (exe='maybe')
@@ -277,21 +257,21 @@ db2	"nil"
 [stitch:1  debug] nd-gnu :   read| .stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.cbx, 549 bytes
 [stitch:1   info] nd-gnu :include| '#nd-gnu-2-cbx' for 'cbx:fcb' as fenced pandoc.CodeBlock
 [stitch:1   note] nd-yaml: option| 'nd-yaml' uses cb->chunk->defaults->hardcoded.
-[stitch:1  debug] nd-yaml: option| cls = "yes"
-[stitch:1  debug] nd-yaml: option| cid = "nd-yaml"
 [stitch:1  debug] nd-yaml: option| fmt = "png"
-[stitch:1  debug] nd-yaml: option| err = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.err"
-[stitch:1  debug] nd-yaml: option| cmd = ""
-[stitch:1  debug] nd-yaml: option| art = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.png"
-[stitch:1  debug] nd-yaml: option| exe = "yes"
-[stitch:1  debug] nd-yaml: option| lua = "chunk"
-[stitch:1  debug] nd-yaml: option| log = "debug"
-[stitch:1  debug] nd-yaml: option| old = "purge"
-[stitch:1  debug] nd-yaml: option| dir = ".stitch/readme/chunk"
-[stitch:1  debug] nd-yaml: option| cbx = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.cbx"
 [stitch:1  debug] nd-yaml: option| out = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.out"
-[stitch:1  debug] nd-yaml: option| arg = ""
+[stitch:1  debug] nd-yaml: option| old = "purge"
+[stitch:1  debug] nd-yaml: option| log = "debug"
+[stitch:1  debug] nd-yaml: option| cbx = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.cbx"
+[stitch:1  debug] nd-yaml: option| lua = "chunk"
 [stitch:1  debug] nd-yaml: option| inc = "out"
+[stitch:1  debug] nd-yaml: option| cmd = ""
+[stitch:1  debug] nd-yaml: option| err = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.err"
+[stitch:1  debug] nd-yaml: option| exe = "yes"
+[stitch:1  debug] nd-yaml: option| arg = ""
+[stitch:1  debug] nd-yaml: option| dir = ".stitch/readme/chunk"
+[stitch:1  debug] nd-yaml: option| cid = "nd-yaml"
+[stitch:1  debug] nd-yaml: option| cls = "yes"
+[stitch:1  debug] nd-yaml: option| art = ".stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.png"
 [stitch:1   info] nd-yaml:command| expanding template ''
 [stitch:1   info] nd-yaml:command| 
 [stitch:1   info] nd-yaml:execute| codeblock as a chunk (exe='yes')
