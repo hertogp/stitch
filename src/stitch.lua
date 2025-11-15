@@ -122,6 +122,8 @@ end
 I.optvalues = {
   cls = { true, false, 'true', 'false', 'yes', 'no' },
   exe = { 'yes', 'no', 'maybe' },
+  -- * cli = 'system', 'chunk' (default system) <-- like run better
+  -- * run = 'system', 'chunk' (default system) <-- TODO
   -- log = I.tbl_keys(levels),
   log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
   lua = { 'chunk', '' },
@@ -858,7 +860,8 @@ print('db2', dump(db2))
 -- * pandoc loads filters as a chunk, we require ourselves (potentially)
 --   so claim a spot to avoid initializing twice
 
-package.loaded.stitch = { Stitch }
+-- package.loaded.stitch = Stitch -- pandoc >= 3.5
+package.loaded.stitch = { Stitch } -- pandoc < 3.5
 return package.loaded.stitch
 
 -- package.loaded.stitch = I
