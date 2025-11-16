@@ -13,7 +13,7 @@ if package.loaded.stitch2 then return package.loaded.stitch2 end
 --[[- handles ]]
 local pd = _ENV.pandoc -- if nil, we're not being loaded by pandoc
 local sf = string.format
-local hard_coded = { log = 'info', a = 1, b = 2 }
+local hard_coded = { log = 'info', a = 1, b = 2, c = 3, d = 4, e = 5 }
 local dump = require 'dump' -- tmp: delme
 --[[- logging -]]
 local log_level = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
@@ -47,14 +47,15 @@ local parse_by = {} -- forward declaration
 --- @param elm table
 --- @param detail boolean?
 --- @param seen table?
---- @return table|string table a Lua table version of `elm`
+--- @return table
 local function elm_to_lua(elm, detail, seen)
   seen = seen or {}
   detail = detail and true or false
   local t = detail and { [0] = { pandoc = pd.utils.type(elm), lua = type(elm), pointer = sf('%p', elm) } } or {}
   for k, v in pairs(elm) do
-    if seen[v] then return sf('<cyclic: %s>', v) end
+    if seen[v] then return { [k] = sf('<cyclic: %s>', v) } end
     seen[v] = 'table' == type(v) and v
+    seen[v] = v
     local parse = parse_by[pd.utils.type(v)] or parse_by[type(v)]
     t[k] = parse and parse(v, detail, seen) -- or nil -> ignored
   end
@@ -79,11 +80,21 @@ parse_by = { -- index by type(elm)
 }
 
 --[[- State ]]
+
 local state = {
-  ctx = {}, -- context of current document
-  ccb = {}, -- current codeblock
-  hcb = {}, -- previous codeblock's
+  count_cb = 0,
+  count_hdr = 0,
+  ctx = nil, -- context of current document
+  ccb = nil, -- current codeblock
+  his = {}, -- previous codeblock's
 }
+
+function state:set_cb(ccb)
+  print(self, ccb)
+  self.his[ccb.cid or self.count_cb] = ccb
+  self.count_cb = self.count_cb + 1
+  return ccb
+end
 
 --[[-- doc options --]]
 
@@ -107,8 +118,8 @@ local state = {
 --- @return table
 local function doc_options(doc)
   local meta = elm_to_lua(doc.meta) --- @cast meta table
-  local opt = meta.stitch or {} -- no stitch means defaults will provide
-  opt.stitch = opt.stitch or {}
+  local opt = meta.stitch or {} -- toplevel meta.stitch
+  opt.stitch = opt.stitch or {} -- ensure meta.stitch.stitch collector
   local defaults = opt.defaults or {} -- no defaults means hardcoded will provide
 
   setmetatable(defaults, { __index = hard_coded })
@@ -119,7 +130,8 @@ local function doc_options(doc)
     if 'table' == type(section) then
       setmetatable(section, { __index = defaults })
     else
-      opt.stitch[name] = opt[name]
+      print('moving opt', name, section)
+      opt.stitch[name] = section -- aka opt[name] is a value, not table
       opt[name] = nil
     end
   end
@@ -136,19 +148,33 @@ end
 --[[- KodeBlock ]]
 local function run_noop(self) print(self, sf('run noop %s', self.opts.exe)) end
 local kb = {
-  run = setmetatable({}, { __index = function(_) return run_noop end }),
-  elm = {},
+  run = setmetatable({}, { __index = function() return run_noop end }),
 }
 
-function kb:new(context)
-  local ctx = setmetatable(context, { __index = hard_coded })
+function kb:new(cb)
+  -- TODO:
+  -- [ ] get config section name -> that's your metatable
+  -- [ ] res. order new.opt.x -> ctx[id].x -> ctx[class ..].x -> defaults -> hardcoded?
+  local ccb = elm_to_lua(cb)
+  local oid = ccb.attr.identifier
+  local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
+  cfg = cfg or rawget(state.ctx, oid) and oid -- 2. or #id -> a ctx.name
+  for _, v in ipairs(ccb.attr.classes) do
+    cfg = cfg or rawget(state.ctx, v) and v -- 3. or first class to match
+  end
+  cfg = cfg or 'defaults' -- 4. alas it's going to be defaults
   local new = {
-    opts = setmetatable({ kopts = true }, { __index = ctx, hidden = true }),
+    cfg = cfg,
+    cls = ccb.attr.classes,
+    ocb = cb,
+    oid = ccb.attr.identifier,
+    opt = setmetatable(ccb.attr.attributes, { __index = state.ctx[cfg] }),
+    txt = ccb.text,
   }
 
-  -- refer to kb when looking up fields on an instance
   self.__index = self
-  return setmetatable(new, self)
+  setmetatable(new, self)
+  return new
 end
 
 --[[- kb:run ]]
@@ -183,27 +209,24 @@ end
 
 --[[- STITCH ]]
 
+local function CodeBlock(cb)
+  local ccb = kb:new(cb)
+  print('kb', cb, ccb)
+  state:set_cb(ccb)
+  -- print('cb', dump(elm_to_lua(cb, true)))
+  for k, v in pairs(hard_coded) do
+    print(k, ccb.opt[k], 'ctx is', state.ctx[ccb.cfg][k], 'hard is', v)
+  end
+  return nil
+end
+
 local function Pandoc(doc)
   print('ICU-C-ME')
-  local ctx = doc_options(doc)
-  print('ctx', dump(ctx))
+  state.ctx = doc_options(doc)
 
-  --
-  -- print('ctx.wam', ctx.wam)
-  -- print('ctx.bam', ctx.bam)
-  -- print('ctx.mickey.a', dump(ctx.mickey.a))
-  --
-  -- print('ctx.stitch', dump(ctx.stitch))
-
-  -- print('doc dump', dump(elm_to_lua(doc)))
-  -- print('meta dump', dump(elm_to_lua(doc, true)))
-
-  -- print('lua dump', dump(elm_to_lua({ a = 1, b = false, c = { 1, nil, 2 }, d = 'nil' })))
-
-  -- state:new(doc)
-  -- local CodeBlock, Header = state.CodeBlock, state.Header
-  -- return doc:walk({CodeBlock = CodeBlock, Header = Header})
-  return doc
+  local rv = doc:walk({ CodeBlock = CodeBlock })
+  print('state', dump(state))
+  return rv
 end
 
 --[[- shenanigens ]]
