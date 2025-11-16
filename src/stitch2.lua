@@ -35,7 +35,7 @@ local function log(kb, tier, topic, msg, ...)
 end
 
 --[[-- pandoc AST helpers --]]
-local parse_it = {} -- forward declaration
+local parse_by = {} -- forward declaration
 
 --- Converts pandoc AST element `elm` to regular Lua table
 -- It sets indices `[-1]`, `[0]` to `elm` 's pandoc resp. lua type and
@@ -50,8 +50,9 @@ local function elm_to_lua(elm, dbg)
   for k, v in pairs(elm) do
     local lua_type = type(v)
     local pandoc_type = pd.utils.type(v)
-    local parse = parse_it[lua_type]
+    local parse = parse_by[lua_type]
     if 'Inlines' == pandoc_type then
+      -- a list (lua table) of inline elements
       t[k] = pd.utils.stringify(v)
     elseif parse then
       t[k] = parse(v, dbg)
@@ -62,7 +63,7 @@ local function elm_to_lua(elm, dbg)
   return t
 end
 
-parse_it = {
+parse_by = { -- index by type(elm)
   ['nil'] = function() return nil end,
   thread = function() return nil end,
   table = function(v, d) return elm_to_lua(v, d) end,
@@ -86,7 +87,7 @@ local state = {
 local Context = {}
 --- Creates a stitch context for given `doc` which contains: `doc`, `meta` &
 --- `opt`, which is the original `meta.stitch` section.  Any `opt.defaults`
---- table is also promoted to metatable for all named and unnamed sections in `opt`.
+--- table is promoted to metatable for all named and unnamed sections in `opt`.
 ---
 --- Hence, option resolution order: opt.section? -> defaults -> hard_coded.
 --- @param doc table
@@ -114,7 +115,30 @@ function Context:new(doc)
   return obj
 end
 
---[[- kb ]]
+local function make_context(doc)
+  local obj = {
+    doc = doc,
+    meta = elm_to_lua(doc.meta) or {},
+    opt = elm_to_lua(doc.meta.stitch or {}) or {},
+  }
+  obj.meta.stitch = nil
+  local defaults = obj.opt.defaults or {}
+  obj.opt.defaults = nil
+
+  setmetatable(defaults, { __index = hard_coded })
+  setmetatable(obj.opt, { __index = function() return defaults end })
+  for name, section in pairs(obj.opt) do
+    if 'table' == type(section) then
+      setmetatable(section, { __index = defaults })
+    else
+      obj.opt[name] = nil
+    end
+  end
+
+  return obj
+end
+
+--[[- KodeBlock ]]
 local function run_noop(self) print(self, sf('run noop %s', self.opts.exe)) end
 local kb = {
   run = setmetatable({}, { __index = function(_) return run_noop end }),
@@ -143,12 +167,12 @@ function kb.run.unknown(self) print(self, 'run chunk') end
 function kb:execute() return self.run[self.opts.exe](self) end
 
 -- return list of table t and its subsequent metatables (if any)
-function kb:chain(field, t)
-  if nil == field then return t end
-  if 'table' ~= type(field) then return t end
-  t = t or {}
-  t[#t + 1] = field
-  return self:chain((getmetatable(field) or {}).__index, t)
+function kb:chain(tbl, acc)
+  if nil == tbl then return acc end
+  if 'table' ~= type(tbl) then return acc end
+  acc = acc or {}
+  acc[#acc + 1] = tbl
+  return self:chain((getmetatable(tbl) or {}).__index, acc)
 end
 
 -- return all option keys
@@ -166,7 +190,7 @@ end
 
 local function Pandoc(doc)
   print('ICU-C-ME')
-  local ctx = Context:new(doc)
+  local ctx = make_context(doc)
   print('ctx', dump(ctx))
   print('ctx.opt.goofy.log', dump(ctx.opt.goofy.log))
   print('ctx.opt.goofy.a', dump(ctx.opt.goofy.a))
