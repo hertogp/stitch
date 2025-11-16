@@ -37,105 +37,100 @@ end
 --[[-- pandoc AST helpers --]]
 local parse_by = {} -- forward declaration
 
---- Converts pandoc AST element `elm` to regular Lua table
--- It sets indices `[-1]`, `[0]` to `elm` 's pandoc resp. lua type and
--- ignores any metatables.
---- @param elm table a pandoc AST element
---- @param dbg boolean? if truthy, sets `[0],[-1]` to org lua resp. pandoc type
---- @return table? table a Lua table version of `elm`, nil for unknown elm's
-local function elm_to_lua(elm, dbg)
-  dbg = dbg or false
-
-  local t = dbg and { [0] = type(elm), [-1] = pd.utils.type(elm) } or {}
+--- Converts pandoc AST element `elm` to a regular Lua table
+--
+-- It converts `Inlines` back to string, eliminates `function` fields and
+-- ignores any metatables.  Set `detail` to true to also parse `Inlines`,
+-- retain function fields and add a map at index `[0]` with the objects' lua
+-- and pandoc type, as well as `'%p`' formatted string for the object.  Still
+-- ignores metatables though.
+--- @param elm table
+--- @param detail boolean?
+--- @param seen table?
+--- @return table|string table a Lua table version of `elm`
+local function elm_to_lua(elm, detail, seen)
+  seen = seen or {}
+  detail = detail and true or false
+  local t = detail and { [0] = { pandoc = pd.utils.type(elm), lua = type(elm), pointer = sf('%p', elm) } } or {}
   for k, v in pairs(elm) do
-    local lua_type = type(v)
-    local pandoc_type = pd.utils.type(v)
-    local parse = parse_by[lua_type]
-    if 'Inlines' == pandoc_type then
-      -- a list (lua table) of inline elements
-      t[k] = pd.utils.stringify(v)
-    elseif parse then
-      t[k] = parse(v, dbg)
-    else
-      t[k] = nil
-    end
+    if seen[v] then return sf('<cyclic: %s>', v) end
+    seen[v] = 'table' == type(v) and v
+    local parse = parse_by[pd.utils.type(v)] or parse_by[type(v)]
+    t[k] = parse and parse(v, detail, seen) -- or nil -> ignored
   end
   return t
 end
 
 parse_by = { -- index by type(elm)
+  -- pandoc type(s)
+  ['Inlines'] = function(v, d, s)
+    return (d and elm_to_lua(v, d, s)) or pd.write(pd.Pandoc({ v }), 'markdown'):sub(1, -2)
+  end,
+
+  -- lua types (nil, thread, number are Lua tables are handled as well)
   ['nil'] = function() return nil end,
   thread = function() return nil end,
-  table = function(v, d) return elm_to_lua(v, d) end,
-  userdata = function(v, d) return elm_to_lua(v, d) end,
-  string = function(v, _) return pd.utils.stringify(v) end,
-  number = function(v, _) return pd.utils.stringify(v) end,
-  boolean = function(v, _) return pd.utils.stringify(v) end,
-  ['function'] = function(v, _) return v end,
+  table = function(v, d, s) return elm_to_lua(v, d, s) end,
+  userdata = function(v, d, s) return elm_to_lua(v, d, s) end,
+  ['function'] = function(v, d) return d and v or nil end,
+  string = function(v) return v end,
+  boolean = function(v) return v end,
+  number = function(v) return v end,
 }
 
 --[[- State ]]
-local his = {} -- history of recursion
 local state = {
   ctx = {}, -- context of current document
   ccb = {}, -- current codeblock
+  hcb = {}, -- previous codeblock's
 }
 
---[[- Context ]]
--- ctx is stitch's context derived from doc's meta data
+--[[-- doc options --]]
 
-local Context = {}
---- Creates a stitch context for given `doc` which contains: `doc`, `meta` &
---- `opt`, which is the original `meta.stitch` section.  Any `opt.defaults`
---- table is promoted to metatable for all named and unnamed sections in `opt`.
+--- Returns an options table for given `doc`, based on `doc.meta.stitch`.
 ---
---- Hence, option resolution order: opt.section? -> defaults -> hard_coded.
+--- Options can be listed in `doc.meta.stitch` under some name, respresenting
+--- external tools used in, or a class of, codeblocks.  A `defaults` section
+--- will be promoted to metatable for all named section tables.  If one is
+--- not defined, it will be created.  In both cases, the default table itself
+--- has the hardcoded option table as its own metatable.
+---
+--- The name `stitch` is for stitch itself.  These options can either be
+--- listed directly under `doc.meta.stitch` or under their own `stitch`
+--- subsection.  In both cases they'll end up in the `stitch`-subsection.
+---
+--- Additionally, the doc's `title`, `author` and `date` are also stored under
+--- `opt.meta` for convenience and keep it all in one table.
+---
+--- So, resolution order is: opt.section?.x -> defaults.x -> hard_coded.x
 --- @param doc table
 --- @return table
-function Context:new(doc)
-  local obj = {
-    doc = doc,
-    meta = elm_to_lua(doc.meta) or {},
-    opt = elm_to_lua(doc.meta.stitch or {}) or {},
-  }
-  obj.meta.stitch = nil
-  local defaults = obj.opt.defaults or {}
-  obj.opt.defaults = nil
+local function doc_options(doc)
+  local meta = elm_to_lua(doc.meta) --- @cast meta table
+  local opt = meta.stitch or {} -- no stitch means defaults will provide
+  opt.stitch = opt.stitch or {}
+  local defaults = opt.defaults or {} -- no defaults means hardcoded will provide
 
   setmetatable(defaults, { __index = hard_coded })
-  setmetatable(obj.opt, { __index = function() return defaults end })
-  for name, section in pairs(obj.opt) do
+  setmetatable(opt, { __index = function() return defaults end })
+
+  opt.defaults = nil
+  for name, section in pairs(opt) do
     if 'table' == type(section) then
       setmetatable(section, { __index = defaults })
     else
-      obj.opt[name] = nil
+      opt.stitch[name] = opt[name]
+      opt[name] = nil
     end
   end
 
-  return obj
-end
-
-local function make_context(doc)
-  local obj = {
-    doc = doc,
-    meta = elm_to_lua(doc.meta) or {},
-    opt = elm_to_lua(doc.meta.stitch or {}) or {},
+  opt.meta = {
+    title = meta.title,
+    author = meta.author,
+    date = meta.date,
   }
-  obj.meta.stitch = nil
-  local defaults = obj.opt.defaults or {}
-  obj.opt.defaults = nil
 
-  setmetatable(defaults, { __index = hard_coded })
-  setmetatable(obj.opt, { __index = function() return defaults end })
-  for name, section in pairs(obj.opt) do
-    if 'table' == type(section) then
-      setmetatable(section, { __index = defaults })
-    else
-      obj.opt[name] = nil
-    end
-  end
-
-  return obj
+  return opt
 end
 
 --[[- KodeBlock ]]
@@ -190,16 +185,24 @@ end
 
 local function Pandoc(doc)
   print('ICU-C-ME')
-  local ctx = make_context(doc)
+  local ctx = doc_options(doc)
   print('ctx', dump(ctx))
-  print('ctx.opt.goofy.log', dump(ctx.opt.goofy.log))
-  print('ctx.opt.goofy.a', dump(ctx.opt.goofy.a))
 
-  print('ctx.opt.wam', ctx.opt.wam)
-  print('ctx.opt.bam', ctx.opt.bam)
-  print('ctx.opt.mickey.a', dump(ctx.opt.mickey.a))
-  print('ctx.opt.mickey.log', dump(ctx.opt.mickey.log))
+  --
+  -- print('ctx.wam', ctx.wam)
+  -- print('ctx.bam', ctx.bam)
+  -- print('ctx.mickey.a', dump(ctx.mickey.a))
+  --
+  -- print('ctx.stitch', dump(ctx.stitch))
 
+  -- print('doc dump', dump(elm_to_lua(doc)))
+  -- print('meta dump', dump(elm_to_lua(doc, true)))
+
+  -- print('lua dump', dump(elm_to_lua({ a = 1, b = false, c = { 1, nil, 2 }, d = 'nil' })))
+
+  -- state:new(doc)
+  -- local CodeBlock, Header = state.CodeBlock, state.Header
+  -- return doc:walk({CodeBlock = CodeBlock, Header = Header})
   return doc
 end
 
