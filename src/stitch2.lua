@@ -6,32 +6,102 @@
 -- * Classes use CamelCase
 -- * has_, hasnt_, is_, isnt_ for bool funcs
 -- * create tables with their population, e.g. hard_coded = { a = 1, b =2 }
+--
+-- Guidelines
+-- * function return result -or- result/nil, error
+-- * small functions donot log, just yield results
+-- * classes that instantiate are Capatalized, otherwise all lower case
+-- * large scopes means longer names
+-- * keep local var declaration close to their use
 
 -- initiatlize only once (load vs require)
 if package.loaded.stitch2 then return package.loaded.stitch2 end
 
---[[- handles ]]
+--[[-- locals --]]
 local pd = _ENV.pandoc -- if nil, we're not being loaded by pandoc
 local sf = string.format
 local hard_coded = { log = 'info', a = 1, b = 2, c = 3, d = 4, e = 5 }
+local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
 local dump = require 'dump' -- tmp: delme
---[[- logging -]]
-local log_level = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
-local mod_log = { opt = { log = 'warn', id = 'mod' } }
+local state = {
+  log = { stitch = 3 }, -- stitch starts at warn level
+  ctx = nil, -- context of current document
+  ccb = nil, -- current codeblock
+  seen = {}, -- previous codeblock's
+  stack = {}, -- previous doc's, gets pushed/popped
+}
 
---- Prints formatted message to stdout
---- @param kb table identity sending the log, must have kb.opt.log and kb.opt.id fields
---- @param topic string short description of topic (8 chars or so)
---- @param msg string message format string
-local function log(kb, tier, topic, msg, ...)
-  -- [stitch:depth] who topic| msg
-  local opt = kb.opt or {}
-  local show = log_level[opt.log] or 0
-  if (log_level[tier] or 0) > show then return end
-  local src = opt.cid or 'unknown'
-  local entry = sf('[stitch:%s %7s]', 0, tier)
-  local reason = sf(' %-7s %8s| ', src, topic)
-  io.output():write(entry, reason, sf(msg, ...), '\n')
+--[[- logging -]]
+-- facility, level, mnemonic, msg
+-- facilites register their log level w/ state:logger(id, level)
+-- mnemonic is upto facility to decide and use consistently
+-- msg is whatever it wants to say at given level
+
+--- Prints formatted `msg` to stdout for given `id` at `tier`-level.
+---
+--- Valid tiers include: `1..6` or `fatal`, `error`, `warn`, `note`, `info` and `debug`.
+--- Loggers must register their id and loglevel via `state:logger(id, level)` in order
+--- to be able to log messages at that level or below.
+---
+--- Note: logging a message at level `fatal` is killing.
+--- @param id string
+--- @param tier string
+--- @param msg string
+local function log(id, tier, msg, ...)
+  local level = log_level[tier] or 1 -- unknown tier is fatal
+  if (log_level[tier] or 0) > (state.log[id] or 0) then return end
+  io.output():write(sf('%%stitch[%s]-%s-%s: ', #state.stack, id, tier))
+  io.output():write(sf(msg, ...), '\n')
+  io.output():flush()
+  assert(level ~= 1, sf('fatal error logged by %s', id))
+end
+
+--[[- State ]]
+
+function state:depth() return #self.stack end
+
+--- Registers a logging `identity` at given log `level` and returns `identity`.
+---
+--- Illegal levels will be set to most noisy!
+--- @param id string
+--- @param level string
+--- @return string identity
+--- @return string? error
+function state:logger(id, level)
+  local n = log_level[level]
+  if not n or n < 0 or n > log_level['debug'] then n = 0 end
+  self.log[id] = n
+  return id
+end
+
+--- Saves current codeblock `ccb` on its stack and returns new total count.
+--- @param ccb table
+--- @return number
+function state:save(ccb)
+  self.seen[#self.seen + 1] = ccb
+  self.ccb = ccb
+  return #self.seen
+end
+
+--- Pushes current context onto its stack, sets `ctx` as new context and returns
+--- current depth.
+---
+--- @param ctx table
+--- @return number
+function state:push(ctx)
+  self.stack[#self.stack + 1] = self.ctx
+  self.ctx = ctx
+  return #self.stack
+end
+
+--- Pops context from stack and restores it as current context.
+---
+--- This also clears (TODO) current codeblock being processed ?
+function state:pop()
+  -- l={[0]=hidden}; l[#l] == l[0] == hidden (i.e. not so hidden)
+  local ctx = self.stack[#self.stack]
+  self.stack[#self.stack] = nil
+  return ctx
 end
 
 --[[-- pandoc AST helpers --]]
@@ -79,23 +149,6 @@ parse_by = { -- index by type(elm)
   number = function(v) return v end,
 }
 
---[[- State ]]
-
-local state = {
-  count_cb = 0,
-  count_hdr = 0,
-  ctx = nil, -- context of current document
-  ccb = nil, -- current codeblock
-  his = {}, -- previous codeblock's
-}
-
-function state:set_cb(ccb)
-  print(self, ccb)
-  self.his[ccb.cid or self.count_cb] = ccb
-  self.count_cb = self.count_cb + 1
-  return ccb
-end
-
 --[[-- doc options --]]
 
 --- Returns an options table for given `doc`, based on `doc.meta.stitch`.
@@ -110,27 +163,31 @@ end
 --- listed directly under `doc.meta.stitch` or under their own `stitch`
 --- subsection.  In both cases they'll end up in the `stitch`-subsection.
 ---
---- Additionally, the doc's `title`, `author` and `date` are also stored under
---- `opt.meta` for convenience and keep it all in one table.
+--- Additionally, the doc's `title`, `author` and `date` (if available) are
+--- also stored under `opt.meta` for convenience and keep it all in one table.
 ---
 --- So, resolution order is: opt.section?.x -> defaults.x -> hard_coded.x
 --- @param doc table
 --- @return table
 local function doc_options(doc)
   local meta = elm_to_lua(doc.meta) --- @cast meta table
+  local loglevel = meta.stitch and meta.stitch.log or 'info'
+  local lid = state:logger('stitch', loglevel)
+  if not doc.meta.stitch then log(lid, 'warn', 'doc has no stitch configs..') end
+
   local opt = meta.stitch or {} -- toplevel meta.stitch
-  opt.stitch = opt.stitch or {} -- ensure meta.stitch.stitch collector
-  local defaults = opt.defaults or {} -- no defaults means hardcoded will provide
+  opt.stitch = opt.stitch or {} -- ensure stitch's own section
+  local defaults = opt.defaults or {}
 
   setmetatable(defaults, { __index = hard_coded })
   setmetatable(opt, { __index = function() return defaults end })
-
   opt.defaults = nil
+
   for name, section in pairs(opt) do
     if 'table' == type(section) then
       setmetatable(section, { __index = defaults })
     else
-      print('moving opt', name, section)
+      log(lid, 'debug', 'moved option "%s: %s" into stitch-section', name, section)
       opt.stitch[name] = section -- aka opt[name] is a value, not table
       opt[name] = nil
     end
@@ -151,25 +208,35 @@ local kb = {
   run = setmetatable({}, { __index = function() return run_noop end }),
 }
 
+--- Returns a new `kb` for given Pandoc.CodeBlock `cb`, if eligible, nil otherwise.
+--
+-- A `cb` is explicitly eligible for stitch processing if it has a `stitch=name`
+-- attribute or it has `stitch` as one of its classes.  A `cb` also qualifies if a
+-- stitch config section exists for `cb`'s identifier (rare) or when one of its
+-- classes matches a section that has `cls=yes` option set.
+--
+--- @param cb table
+--- @return table?
 function kb:new(cb)
-  -- TODO:
-  -- [ ] get config section name -> that's your metatable
-  -- [ ] res. order new.opt.x -> ctx[id].x -> ctx[class ..].x -> defaults -> hardcoded?
   local ccb = elm_to_lua(cb)
-  local oid = ccb.attr.identifier
+  local oid = ccb.attr.identifier or '<none>'
+  -- get applicable ccb.stitch cfg section
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
-  cfg = cfg or rawget(state.ctx, oid) and oid -- 2. or #id -> a ctx.name
+  cfg = cfg or pd.List.includes(ccb.attr.classes, 'stitch') -- 2. .stitch class
+  cfg = cfg or rawget(state.ctx, oid) and oid -- 3. #id has config section
   for _, v in ipairs(ccb.attr.classes) do
-    cfg = cfg or rawget(state.ctx, v) and v -- 3. or first class to match
+    if cfg then break end
+    cfg = cfg or rawget(state.ctx, v) and v.cls == 'yes' and v -- 3. class match cfg.cls=yes
   end
-  cfg = cfg or 'defaults' -- 4. alas it's going to be defaults
+  if not cfg then return nil end
+
   local new = {
     cfg = cfg,
     cls = ccb.attr.classes,
-    ocb = cb,
-    oid = ccb.attr.identifier,
+    oid = oid,
     opt = setmetatable(ccb.attr.attributes, { __index = state.ctx[cfg] }),
-    txt = ccb.text,
+    txt = ccb.text, -- for convenience
+    ccb = ccb,
   }
 
   self.__index = self
@@ -207,25 +274,24 @@ function kb:options()
   return keys
 end
 
---[[- STITCH ]]
+--[[-- STITCH --]]
 
 local function CodeBlock(cb)
   local ccb = kb:new(cb)
-  print('kb', cb, ccb)
-  state:set_cb(ccb)
-  -- print('cb', dump(elm_to_lua(cb, true)))
-  for k, v in pairs(hard_coded) do
-    print(k, ccb.opt[k], 'ctx is', state.ctx[ccb.cfg][k], 'hard is', v)
+  if not ccb then
+    log('stitch', 'info', "skipped cb id '%s' (not eligible)", cb.attr.identifier)
+    return nil
   end
+  local lid = state:logger(ccb.oid, ccb.opt.log)
+  log(lid, 'info', 'selected cb id %s, config is "%s"', lid, ccb.cfg)
+  state:save(ccb)
+  -- process here
   return nil
 end
 
 local function Pandoc(doc)
-  print('ICU-C-ME')
   state.ctx = doc_options(doc)
-
   local rv = doc:walk({ CodeBlock = CodeBlock })
-  print('state', dump(state))
   return rv
 end
 
