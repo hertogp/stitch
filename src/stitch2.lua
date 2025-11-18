@@ -9,31 +9,63 @@
 --
 -- Guidelines
 -- * function return result -or- result/nil, error
--- * small functions donot log, just yield results
+-- * small functions donutnot log, just yield results
 -- * classes that instantiate are Capatalized, otherwise all lower case
 -- * large scopes means longer names
 -- * keep local var declaration close to their use
+-- * log facilities are: stitch, codeblock, filter etc ..
 
--- initiatlize only once (load vs require)
+-- initialize only once (load vs require)
 if package.loaded.stitch2 then return package.loaded.stitch2 end
 
---[[-- locals --]]
-local pd = _ENV.pandoc -- if nil, we're not being loaded by pandoc
+--[[----- locals -----------]]
+local pd = _ENV.pandoc -- if nil, we're probably not being loaded by pandoc
 local sf = string.format
-local hard_coded = { log = 'info', a = 1, b = 2, c = 3, d = 4, e = 5 }
-local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
 local dump = require 'dump' -- tmp: delme
+
+--- predefined log levels in string or numeric form
+local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
+
+--- module level defaults for stitch's options
+local hard_coded_opts = {
+  -- resolution order: cb->stitch.section->stitch.defaults->hardcoded
+  -- cid, sha are calculated and added by stitch fo its own use
+  arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
+  art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
+  cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
+  cls = 'no', -- {'yes', 'no'}
+  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
+  dir = '.stitch', -- where to store files (abs or rel path to cwd)
+  err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
+  exe = 'maybe', -- {yes, no, maybe}
+  fmt = 'png', -- format for images (if any)
+  inc = 'cbx:fcb out:fcb art:img err:fcb',
+  log = 'info', -- {debug, error, warn, info, silent}
+  run = 'cmd', -- {cmd, chunk, noop (ie cbx=data to be used by inc)}
+  old = 'purge', -- {keep, purge}
+  out = '#dir/#cid-#sha.out', -- capture of stdout (if any)
+}
+
+--- state stores the following:
+--- * `log`, logging levels per facility. Predefined are 'stitch, doc, cb'.
+---   Others (cb's e.g.) register via `state:logger(id, level)`
+--- * `ctx`, the current document's stitch context (options basically)
+--- * `ccb`, the current codeblock being processed as created by `kb:new(cb)`
+--- * `seen`, a list of codeblocks seen sofar
+--- * `stack`, push/pop stack for `state.ctx` when recursing
+---
+--- Note: `kb:new(cb)` creates the current `ccb` and adds it to `seen`.
 local state = {
-  log = { stitch = 3 }, -- stitch starts at warn level
+  log = { doc = 3, cb = 3, CodeBlok = 5 }, -- log level per 'facility'
   ctx = nil, -- context of current document
   ccb = nil, -- current codeblock
   seen = {}, -- previous codeblock's
   stack = {}, -- previous doc's, gets pushed/popped
 }
 
---[[- logging -]]
+--[[----- logging ----------]]
 -- facility, level, mnemonic, msg
--- facilites register their log level w/ state:logger(id, level)
+-- facilities register their log level w/ state:logger(id, level)
 -- mnemonic is upto facility to decide and use consistently
 -- msg is whatever it wants to say at given level
 
@@ -48,15 +80,15 @@ local state = {
 --- @param tier string
 --- @param msg string
 local function log(id, tier, msg, ...)
-  local level = log_level[tier] or 1 -- unknown tier is fatal
+  local level = log_level[tier] or 3 -- unknown tier is warning
   if (log_level[tier] or 0) > (state.log[id] or 0) then return end
-  io.output():write(sf('%%stitch[%s]-%s-%s: ', #state.stack, id, tier))
-  io.output():write(sf(msg, ...), '\n')
+  local prefix = sf('%%stitch[%s] %s %s: ', #state.stack, tier, id)
+  io.output():write(prefix, sf(msg, ...), '\n')
   io.output():flush()
   assert(level ~= 1, sf('fatal error logged by %s', id))
 end
 
---[[- State ]]
+--[[----- State ------------]]
 
 function state:depth() return #self.stack end
 
@@ -104,8 +136,10 @@ function state:pop()
   return ctx
 end
 
---[[-- pandoc AST helpers --]]
-local parse_by = {} -- forward declaration
+--[[----- parsers ----------]]
+
+--- table of parsers per pandoc/lua type
+local parse_elm_by = {}
 
 --- Converts pandoc AST element `elm` to a regular Lua table
 --
@@ -118,68 +152,145 @@ local parse_by = {} -- forward declaration
 --- @param detail boolean?
 --- @param seen table?
 --- @return table
-local function elm_to_lua(elm, detail, seen)
+local function parse_elm(elm, detail, seen)
   seen = seen or {}
   detail = detail and true or false
   local t = detail and { [0] = { pandoc = pd.utils.type(elm), lua = type(elm), pointer = sf('%p', elm) } } or {}
   for k, v in pairs(elm) do
-    if seen[v] then return { [k] = sf('<cyclic: %s>', v) } end
-    seen[v] = 'table' == type(v) and v
-    seen[v] = v
-    local parse = parse_by[pd.utils.type(v)] or parse_by[type(v)]
+    if seen[v] then return v end --{ [k] = sf('<cyclic: %p> %s', v, v) } end
+    if 'table' == type(v) or 'userdata' == type(v) then seen[v] = v end
+    local parse = parse_elm_by[pd.utils.type(v)] or parse_elm_by[type(v)]
+    -- print(
+    --   sf('%10s', k),
+    --   'types:',
+    --   pd.utils.type(v),
+    --   type(v),
+    --   'funcs',
+    --   parse_elm_by[pd.utils.type(v)],
+    --   parse_elm_by[type(v)]
+    -- )
     t[k] = parse and parse(v, detail, seen) -- or nil -> ignored
   end
   return t
 end
 
-parse_by = { -- index by type(elm)
-  -- pandoc type(s)
+parse_elm_by = {
+  -- parsers by pandoc type(s)
   ['Inlines'] = function(v, d, s)
-    return (d and elm_to_lua(v, d, s)) or pd.write(pd.Pandoc({ v }), 'markdown'):sub(1, -2)
+    return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'markdown'):sub(1, -2)
   end,
 
-  -- lua types (nil, thread, number are Lua tables are handled as well)
+  -- parsers by lua types
   ['nil'] = function() return nil end,
   thread = function() return nil end,
-  table = function(v, d, s) return elm_to_lua(v, d, s) end,
-  userdata = function(v, d, s) return elm_to_lua(v, d, s) end,
+  table = function(v, d, s) return parse_elm(v, d, s) end,
+  userdata = function(v, d, s) return parse_elm(v, d, s) end,
   ['function'] = function(v, d) return d and v or nil end,
   string = function(v) return v end,
   boolean = function(v) return v end,
   number = function(v) return v end,
 }
 
---[[-- doc options --]]
+-- parsers for stitch options that also validate
+local parse_opt_by = {
+  arg = function(v) return 'string' == type(v) and v or nil end,
+  art = function(v) return 'string' == type(v) and v or nil end,
+  cbx = function(v) return 'string' == type(v) and v or nil end,
+  cid = function(v) return 'string' == type(v) and v or nil end,
+  cls = function(v) return 'string' == type(v) and v:match('yes no') and v or nil end,
+  err = function(v) return 'string' == type(v) and v or nil end,
+  exe = function(v) return 'string' == type(v) and v:match('yes no maybe') and v or nil end,
+  fmt = function(v) return 'string' == type(v) and v or nil end,
+  log = function(v) return 'string' == type(v) and v:match('debug error warn info silent') and v or nil end,
+  old = function(v) return 'string' == type(v) and v:match('purge keep') and v or nil end,
+  out = function(v) return 'string' == type(v) and v or nil end,
+  run = function(v) return 'string' == type(v) and v:match('cmd chunk') and v or nil end,
+
+  inc = function(v)
+    -- `inc` in cb.attr is always a string, in meta it can be string or a table
+    local t = {}
+    if 'string' == type(v) then
+      for p in v:gsub('[%s,]+', ' '):gmatch('%S+') do
+        t[#t + 1] = p
+      end
+    elseif 'table' == type(v) then
+      t = v
+    else
+      log('cb-opt', 'error', 'invalid value for inc: "%s"', v)
+    end
+    local pat = '([^!@:]+)'
+    local spec = {}
+    for k, part in pairs(t) do
+      if 'string' == type(part) then
+        -- REVIEW: maybe support multiple filters: @m1.f1@m2.f2@.. ?
+        spec[#spec + 1] = {
+          part:match('^' .. pat) or '', -- what
+          part:match('!' .. pat) or '', -- !read-format
+          part:match('@' .. pat) or '', -- @filter.func
+          part:match(':' .. pat) or '', -- :what
+        }
+      else
+        log('cb-opt', 'error', sf('skipped "inc[%s]=%s", expected a "string" not type %q', k, part, type(part)))
+      end
+    end
+    return spec
+  end,
+}
+setmetatable(parse_opt_by, {
+  __index = function(_, k)
+    log('cb-opt', 'debug', sf('%q is not a stitch option, kept as-is', k))
+    return function(v) return v end
+  end,
+})
+
+--- Returns a parsed, validated value for given `opt` and `val` or nil.
+---
+--- Stitch options with illegal values are removed.  Most options are simply
+--- string values.  Option `inc` will be parsed into a sequence of directives
+--- which themselves are not validated at this point.
+---
+--- Non-stitch options are kept as-is, they're not used anyway.
+---
+--- @param opt string
+--- @param val string|table
+--- @return string|table?
+local function parse_opt(opt, val)
+  local parsed = parse_opt_by[opt](val)
+  if not parsed then log('stitch', 'error', sf('~~~ invalid value for opt %q ("%s")', opt, val)) end
+  return parsed
+end
+
+--[[----- options ----------]]
 
 --- Returns an options table for given `doc`, based on `doc.meta.stitch`.
 ---
---- Options can be listed in `doc.meta.stitch` under some name, respresenting
---- external tools used in, or a class of, codeblocks.  A `defaults` section
---- will be promoted to metatable for all named section tables.  If one is
---- not defined, it will be created.  In both cases, the default table itself
---- has the hardcoded option table as its own metatable.
+--- Each section (table) under `doc.meta.stitch` is turned into a stitch
+--- configuration section.  The names `stitch`, `defaults` and `meta` are special.
 ---
---- The name `stitch` is for stitch itself.  These options can either be
---- listed directly under `doc.meta.stitch` or under their own `stitch`
---- subsection.  In both cases they'll end up in the `stitch`-subsection.
+--- Top level options that are not tables, are collected in a `stitch` section
+--- while `defaults` will be set as metatable for all section tables.  The
+--- `defaults` table itself, will have the `hard_coded` option table as metatable.
+--- If `doc.meta.stitch.defaults` does not exist, it is created.
 ---
---- Additionally, the doc's `title`, `author` and `date` (if available) are
---- also stored under `opt.meta` for convenience and keep it all in one table.
+--- Additionally, a `meta` section is added which holds the doc's `title`, `author`
+--- and `date` (if available).
 ---
---- So, resolution order is: opt.section?.x -> defaults.x -> hard_coded.x
+--- Option `x` resolution order: cb.x -> section?.x -> defaults.x -> hard_coded.x
+--- Note: non-existing sections also fall back to using defaults.
+---
 --- @param doc table
 --- @return table
 local function doc_options(doc)
-  local meta = elm_to_lua(doc.meta) --- @cast meta table
-  local loglevel = meta.stitch and meta.stitch.log or 'info'
-  local lid = state:logger('stitch', loglevel)
+  local meta = parse_elm(doc.meta) --- @cast meta table
+  local loglevel = meta.stitch and sf('%s', meta.stitch.log) or 'info'
+  local lid = state:logger('doc-opt', loglevel)
   if not doc.meta.stitch then log(lid, 'warn', 'doc has no stitch configs..') end
 
   local opt = meta.stitch or {} -- toplevel meta.stitch
   opt.stitch = opt.stitch or {} -- ensure stitch's own section
   local defaults = opt.defaults or {}
 
-  setmetatable(defaults, { __index = hard_coded })
+  setmetatable(defaults, { __index = hard_coded_opts })
   setmetatable(opt, { __index = function() return defaults end })
   opt.defaults = nil
 
@@ -193,33 +304,46 @@ local function doc_options(doc)
     end
   end
 
+  -- ensure valid values for stitch options in all sections
+  for name, section in pairs(opt) do
+    log(lid, 'debug', 'parsing options in section %q', name)
+    for option, val in pairs(section) do
+      section[option] = parse_opt(option, val)
+    end
+  end
+  -- print('opt dump', dump(opt))
+
   opt.meta = {
     title = meta.title,
     author = meta.author,
     date = meta.date,
   }
+  log(lid, 'info', 'got doc options for doc titled %q', opt.meta.title)
 
   return opt
 end
 
---[[- KodeBlock ]]
+--[[----- KodeBlock --------]]
 local function run_noop(self) print(self, sf('run noop %s', self.opts.exe)) end
 local kb = {
   run = setmetatable({}, { __index = function() return run_noop end }),
 }
 
---- Returns a new `kb` for given Pandoc.CodeBlock `cb`, if eligible, nil otherwise.
+--- Returns a new current codeblock `ccb` for given Pandoc.CodeBlock `cb`.
 --
--- A `cb` is explicitly eligible for stitch processing if it has a `stitch=name`
--- attribute or it has `stitch` as one of its classes.  A `cb` also qualifies if a
--- stitch config section exists for `cb`'s identifier (rare) or when one of its
+-- A codeblock is explicitly eligible for stitch processing if it has a `stitch=name`
+-- attribute or it has `stitch` as one of its classes.  A codeblock also qualifies if a
+-- stitch config section exists for its identifier (rare) or when one of its
 -- classes matches a section that has `cls=yes` option set.
 --
+-- Note: use `kb:eligible(ccb)` to check if stitch can process the codeblock.
+--
 --- @param cb table
---- @return table?
+--- @return table ccb
 function kb:new(cb)
-  local ccb = elm_to_lua(cb)
-  local oid = ccb.attr.identifier or '<none>'
+  local ccb = parse_elm(cb)
+  local oid = ccb.attr.identifier or '' -- TODO: unique nrs
+  oid = #oid == 0 and sf('cb%03d', #state.seen + 1) or oid
   -- get applicable ccb.stitch cfg section
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
   cfg = cfg or pd.List.includes(ccb.attr.classes, 'stitch') -- 2. .stitch class
@@ -228,30 +352,62 @@ function kb:new(cb)
     if cfg then break end
     cfg = cfg or rawget(state.ctx, v) and v.cls == 'yes' and v -- 3. class match cfg.cls=yes
   end
-  if not cfg then return nil end
 
   local new = {
-    cfg = cfg,
-    cls = ccb.attr.classes,
-    oid = oid,
+    cfg = cfg, -- the config name, if eligible for stitch processing
+    cls = ccb.attr.classes, -- the list of classes
+    oid = oid, -- cb's identifier or cb<nth>
     opt = setmetatable(ccb.attr.attributes, { __index = state.ctx[cfg] }),
     txt = ccb.text, -- for convenience
-    ccb = ccb,
+    ast = ccb,
+    org = cb,
   }
+
+  -- ensure inc is always array of include specs
+  local inc = new.opt.inc -- resolves inc
+  if 'string' == type(inc) then
+    local parts = {}
+    for p in inc:gsub('[%s,]+', ' '):gmatch('%S+') do
+      parts[#parts + 1] = p
+    end
+    inc = parts
+  end
+
+  local pat = '([^!@:]+)'
+  local spec = {}
+  for k, part in pairs(inc) do
+    if 'string' == type(part) then
+      spec[#spec + 1] = {
+        part:match('^' .. pat) or '', -- what
+        part:match('!' .. pat) or '', -- !read-format
+        part:match('@' .. pat) or '', -- @filter.func
+        part:match(':' .. pat) or '', -- :what
+      }
+    else
+      log('cb-opt', 'error', sf('%s: skipped inc[%s], expected a "string" not type %q', oid, k, type(part)))
+    end
+  end
+  new.opt.inc = spec
 
   self.__index = self
   setmetatable(new, self)
+  state:save(new)
   return new
 end
 
---[[- kb:run ]]
+--- Returns true if `ccb` can be processed by stitch, false otherwise
+--- @param ccb table
+--- @return boolean
+function kb:eligible(ccb) return assert('table' == type(ccb)) and ccb.cfg ~= nil end
+
+--[[----- kb:run -----------]]
 function kb.run.yes(self) print(self, 'run yes') end
 function kb.run.no(self) print(self, 'run no') end
 function kb.run.maybe(self) print(self, 'run maybe') end
 function kb.run.chunk(self) print(self, 'run chunk') end
 function kb.run.unknown(self) print(self, 'run chunk') end
 
---[[- kb:<funcs> ]]
+--[[----- kb:<funcs> ------]]
 function kb:execute() return self.run[self.opts.exe](self) end
 
 -- return list of table t and its subsequent metatables (if any)
@@ -274,28 +430,33 @@ function kb:options()
   return keys
 end
 
---[[-- STITCH --]]
+--[[----- STITCH -----------]]
 
 local function CodeBlock(cb)
+  local lid = state:logger('CodeBlock', 'info')
   local ccb = kb:new(cb)
-  if not ccb then
-    log('stitch', 'info', "skipped cb id '%s' (not eligible)", cb.attr.identifier)
+  if not kb:eligible(ccb) then
+    log(lid, 'warn', 'Skipped codeblock id %q, not eligible', ccb.oid)
     return nil
   end
-  local lid = state:logger(ccb.oid, ccb.opt.log)
-  log(lid, 'info', 'selected cb id %s, config is "%s"', lid, ccb.cfg)
-  state:save(ccb)
+
+  log(lid, 'info', 'New codeblock, id %q with config %q', ccb.oid, ccb.cfg)
   -- process here
+  -- print('ccb', ccb.cfg, ccb.opt.inc, dump(state.ctx[ccb.cfg]))
+  -- print('ccb.opt', type(ccb.opt.bool1), dump(ccb.opt))
   return nil
 end
 
 local function Pandoc(doc)
+  local lid = state:logger('Pandoc', 'info')
+  log(lid, 'info', 'New document, title "%s"', pd.utils.stringify(doc.meta.title))
   state.ctx = doc_options(doc)
   local rv = doc:walk({ CodeBlock = CodeBlock })
+
   return rv
 end
 
---[[- shenanigens ]]
+--[[ shenanigens ]]
 
 package.loaded.stitch2 = { { Pandoc = Pandoc } }
 
