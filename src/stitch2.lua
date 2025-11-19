@@ -26,10 +26,10 @@ local dump = require 'dump' -- tmp: delme
 --- predefined log levels in string or numeric form
 local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
 
---- module level defaults for stitch's options
+--- hard coded defaults for stitch's options
+-- opt resolution: cb.opt->ctx.section->ctx.defaults->hardcoded
 local hard_coded_opts = {
-  -- resolution order: cb->stitch.section->stitch.defaults->hardcoded
-  -- cid, sha are calculated and added by stitch fo its own use
+  -- `cid`, `sha` are calculated and added by stitch for its own use
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
   art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
   cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
@@ -39,7 +39,8 @@ local hard_coded_opts = {
   err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
   exe = 'maybe', -- {yes, no, maybe}
   fmt = 'png', -- format for images (if any)
-  inc = 'cbx:fcb out:fcb art:img err:fcb',
+  -- inc: {what=.., how=.., read=.., filter=..}, default how for out,err is fcb
+  inc = { { what = 'cbx', how = 'fcb' }, { what = 'out' }, { what = 'art', how = 'img' }, { what = 'err' } },
   log = 'info', -- {debug, error, warn, info, silent}
   run = 'cmd', -- {cmd, chunk, noop (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
@@ -56,7 +57,7 @@ local hard_coded_opts = {
 ---
 --- Note: `kb:new(cb)` creates the current `ccb` and adds it to `seen`.
 local state = {
-  log = { doc = 3, cb = 3, CodeBlok = 5 }, -- log level per 'facility'
+  log = { doc = 5, opt = 5, CodeBlock = 5 }, -- log level per 'facility'
   ctx = nil, -- context of current document
   ccb = nil, -- current codeblock
   seen = {}, -- previous codeblock's
@@ -88,21 +89,72 @@ local function log(id, tier, msg, ...)
   assert(level ~= 1, sf('fatal error logged by %s', id))
 end
 
+--[[----- helpers ----------]]
+
+local function toyaml(t, n, seen)
+  seen = seen or {}
+  -- what if t is userdata?
+  -- if 'table' ~= type(t) then return { sf('%q', t) } end
+  if 'table' ~= type(t) then return { sf('%s\n', t) } end
+  if seen[t] then return seen[t] end
+
+  n = n or 0
+  local indent = string.rep(' ', n)
+  local tt = {}
+  seen[t] = tt
+  for k, v in pairs(t) do
+    local nl = 'table' == type(v) and '\n' or ' '
+    local kk = 'string' == type(k) and k or sf('[%s]', k)
+    local vv = table.concat(toyaml(v, n + 2, seen)) -- org
+    tt[#tt + 1] = sf('%s%s:%s%s', indent, kk, nl, vv) -- org
+  end
+  return tt
+end
+
+local function toyaml2(t, n, seen, acc)
+  seen = seen or {}
+  acc = acc or {}
+  n = n or 0
+  local indent = string.rep(' ', n)
+
+  if seen[t] then
+    for _, y in pairs(t) do
+      acc[#acc + 1] = y
+    end
+    return acc
+  end
+
+  if 'table' ~= type(t) then
+    acc[#acc + 1] = sf('%s%s', indent, t)
+    return acc
+  end
+
+  seen[t] = true
+  for k, v in pairs(t) do
+    local kk = 'string' == type(k) and k or sf('[%s]', k)
+    if 'table' == type(v) then
+      acc[#acc + 1] = sf('%s%s:', indent, kk)
+      acc = toyaml2(v, n + 2, seen, acc)
+    else
+      acc[#acc + 1] = sf('%s%s: %s', indent, kk, v)
+    end
+  end
+  return acc
+end
+
 --[[----- State ------------]]
 
 function state:depth() return #self.stack end
 
---- Registers a logging `identity` at given log `level` and returns `identity`.
+--- Registers a logging `id` at given log `level` and returns `id`.
 ---
---- Illegal levels will be set to most noisy!
+--- Unknown levels are set as debug level.
 --- @param id string
 --- @param level string
 --- @return string identity
 --- @return string? error
 function state:logger(id, level)
-  local n = log_level[level]
-  if not n or n < 0 or n > log_level['debug'] then n = 0 end
-  self.log[id] = n
+  self.log[id] = log_level[level] or log_level.debug
   return id
 end
 
@@ -216,7 +268,7 @@ local parse_opt_by = {
     elseif 'table' == type(v) then
       t = v
     else
-      log('cb-opt', 'error', 'invalid value for inc: "%s"', v)
+      log('opt', 'error', 'invalid value for inc: "%s"', v)
     end
     local pat = '([^!@:]+)'
     local spec = {}
@@ -224,13 +276,13 @@ local parse_opt_by = {
       if 'string' == type(part) then
         -- REVIEW: maybe support multiple filters: @m1.f1@m2.f2@.. ?
         spec[#spec + 1] = {
-          part:match('^' .. pat) or '', -- what
-          part:match('!' .. pat) or '', -- !read-format
-          part:match('@' .. pat) or '', -- @filter.func
-          part:match(':' .. pat) or '', -- :what
+          what = part:match('^' .. pat),
+          read = part:match('!' .. pat),
+          filter = part:match('@' .. pat),
+          how = part:match(':' .. pat),
         }
       else
-        log('cb-opt', 'error', sf('skipped "inc[%s]=%s", expected a "string" not type %q', k, part, type(part)))
+        log('opt', 'error', sf('skipped "inc[%s]=%s", expected a "string" not type %q', k, part, type(part)))
       end
     end
     return spec
@@ -238,7 +290,7 @@ local parse_opt_by = {
 }
 setmetatable(parse_opt_by, {
   __index = function(_, k)
-    log('cb-opt', 'debug', sf('%q is not a stitch option, kept as-is', k))
+    log('opt', 'debug', sf('%q is not a stitch option, kept as-is', k))
     return function(v) return v end
   end,
 })
@@ -283,7 +335,7 @@ end
 local function doc_options(doc)
   local meta = parse_elm(doc.meta) --- @cast meta table
   local loglevel = meta.stitch and sf('%s', meta.stitch.log) or 'info'
-  local lid = state:logger('doc-opt', loglevel)
+  local lid = state:logger('doc', loglevel)
   if not doc.meta.stitch then log(lid, 'warn', 'doc has no stitch configs..') end
 
   local opt = meta.stitch or {} -- toplevel meta.stitch
@@ -298,7 +350,7 @@ local function doc_options(doc)
     if 'table' == type(section) then
       setmetatable(section, { __index = defaults })
     else
-      log(lid, 'debug', 'moved option "%s: %s" into stitch-section', name, section)
+      log(lid, 'debug', 'stitch.%s=%s', name, section)
       opt.stitch[name] = section -- aka opt[name] is a value, not table
       opt[name] = nil
     end
@@ -306,9 +358,11 @@ local function doc_options(doc)
 
   -- ensure valid values for stitch options in all sections
   for name, section in pairs(opt) do
-    log(lid, 'debug', 'parsing options in section %q', name)
+    log(lid, 'debug', '%q-options', name)
     for option, val in pairs(section) do
+      if 'inc' == option then print('inc', dump(val)) end
       section[option] = parse_opt(option, val)
+      log(lid, 'debug', '- %s.%s = %s', name, option, section[option])
     end
   end
   -- print('opt dump', dump(opt))
@@ -342,6 +396,9 @@ local kb = {
 --- @return table ccb
 function kb:new(cb)
   local ccb = parse_elm(cb)
+  local oldlevel = state.log['opt']
+  local level = ccb.attr.attributes.log
+  if level then state:logger('opt', level) end
   local oid = ccb.attr.identifier or '' -- TODO: unique nrs
   oid = #oid == 0 and sf('cb%03d', #state.seen + 1) or oid
   -- get applicable ccb.stitch cfg section
@@ -353,42 +410,28 @@ function kb:new(cb)
     cfg = cfg or rawget(state.ctx, v) and v.cls == 'yes' and v -- 3. class match cfg.cls=yes
   end
 
+  -- ensure cb options have consistent and valid values
+  local opt = {}
+  for option, value in pairs(ccb.attr.attributes) do
+    opt[option] = parse_opt(option, value)
+  end
+
   local new = {
     cfg = cfg, -- the config name, if eligible for stitch processing
-    cls = ccb.attr.classes, -- the list of classes
+    cls = ccb.attr.classes, -- the list of classes (only for reading)
     oid = oid, -- cb's identifier or cb<nth>
-    opt = setmetatable(ccb.attr.attributes, { __index = state.ctx[cfg] }),
+    opt = setmetatable(opt, { __index = state.ctx[cfg] }),
     txt = ccb.text, -- for convenience
-    ast = ccb,
-    org = cb,
+    ast = ccb, -- parsed ast for cb (for debugging)
+    org = cb, -- original cb (for debugging)
   }
 
   -- ensure inc is always array of include specs
-  local inc = new.opt.inc -- resolves inc
-  if 'string' == type(inc) then
-    local parts = {}
-    for p in inc:gsub('[%s,]+', ' '):gmatch('%S+') do
-      parts[#parts + 1] = p
-    end
-    inc = parts
-  end
+  -- local inc = new.opt.inc -- if missing, resolves to defaults/hardcoded
+  print('inc', dump(new.opt.inc))
+  print('hrd', dump(hard_coded_opts.inc))
 
-  local pat = '([^!@:]+)'
-  local spec = {}
-  for k, part in pairs(inc) do
-    if 'string' == type(part) then
-      spec[#spec + 1] = {
-        part:match('^' .. pat) or '', -- what
-        part:match('!' .. pat) or '', -- !read-format
-        part:match('@' .. pat) or '', -- @filter.func
-        part:match(':' .. pat) or '', -- :what
-      }
-    else
-      log('cb-opt', 'error', sf('%s: skipped inc[%s], expected a "string" not type %q', oid, k, type(part)))
-    end
-  end
-  new.opt.inc = spec
-
+  state.log['opt'] = oldlevel
   self.__index = self
   setmetatable(new, self)
   state:save(new)
@@ -433,14 +476,14 @@ end
 --[[----- STITCH -----------]]
 
 local function CodeBlock(cb)
-  local lid = state:logger('CodeBlock', 'info')
+  local lid = state:logger('cb', 'info')
   local ccb = kb:new(cb)
   if not kb:eligible(ccb) then
-    log(lid, 'warn', 'Skipped codeblock id %q, not eligible', ccb.oid)
+    log(lid, 'warn', 'skip codeblock id %q, not eligible', ccb.oid)
     return nil
   end
 
-  log(lid, 'info', 'New codeblock, id %q with config %q', ccb.oid, ccb.cfg)
+  log(lid, 'info', 'accept codeblock, id %q with config %q', ccb.oid, ccb.cfg)
   -- process here
   -- print('ccb', ccb.cfg, ccb.opt.inc, dump(state.ctx[ccb.cfg]))
   -- print('ccb.opt', type(ccb.opt.bool1), dump(ccb.opt))
@@ -448,10 +491,15 @@ local function CodeBlock(cb)
 end
 
 local function Pandoc(doc)
-  local lid = state:logger('Pandoc', 'info')
-  log(lid, 'info', 'New document, title "%s"', pd.utils.stringify(doc.meta.title))
+  local lid = state:logger('doc', 'info')
+  log(lid, 'info', 'new document, title "%s"', pd.utils.stringify(doc.meta.title))
   state.ctx = doc_options(doc)
   local rv = doc:walk({ CodeBlock = CodeBlock })
+  log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
+
+  -- tmp
+
+  -- tmp
 
   return rv
 end
