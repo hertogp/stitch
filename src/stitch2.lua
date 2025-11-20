@@ -91,40 +91,18 @@ end
 
 --[[----- helpers ----------]]
 
-local function toyaml(t, n, seen)
-  seen = seen or {}
-  -- what if t is userdata?
-  -- if 'table' ~= type(t) then return { sf('%q', t) } end
-  if 'table' ~= type(t) then return { sf('%s\n', t) } end
-  if seen[t] then return seen[t] end
-
-  n = n or 0
-  local indent = string.rep(' ', n)
-  local tt = {}
-  seen[t] = tt
-  for k, v in pairs(t) do
-    local nl = 'table' == type(v) and '\n' or ' '
-    local kk = 'string' == type(k) and k or sf('[%s]', k)
-    local vv = table.concat(toyaml(v, n + 2, seen)) -- org
-    tt[#tt + 1] = sf('%s%s:%s%s', indent, kk, nl, vv) -- org
-  end
-  return tt
-end
-
-local function toyaml2(t, n, seen, acc)
+--- poor man's yaml converter
+--- Returns a list of lines representing `t` as yaml.
+--- Usage: `toyaml(some_var)`.
+--- @param t any
+--- @return table yaml
+local function toyaml(t, n, seen, acc)
   seen = seen or {}
   acc = acc or {}
   n = n or 0
   local indent = string.rep(' ', n)
 
-  if seen[t] then
-    for _, y in pairs(t) do
-      acc[#acc + 1] = y
-    end
-    return acc
-  end
-
-  if 'table' ~= type(t) then
+  if 'table' ~= type(t) or seen[t] then
     acc[#acc + 1] = sf('%s%s', indent, t)
     return acc
   end
@@ -134,11 +112,38 @@ local function toyaml2(t, n, seen, acc)
     local kk = 'string' == type(k) and k or sf('[%s]', k)
     if 'table' == type(v) then
       acc[#acc + 1] = sf('%s%s:', indent, kk)
-      acc = toyaml2(v, n + 2, seen, acc)
+      acc = toyaml(v, n + 2, seen, acc)
     else
       acc[#acc + 1] = sf('%s%s: %s', indent, kk, v)
     end
   end
+  return acc
+end
+
+-- poor man's `tostr(data)`
+-- best used for small data since it's string ops intensive
+local function tostr(t, seen, first, acc)
+  seen = seen or {}
+  acc = acc or ''
+  first = nil == first or false -- first call or not
+
+  if 'table' ~= type(t) or seen[t] then
+    acc = sf('%s <%s>', acc, t)
+    return acc
+  end
+
+  seen[t] = true
+  for k, v in pairs(t) do
+    local kk = 'string' == type(k) and sf('%s: ', k) or ''
+    if 'table' == type(v) then
+      -- seen[t] = v
+      local vv = tostr(v, seen, true)
+      acc = sf('%s%s%s{%s}', acc, #acc > 0 and ', ' or '', kk, vv)
+    else
+      acc = sf('%s%s%s%s', acc, #acc > 0 and ', ' or '', kk, v)
+    end
+  end
+  acc = first and sf('{%s}', acc) or acc
   return acc
 end
 
@@ -260,8 +265,9 @@ local parse_opt_by = {
       end
     elseif 'table' == type(v) then
       t = v
-    else
-      log('opt', 'error', 'invalid value for inc: "%s"', v)
+      -- else
+      --   local invalid = table.concat(toyaml(v), ' ')
+      --   log('opt', 'error', 'invalid value for inc: "%s"', invalid)
     end
     local pat = '([^!@:]+)'
     local spec = {}
@@ -275,7 +281,7 @@ local parse_opt_by = {
           how = part:match(':' .. pat),
         }
       else
-        log('opt', 'error', sf('skipped "inc[%s]=%s", expected a "string" not type %q', k, part, type(part)))
+        log('opt', 'error', sf('skipped "inc[%s]=%s", expected a "string"', k, tostr(part)))
       end
     end
     return spec
@@ -339,7 +345,7 @@ local function doc_options(doc)
     log(lid, 'debug', '%q-options', name)
     for option, value in pairs(section) do
       local val = parse_opt(option, value)
-      if nil == val then log('doc', 'warn', '(%s) ignoring %s=%s, illegal value', name, option, value) end
+      if nil == val then log('doc', 'warn', '(%s) ignoring %s=%s, illegal value', name, option, tostr(value)) end
       section[option] = val
       log(lid, 'debug', '- %s.%s = %s', name, option, section[option])
     end
@@ -412,7 +418,7 @@ function kb:new(cb)
   local opt = setmetatable({}, { __index = state.ctx[cfg] })
   for option, value in pairs(ccb.attr.attributes) do
     local val = parse_opt(option, value)
-    if nil == val then log('opt', 'warn', '(#%s) ignoring %s=%s (illegal value)', oid, option, value) end
+    if nil == val then log('opt', 'warn', '(#%s) ignoring %s=%s (illegal value)', oid, option, tostr(value)) end
     opt[option] = parse_opt(option, value)
   end
 
@@ -492,18 +498,14 @@ local function Pandoc(doc)
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
 
   -- tmp
-  local y1 = toyaml(state.ctx)
-  print('y1', dump(y1))
-  print('\n\n')
-  local y2 = toyaml2(state.ctx)
-  print('y2', dump(y2))
+  local t = { 1, 2, a = 1, b = { 3, 4, c = 5 } }
+  print(tostr(t))
 
   local a, b = {}, {}
-  a.b = a
-  b.a = a
-  print('a', dump(toyaml2(a)))
-  print('b', dump(parse_elm(b, true)))
-
+  a.a = b
+  b.b = a
+  print(tostr(a))
+  print(tostr(b))
   -- tmp
 
   return rv
