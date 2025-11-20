@@ -233,30 +233,32 @@ parse_elm_by = {
   end,
 
   -- parsers by lua types
+  -- nb: exe=yes/no/maybe, where yes/no comes out as true/false -> all booleans := yes/no strings
   ['nil'] = function() return nil end,
   thread = function() return nil end,
   table = function(v, d, s) return parse_elm(v, d, s) end,
   userdata = function(v, d, s) return parse_elm(v, d, s) end,
   ['function'] = function(v, d) return d and v or nil end,
   string = function(v) return v end,
-  boolean = function(v) return v end,
+  boolean = function(v) return v and 'yes' or 'no' end,
   number = function(v) return v end,
 }
 
--- parsers for stitch options that also validate
+-- validating parsers for stitch options
+-- nb: nil means option gets removed -> falls back on resolution order
 local parse_opt_by = {
   arg = function(v) return 'string' == type(v) and v or nil end,
   art = function(v) return 'string' == type(v) and v or nil end,
   cbx = function(v) return 'string' == type(v) and v or nil end,
   cid = function(v) return 'string' == type(v) and v or nil end,
-  cls = function(v) return 'string' == type(v) and v:match('yes no') and v or nil end,
+  cls = function(v) return 'string' == type(v) and ('no yes'):match(v) and v or nil end,
   err = function(v) return 'string' == type(v) and v or nil end,
-  exe = function(v) return 'string' == type(v) and v:match('yes no maybe') and v or nil end,
+  exe = function(v) return 'string' == type(v) and ('yes maybe no'):match(v) and v or nil end,
   fmt = function(v) return 'string' == type(v) and v or nil end,
-  log = function(v) return 'string' == type(v) and v:match('debug error warn info silent') and v or nil end,
-  old = function(v) return 'string' == type(v) and v:match('purge keep') and v or nil end,
+  log = function(v) return 'string' == type(v) and ('debug error warn info silent'):match(v) and v or nil end,
+  old = function(v) return 'string' == type(v) and ('purge keep'):match(v) and v or nil end,
   out = function(v) return 'string' == type(v) and v or nil end,
-  run = function(v) return 'string' == type(v) and v:match('cmd chunk') and v or nil end,
+  run = function(v) return 'string' == type(v) and ('cmd chunk'):match(v) and v or nil end,
 
   inc = function(v)
     -- `inc` in cb.attr is always a string, in meta it can be string or a table
@@ -340,12 +342,23 @@ local function doc_options(doc)
 
   local opt = meta.stitch or {} -- toplevel meta.stitch
   opt.stitch = opt.stitch or {} -- ensure stitch's own section
-  local defaults = opt.defaults or {}
 
+  -- ensure valid values for stitch options in all sections
+  for name, section in pairs(opt) do
+    log(lid, 'debug', '%q-options', name)
+    for option, value in pairs(section) do
+      local val = parse_opt(option, value)
+      if nil == val then log('doc', 'warn', '(%s) ignoring %s=%s, illegal value', name, option, value) end
+      section[option] = val
+      log(lid, 'debug', '- %s.%s = %s', name, option, section[option])
+    end
+  end
+
+  -- setup metatable chains to ensure option resolution order
+  local defaults = opt.defaults or {}
   setmetatable(defaults, { __index = hard_coded_opts })
   setmetatable(opt, { __index = function() return defaults end })
   opt.defaults = nil
-
   for name, section in pairs(opt) do
     if 'table' == type(section) then
       setmetatable(section, { __index = defaults })
@@ -355,17 +368,6 @@ local function doc_options(doc)
       opt[name] = nil
     end
   end
-
-  -- ensure valid values for stitch options in all sections
-  for name, section in pairs(opt) do
-    log(lid, 'debug', '%q-options', name)
-    for option, val in pairs(section) do
-      if 'inc' == option then print('inc', dump(val)) end
-      section[option] = parse_opt(option, val)
-      log(lid, 'debug', '- %s.%s = %s', name, option, section[option])
-    end
-  end
-  -- print('opt dump', dump(opt))
 
   opt.meta = {
     title = meta.title,
@@ -396,42 +398,43 @@ local kb = {
 --- @return table ccb
 function kb:new(cb)
   local ccb = parse_elm(cb)
-  local oldlevel = state.log['opt']
-  local level = ccb.attr.attributes.log
-  if level then state:logger('opt', level) end
   local oid = ccb.attr.identifier or '' -- TODO: unique nrs
   oid = #oid == 0 and sf('cb%03d', #state.seen + 1) or oid
-  -- get applicable ccb.stitch cfg section
+
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
   cfg = cfg or pd.List.includes(ccb.attr.classes, 'stitch') -- 2. .stitch class
   cfg = cfg or rawget(state.ctx, oid) and oid -- 3. #id has config section
-  for _, v in ipairs(ccb.attr.classes) do
-    if cfg then break end
-    cfg = cfg or rawget(state.ctx, v) and v.cls == 'yes' and v -- 3. class match cfg.cls=yes
+  if 'no' ~= cb.attr.attributes.cls and not cfg then
+    -- 4. cb class matches with a section, disable search on cb-level w/ cls=no
+    for _, class in ipairs(ccb.attr.classes) do
+      if cfg then break end
+      local section = rawget(state.ctx, class)
+      -- nb: resolution is section->defaults->hard_coded_opts
+      -- * require for the section to actually exists (hence rawget)
+      -- * disable class matching on on section-level or defaults level
+      cfg = section and 'no' ~= section.cls and class or nil
+    end
   end
+  cfg = cfg or nil -- ensure nil as failure value (i.e. false := nil)
 
-  -- ensure cb options have consistent and valid values
-  local opt = {}
+  -- ensure cb options have valid values
+  local opt = setmetatable({}, { __index = state.ctx[cfg] })
   for option, value in pairs(ccb.attr.attributes) do
+    local val = parse_opt(option, value)
+    if nil == val then log('opt', 'warn', '(#%s) ignoring %s=%s (illegal value)', oid, option, value) end
     opt[option] = parse_opt(option, value)
   end
 
   local new = {
-    cfg = cfg, -- the config name, if eligible for stitch processing
-    cls = ccb.attr.classes, -- the list of classes (only for reading)
+    cfg = cfg, -- if nil, cb is not eligible for stitch processing
+    cls = ccb.attr.classes,
     oid = oid, -- cb's identifier or cb<nth>
-    opt = setmetatable(opt, { __index = state.ctx[cfg] }),
+    opt = opt, -- cb's options with valid values
     txt = ccb.text, -- for convenience
     ast = ccb, -- parsed ast for cb (for debugging)
     org = cb, -- original cb (for debugging)
   }
 
-  -- ensure inc is always array of include specs
-  -- local inc = new.opt.inc -- if missing, resolves to defaults/hardcoded
-  print('inc', dump(new.opt.inc))
-  print('hrd', dump(hard_coded_opts.inc))
-
-  state.log['opt'] = oldlevel
   self.__index = self
   setmetatable(new, self)
   state:save(new)
@@ -479,7 +482,7 @@ local function CodeBlock(cb)
   local lid = state:logger('cb', 'info')
   local ccb = kb:new(cb)
   if not kb:eligible(ccb) then
-    log(lid, 'warn', 'skip codeblock id %q, not eligible', ccb.oid)
+    log(lid, 'warn', '(%s) skip, codeblock not eligible', ccb.oid)
     return nil
   end
 
@@ -498,6 +501,16 @@ local function Pandoc(doc)
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
 
   -- tmp
+  local y1 = toyaml(state.ctx)
+  print('y1', dump(y1))
+  print('\n\n')
+  local y2 = toyaml2(state.ctx)
+  print('y2', dump(y2))
+
+  local a, b = {}, {}
+  a.b = a
+  b.a = a
+  print('a', dump(toyaml2(a)))
 
   -- tmp
 
