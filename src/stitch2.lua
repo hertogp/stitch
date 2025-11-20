@@ -212,16 +212,7 @@ local function parse_elm(elm, detail, seen)
     if seen[v] then return v end --{ [k] = sf('<cyclic: %p> %s', v, v) } end
     if 'table' == type(v) or 'userdata' == type(v) then seen[v] = v end
     local parse = parse_elm_by[pd.utils.type(v)] or parse_elm_by[type(v)]
-    -- print(
-    --   sf('%10s', k),
-    --   'types:',
-    --   pd.utils.type(v),
-    --   type(v),
-    --   'funcs',
-    --   parse_elm_by[pd.utils.type(v)],
-    --   parse_elm_by[type(v)]
-    -- )
-    t[k] = parse and parse(v, detail, seen) -- or nil -> ignored
+    t[k] = parse and parse(v, detail, seen)
   end
   return t
 end
@@ -511,6 +502,7 @@ local function Pandoc(doc)
   a.b = a
   b.a = a
   print('a', dump(toyaml2(a)))
+  print('b', dump(parse_elm(b, true)))
 
   -- tmp
 
