@@ -28,15 +28,16 @@ local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3
 
 --- hard coded defaults for stitch's options
 -- opt resolution: cb.opt->ctx.section->ctx.defaults->hardcoded
+-- reserved names: sha, oid
 local hard_coded_opts = {
   -- `cid`, `sha` are calculated and added by stitch for its own use
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-  art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
-  cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
+  art = '#dir/#oid-#sha.#fmt', -- artifact (output) file (if any)
+  cbx = '#dir/#oid-#sha.cbx', -- the codeblock.text as file on disk
   cls = 'no', -- {'yes', 'no'}
   cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
-  err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
+  err = '#dir/#oid-#sha.err', -- capture of stderr (if any)
   exe = 'maybe', -- {yes, no, maybe}
   fmt = 'png', -- format for images (if any)
   -- inc: {what=.., how=.., read=.., filter=..}, default how for out,err is fcb
@@ -44,7 +45,7 @@ local hard_coded_opts = {
   log = 'info', -- {debug, error, warn, info, silent}
   run = 'cmd', -- {cmd, chunk, noop (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
-  out = '#dir/#cid-#sha.out', -- capture of stdout (if any)
+  out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
 }
 
 --- state stores the following:
@@ -127,24 +128,48 @@ local function tostr(t, seen, first, acc)
   acc = acc or ''
   first = nil == first or false -- first call or not
 
-  if 'table' ~= type(t) or seen[t] then
-    acc = sf('%s <%s>', acc, t)
-    return acc
-  end
+  local comma = #acc > 0 and ', ' or ''
+  if seen[t] then return sf('%s%s<%s>', acc, comma, t) end
+  if 'table' ~= type(t) then return sf('%s%s%s', acc, comma, t) end
 
   seen[t] = true
   for k, v in pairs(t) do
     local kk = 'string' == type(k) and sf('%s: ', k) or ''
+    comma = #acc > 0 and ', ' or ''
     if 'table' == type(v) then
-      -- seen[t] = v
-      local vv = tostr(v, seen, true)
-      acc = sf('%s%s%s{%s}', acc, #acc > 0 and ', ' or '', kk, vv)
+      local vv = tostr(v, seen, false)
+      local fmt = vv:match('^%<.-%>$') and '%s%s%s%s' or '%s%s%s{%s}'
+      acc = sf(fmt, acc, comma, kk, vv)
     else
-      acc = sf('%s%s%s%s', acc, #acc > 0 and ', ' or '', kk, v)
+      acc = sf('%s%s%s%s', acc, comma, kk, v)
     end
   end
   acc = first and sf('{%s}', acc) or acc
   return acc
+end
+
+-- Returns the sha fingerprint for given (parsed) `ccb`.
+--
+-- The fingerprint is the sha1 hash of all relevant option values
+-- sorted by key plus the codeblock's content.  The sha1 hash is
+-- calculated using the combined values with all whitespace removed.
+--- @param ccb table
+--- @return string sha
+local function tosha(ccb)
+  local keys = {}
+  for k, _ in pairs(hard_coded_opts) do
+    if not ('exe log old'):match(k) then keys[#keys + 1] = k end
+  end
+  table.sort(keys)
+
+  local vals = {}
+  for _, k in pairs(keys) do
+    vals[#vals + 1] = tostr(ccb.opt[k])
+  end
+  vals[#vals + 1] = ccb.txt
+
+  local str = table.concat(vals, ''):gsub('%s+', '')
+  return pd.sha1(str)
 end
 
 --[[----- State ------------]]
@@ -281,7 +306,7 @@ local parse_opt_by = {
           how = part:match(':' .. pat),
         }
       else
-        log('opt', 'error', sf('skipped "inc[%s]=%s", expected a "string"', k, tostr(part)))
+        log('opt', 'error', sf('ignoring inc[%s]=%s, illegal value', k, tostr(part)))
       end
     end
     return spec
@@ -347,7 +372,7 @@ local function doc_options(doc)
       local val = parse_opt(option, value)
       if nil == val then log('doc', 'warn', '(%s) ignoring %s=%s, illegal value', name, option, tostr(value)) end
       section[option] = val
-      log(lid, 'debug', '- %s.%s = %s', name, option, section[option])
+      log(lid, 'debug', '- %s.%s = %s', name, option, tostr(section[option], {}, true, ''))
     end
   end
 
@@ -376,7 +401,7 @@ local function doc_options(doc)
   return opt
 end
 
---[[----- KodeBlock --------]]
+--[[----- kb ---------------]]
 local function run_noop(self) print(self, sf('run noop %s', self.opts.exe)) end
 local kb = {
   run = setmetatable({}, { __index = function() return run_noop end }),
@@ -425,12 +450,18 @@ function kb:new(cb)
   local new = {
     cfg = cfg, -- if nil, cb is not eligible for stitch processing
     cls = ccb.attr.classes,
-    oid = oid, -- cb's identifier or cb<nth>
     opt = opt, -- cb's options with valid values
     txt = ccb.text, -- for convenience
     ast = ccb, -- parsed ast for cb (for debugging)
     org = cb, -- original cb (for debugging)
   }
+
+  -- calculate sha & expand filenames
+  opt.oid = oid
+  opt.sha = tosha(new)
+  for _, tpl in ipairs({ 'cbx', 'art', 'out', 'err', 'cmd' }) do
+    opt[tpl] = pd.path.normalize(opt[tpl]:gsub('%#(%w+)', opt))
+  end
 
   self.__index = self
   setmetatable(new, self)
@@ -479,33 +510,30 @@ local function CodeBlock(cb)
   local lid = state:logger('cb', 'info')
   local ccb = kb:new(cb)
   if not kb:eligible(ccb) then
-    log(lid, 'warn', '(%s) skip, codeblock not eligible', ccb.oid)
+    log(lid, 'warn', '(%s) skip, codeblock not eligible', ccb.opt.oid)
     return nil
   end
 
-  log(lid, 'info', 'accept codeblock, id %q with config %q', ccb.oid, ccb.cfg)
+  log(lid, 'info', 'accept codeblock, id %q with config %q', ccb.opt.oid, ccb.cfg)
+
   -- process here
-  -- print('ccb', ccb.cfg, ccb.opt.inc, dump(state.ctx[ccb.cfg]))
-  -- print('ccb.opt', type(ccb.opt.bool1), dump(ccb.opt))
+  -- kb:run(ccb)
+  -- 2. kb:purge(ccb)
+  -- 3. return kb:result(ccb)
+  print(table.concat(toyaml(ccb.opt), '\n'))
+  print(table.concat(toyaml(state.ctx[ccb.cfg]), '\n'))
   return nil
 end
 
 local function Pandoc(doc)
   local lid = state:logger('doc', 'info')
-  log(lid, 'info', 'new document, title "%s"', pd.utils.stringify(doc.meta.title))
+  -- log(lid, 'info', 'new document, title "%s"', pd.utils.stringify(doc.meta.title))
+  log(lid, 'info', 'new document, title %q', tostr(parse_elm_by['Inlines'](doc.meta.title)))
   state.ctx = doc_options(doc)
   local rv = doc:walk({ CodeBlock = CodeBlock })
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
 
   -- tmp
-  local t = { 1, 2, a = 1, b = { 3, 4, c = 5 } }
-  print(tostr(t))
-
-  local a, b = {}, {}
-  a.a = b
-  b.b = a
-  print(tostr(a))
-  print(tostr(b))
   -- tmp
 
   return rv
