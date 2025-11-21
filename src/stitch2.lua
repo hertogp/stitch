@@ -63,6 +63,7 @@ local state = {
   ccb = nil, -- current codeblock
   seen = {}, -- previous codeblock's
   stack = {}, -- previous doc's, gets pushed/popped
+  doc = nil, -- ref to doc so it can be used in codeblock chunks
 }
 
 --[[----- logging ----------]]
@@ -91,6 +92,27 @@ local function log(id, tier, msg, ...)
 end
 
 --[[----- helpers ----------]]
+
+local function exists(filename) return true == os.rename(filename, filename) end
+
+-- Poor man's semi-deep copy of t (table, userdata, etc..)
+--- @return any
+local function tcopy(t, seen)
+  seen = seen or {}
+
+  if seen[t] then return seen[t] end
+  -- most pandoc type are clone()'able (except for CommonState ..)
+  if 'userdata' == type(t) and t.clone then return t:clone() end
+  if 'table' ~= type(t) then return t end
+
+  local tt = {}
+  seen[t] = tt
+  for k, v in next, t, nil do
+    tt[tcopy(k, seen)] = tcopy(v, seen)
+  end
+  setmetatable(tt, tcopy(getmetatable(t), seen))
+  return tt
+end
 
 --- poor man's yaml converter
 --- Returns a list of lines representing `t` as yaml.
@@ -171,8 +193,6 @@ local function tosha(ccb)
   local str = table.concat(vals, ''):gsub('%s+', '')
   return pd.sha1(str)
 end
-
-local function exists(filename) return true == os.rename(filename, filename) end
 
 --[[----- State ------------]]
 
@@ -298,6 +318,7 @@ local parse_opt_by = {
     for k, part in pairs(t) do
       if 'string' == type(part) then
         -- REVIEW: maybe support multiple filters: @m1.f1@m2.f2@.. ?
+        -- note: validation is handled by ccb:inc() & friends
         spec[#spec + 1] = {
           what = part:match('^' .. pat),
           read = part:match('!' .. pat),
@@ -454,6 +475,14 @@ local kb = {
         return {}
       end
     end,
+
+    __call = function(inc, self)
+      local oid = self.opt.oid
+      local includes = self.opt.inc
+      for idx, directive in pairs(includes) do
+        log(oid, 'debug', 'inc[%d] = %s', idx, tostr(directive))
+      end
+    end,
   }),
 }
 
@@ -481,9 +510,9 @@ end
 
 -- run ccb as lua chunk with _ENV.Stitch set
 function kb.run:chunk()
+  -- TODO: use clone() instead of references to internal tables
   _ENV.Stitch = {
-    state = state,
-    ccb = self,
+    state = tcopy(state),
     tostr = tostr,
     toyaml = toyaml,
   }
@@ -504,7 +533,7 @@ end
 
 --[[----- kb.inc:<what> ----]]
 
-function kb:fcb()
+function kb.inc:fcb()
   -- tja wat dan?
 end
 
@@ -522,11 +551,9 @@ end
 --- @param cb table
 --- @return table ccb
 function kb:new(cb)
-  -- TODO: 1) get oid, 2) logger=oid, 3) cb.lid = oid 4) start logging!
-  --* that way, parsing can log using cb identity instead of `cbopt`
   local oid = sf('%s', cb.attr.identifier)
   oid = #oid == 0 and sf('cb%03d', #state.seen + 1) or oid
-  state:logger(oid, 'debug')
+  state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
   local ccb = parse_elm(cb)
 
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
@@ -665,7 +692,7 @@ end
 --[[----- STITCH -----------]]
 
 local function CodeBlock(cb)
-  local ccb = kb:new(cb)
+  local ccb = kb:new(cb) -- also registers oid as logger
   local oid = ccb.opt.oid
   if not ccb:is_eligible() then
     log(oid, 'warn', '(%s) skip, codeblock not eligible', oid)
@@ -683,10 +710,11 @@ local function CodeBlock(cb)
   -- 2. kb:purge(ccb)
   -- 3. return kb:result(ccb)
   -- print(ccb:total_recall())
-  log(oid, 'info', 'codeblock going to run', oid)
   ccb:run()
   ccb:purge()
 
+  ccb:inc()
+  -- return ccb:inc()
   return nil
 end
 
@@ -694,7 +722,8 @@ local function Pandoc(doc)
   local lid = state:logger('doc', 'info')
   -- log(lid, 'info', 'new document, title "%s"', pd.utils.stringify(doc.meta.title))
   log(lid, 'info', 'new document, title %q', tostr(parse_elm_by['Inlines'](doc.meta.title)))
-  state.ctx = doc_options(doc)
+  state.ctx = doc_options(doc) -- TODO: should simply set state.ctx ?
+  state.doc = doc
   local rv = doc:walk({ CodeBlock = CodeBlock })
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
 
