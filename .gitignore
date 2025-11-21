@@ -41,8 +41,8 @@ luac.out
 
 # Scratch dirs
 scr/
-
 examples/.stitch/
+.stitch/new/
 
 # Scratch files
 *.html

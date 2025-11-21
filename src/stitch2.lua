@@ -43,7 +43,7 @@ local hard_coded_opts = {
   -- inc: {what=.., how=.., read=.., filter=..}, default how for out,err is fcb
   inc = { { what = 'cbx', how = 'fcb' }, { what = 'out' }, { what = 'art', how = 'img' }, { what = 'err' } },
   log = 'info', -- {debug, error, warn, info, silent}
-  run = 'cmd', -- {cmd, chunk, noop, data (ie cbx=data to be used by inc)}
+  run = 'system', -- {system, chunk, no, noop, data (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
   out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
 }
@@ -83,9 +83,8 @@ local state = {
 --- @param msg string
 local function log(id, tier, msg, ...)
   local level = log_level[tier] or 3 -- unknown tier is warning
-  local mark = level == 2 and '!! ' or ''
   if (log_level[tier] or 0) > (state.log[id] or 0) then return end
-  local prefix = sf('%%stitch[%s] %s %s: %s', #state.stack, tier, id, mark)
+  local prefix = sf('stitch[%s] %s (%s) ', #state.stack, tier, id)
   io.output():write(prefix, sf(msg, ...), '\n')
   io.output():flush()
   assert(level ~= 1, sf('fatal error logged by %s', id))
@@ -282,7 +281,7 @@ local parse_opt_by = {
   log = function(v) return 'string' == type(v) and ('debug error warn info silent'):match(v) and v or nil end,
   old = function(v) return 'string' == type(v) and ('purge keep'):match(v) and v or nil end,
   out = function(v) return 'string' == type(v) and v or nil end,
-  run = function(v) return 'string' == type(v) and ('cmd chunk noop'):match(v) and v or nil end,
+  run = function(v) return 'string' == type(v) and ('system chunk noop'):match(v) and v or nil end,
 
   inc = function(v)
     -- `inc` in cb.attr is always a string, in meta it can be string or a table
@@ -380,7 +379,7 @@ local function doc_options(doc)
     section.flawed = flawed
   end
 
-  -- setup metatable chains to ensure option resolution order
+  -- setup metatable chain for option resolution order
   local defaults = opt.defaults or {}
   setmetatable(defaults, { __index = hard_coded_opts })
   setmetatable(opt, { __index = function() return defaults end })
@@ -405,32 +404,111 @@ local function doc_options(doc)
   return opt
 end
 
---[[----- kb ---------------]]
+--[[----- kodeblock --------]]
+
+--- Class to represent codeblock instances (`ccb`'s) within stitch.
+---
+--- Class fields:
+--- `run` function table for running the codeblock via `ccb:run()`
+---
+--- Instance fields:
+--- `opt` ccb's attributes, includes `oid` used for logging
+--- `cls` ccb's classes
+--- `txt` ccb's text (content)
+--- `ast` parsed ast for `cb`
+--- `org` the original `cb`
+--- `cfg` ccb's configuration name (nil = not eligible)
+--- `flawed` flags that codeblock has errors or not
 local kb = {
+  -- run methods per type of codeblock (system, chunk or noop)
   run = setmetatable({}, {
     __index = function(_, k)
       -- kb.run[run=method](ccb) -> _ is kb.run table, k is absent key being looked up
       return function(self)
-        self.err = true
-        log('run', 'error', '(%s) cannot run as %q', self.opt.oid, k)
+        self.flawed = true
+        log(self.opt.oid, 'error', 'codeblock unknown run type %q', k)
       end
     end,
-    __call = function(_, self)
-      -- ccb:run() -> _ is kb.run, self is ccb
+    __call = function(run, self)
+      -- ccb:run() -> run is table kb.run, self is the ccb instance
+      local oid = self.opt.oid
       if self.flawed or self.opt.flawed then
-        log('run', 'warn', '(%s) not running due to codeblock errors', self.opt.oid)
+        log(oid, 'warn', 'codeblock not running due to errors')
         return nil
       elseif 'no' == self.opt.exe then
-        log('run', 'warn', '(%s) skip run, exe = no', self.opt.oid)
+        log(oid, 'warn', 'codeblock skipping skip run (exe = no)')
         return nil
-      elseif 'maybe' == self.opt.exe and self:is_dejavu() then
-        log('run', 'warn', '(%s) skip run, dejavu = true, exe = maybe', self.opt.oid)
+      elseif 'maybe' == self.opt.exe and self:total_recall() then
+        log(oid, 'info', 'codeblock run skipped, results already exist')
         return nil
       end
-      self.run[self.opt.run](self)
+      -- TODO: also check self.opt.run != noop ?
+      if self:setup() then run[self.opt.run](self) end
+    end,
+  }),
+
+  inc = setmetatable({}, {
+    __index = function(_, k)
+      return function(self)
+        log(self.opt.iod, 'error', 'include skip type %q (unknown)', k)
+        return {}
+      end
     end,
   }),
 }
+
+--[[----- kb.run:<as> ------]]
+
+-- run=<kind> - function for each kind of run
+-- ccb:run() -> __call does the setup and runs kb.run[<kind>](self)
+
+-- ccb run as noop, just logs it is not really running
+function kb.run:noop() log('run', 'info', '(%s) no run, codeblock is a noop', self.opt.oid) end
+
+-- run ccb as system command
+function kb.run:system()
+  --
+  local oid = self.opt.oid
+  local ok, code, nr = os.execute(self.opt.cmd)
+  if ok then
+    log(oid, 'info', 'codeblock succeeded as system command')
+  else
+    -- TODO: make this self.lid
+    log(oid, 'error', 'codeblock system command failed with %s(%s)', code, nr)
+    self.flawed = true
+  end
+end
+
+-- run ccb as lua chunk with _ENV.Stitch set
+function kb.run:chunk()
+  _ENV.Stitch = {
+    state = state,
+    ccb = self,
+    tostr = tostr,
+    toyaml = toyaml,
+  }
+  local oid = self.opt.oid
+
+  local f, lferr = loadfile(self.opt.cbx, 't', _ENV)
+  if f == nil or lferr then
+    log(oid, 'error', 'codeblock chunk failed: %s', lferr)
+  else
+    local ok, err = pcall(f)
+    if ok then
+      log(oid, 'info', 'codeblock succeeded as chunk', oid)
+    else
+      log(oid, 'error', 'codeblock chunk failed wih: %s', err)
+    end
+  end
+end
+
+--[[----- kb.inc:<what> ----]]
+
+function kb:fcb()
+  -- tja wat dan?
+end
+
+--[[----- kb:<others> ------]]
 
 --- Returns a new current codeblock `ccb` for given Pandoc.CodeBlock `cb`.
 --
@@ -444,10 +522,12 @@ local kb = {
 --- @param cb table
 --- @return table ccb
 function kb:new(cb)
-  local lid = state:logger('cbopt', 'debug')
-  local ccb = parse_elm(cb)
-  local oid = ccb.attr.identifier or '' -- TODO: unique nrs
+  -- TODO: 1) get oid, 2) logger=oid, 3) cb.lid = oid 4) start logging!
+  --* that way, parsing can log using cb identity instead of `cbopt`
+  local oid = sf('%s', cb.attr.identifier)
   oid = #oid == 0 and sf('cb%03d', #state.seen + 1) or oid
+  state:logger(oid, 'debug')
+  local ccb = parse_elm(cb)
 
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
   cfg = cfg or pd.List.includes(ccb.attr.classes, 'stitch') -- 2. .stitch class
@@ -470,7 +550,7 @@ function kb:new(cb)
   local opt = setmetatable({}, { __index = state.ctx[cfg] })
   for option, value in pairs(ccb.attr.attributes) do
     local val = parse_opt(option, value)
-    if nil == val then log(lid, 'error', '(#%s) %s=%s (illegal value)', oid, option, tostr(value)) end
+    if nil == val then log(oid, 'error', '(#%s) %s=%s (illegal value)', oid, option, tostr(value)) end
     flawed = flawed or val == nil
     opt[option] = val
   end
@@ -485,7 +565,7 @@ function kb:new(cb)
     flawed = flawed, -- if true, codeblock skipped, all operations check this flag
   }
 
-  -- calculate sha & expand filenames
+  -- calculate sha & expand filenames (cmd must be last as it uses filenames)
   opt.oid = oid
   opt.sha = tosha(new)
   for _, tpl in ipairs({ 'cbx', 'art', 'out', 'err', 'cmd' }) do
@@ -498,49 +578,114 @@ function kb:new(cb)
   return new
 end
 
---- Returns true if `ccb` can be processed by stitch, false otherwise
-function kb:is_eligible() return self.cfg ~= nil end
-
 --- Returns true if cbx-file and one or more of art,out,err-files exist
 ---
 --- If true, there is no real need to run codeblock again. Returns false when no
 --- such files exist or could not be determined due to lack of fingerprints.
-function kb:is_dejavu()
+function kb:total_recall()
   local artifacts = exists(self.opt.art) or exists(self.opt.out) or exists(self.opt.err)
   return exists(self.opt.cbx) and artifacts
 end
 
---[[----- kb:run -----------]]
-function kb.run:cmd() print(self, 'run as system command') end
-function kb.run:chunk() print(self, 'run as lua chunk') end
-function kb.run:noop() print(self, 'codeblock is a noop') end
+--- Returns the number of old files removed that were previously generated
+--- by this codeblock.  If codeblock is flawed, purge is skipped.
+--- @return number count
+function kb:purge()
+  local oid = self.opt.oid
+  local count = 0
 
---[[----- kb:<funcs> ------]]
-function kb:execute() return self.run[self.opts.exe](self) end
+  if self.flawed then return count end
+
+  if 'purge' ~= self.opt.old then
+    log(oid, 'info', 'purge skipped (old=%s)', self.opt.old)
+    return count
+  end
+
+  for _, ftype in ipairs({ 'cbx', 'out', 'err', 'art' }) do
+    local fnew = self.opt[ftype]
+    local pat = fnew:gsub('[][()%.*+^$?-]', '%%%1') -- literal magic
+    local n = 0
+    pat, n = pat:gsub(self.opt.sha, '(%%w+)')
+    if n ~= 1 then
+      log(oid, 'warn', 'purge skipped, %s-file has no sha fingerprint', ftype)
+      break
+    end
+
+    local dir = pd.path.directory(fnew)
+    for _, fold in ipairs(pd.system.list_directory(dir)) do
+      fold = pd.path.join({ dir, fold })
+      if fold:match(pat) and fold ~= fnew then
+        local ok, err = os.remove(fold) -- pd.system.remove is version >=3.7.1
+        if not ok then
+          log(oid, 'error', 'purge failed to remove old file %s (%s)', fold, err)
+        else
+          count = count + 1
+          log(oid, 'debug', 'purge removed old file %s', fold)
+        end
+      end
+    end
+  end
+  log(oid, 'debug', 'purge removed %d old files', count)
+  return count
+end
+
+--- Returns true if `ccb` can be processed by stitch, false otherwise
+function kb:is_eligible() return self.cfg ~= nil end
+
+--- Setup creates the necessary directories and sets up the cbx-file
+---
+--- Return true if setup succeeded, false otherwise
+function kb:setup()
+  local oid = self.opt.oid
+  for _, path in ipairs({ 'cbx', 'art', 'out', 'err' }) do
+    local dir = pd.path.normalize(pd.path.directory(self.opt[path]))
+    if not os.execute(sf('mkdir -p %s', dir)) then
+      log(oid, 'error', 'permission denied when creating ', dir)
+      self.flawed = true
+      return false
+    end
+  end
+
+  local fh = io.open(self.opt.cbx, 'w')
+  if not (fh and fh:write(self.txt)) then
+    log(oid, 'error', 'error writing out cbx-file %s', self.opt.cbx)
+    self.flawed = true
+    return false
+  end
+  fh:close()
+
+  if not os.execute(sf('chmod u+x %s', self.opt.cbx)) then
+    log(oid, 'error', 'could not mark cbx as executable: %s', self.opt.cbx)
+    self.flawed = true
+    return false
+  end
+  return true
+end
 
 --[[----- STITCH -----------]]
 
 local function CodeBlock(cb)
-  local lid = state:logger('cb', 'info')
   local ccb = kb:new(cb)
+  local oid = ccb.opt.oid
   if not ccb:is_eligible() then
-    log(lid, 'warn', '(%s) skip, codeblock not eligible', ccb.opt.oid)
+    log(oid, 'warn', '(%s) skip, codeblock not eligible', oid)
     return nil
   end
-  if ccb.err then
-    log(lid, 'error', '(%s) skip, codeblock contains errors', ccb.opt.oid)
+  if ccb.flawed then
+    log(oid, 'error', '(%s) skip, codeblock contains errors', oid)
     return nil
   end
 
-  log(lid, 'info', 'accept codeblock, id %q with config %q', ccb.opt.oid, ccb.cfg)
+  log(oid, 'info', 'codeblock selected using config %q', ccb.cfg)
 
   -- process here
   -- ccb:run()
   -- 2. kb:purge(ccb)
   -- 3. return kb:result(ccb)
-  -- print(ccb:is_dejavu())
-  log(lid, 'info', '(%s) trying to run codeblock', ccb.opt.oid)
+  -- print(ccb:total_recall())
+  log(oid, 'info', 'codeblock going to run', oid)
   ccb:run()
+  ccb:purge()
 
   return nil
 end
