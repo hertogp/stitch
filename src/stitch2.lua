@@ -85,7 +85,7 @@ local state = {
 local function log(id, tier, msg, ...)
   local level = log_level[tier] or 3 -- unknown tier is warning
   if (log_level[tier] or 0) > (state.log[id] or 0) then return end
-  local prefix = sf('stitch[%s] %s (%s) ', #state.stack, tier, id)
+  local prefix = sf('stitch[%s] %-5s %8s| ', #state.stack, tier, id)
   io.output():write(prefix, sf(msg, ...), '\n')
   io.output():flush()
   assert(level ~= 1, sf('fatal error logged by %s', id))
@@ -94,6 +94,89 @@ end
 --[[----- helpers ----------]]
 
 local function exists(filename) return true == os.rename(filename, filename) end
+
+local function read(filename, format)
+  local fh, err = io.open(filename, 'r')
+  if nil == fh then return nil, err end
+
+  local dta = fh:read('*a')
+  fh:close()
+
+  if format and #format > 0 then
+    local ok, data = pcall(pd.read, dta, format)
+    if not ok then return nil, data end
+  end
+
+  return dta
+end
+
+-- Requires first available module `name`, dropping labels while searching.
+--
+-- Returns required `mod`,`name`,`func` on success or `nil` on failure.
+-- Notes:
+-- - `mod` is the result of a succesful `require(name)`
+-- - `acc` collects labels dropped during search and is returned as `func`
+-- - whether `func` if actually exported is *not* checked
+-- - `func` is `nil` if the first `require` succeeds
+--
+-- Returns `nil` on failure.
+--
+--- @param name string
+--- @param acc string?
+--- @return any mod, string? name, string? func
+local function need(name, acc)
+  if nil == name or 0 == #name then return nil end
+
+  local ok, mod = pcall(require, name)
+  if false == ok or true == mod then
+    local last_dot = name:find('%.[^%.]+$')
+    if not last_dot then return nil end
+    local mm, ff = name:sub(1, last_dot - 1), name:sub(last_dot + 1)
+    if ff and acc then ff = sf('%s.%s', ff, acc) end
+    return need(mm, ff)
+  else
+    return mod, name, acc
+  end
+end
+
+--- Returns filtered `data`,`stats` or nil,`error` on failure.
+---
+--- Searches to require `name`, which may be split into a `mod` and `func`
+--- during search.  Returns `nil`,`error` when no module could be found.
+---
+--- If a module was required without the search also producing a `func`, than
+--- `Pandoc` is assumed.  Then `mod.func(data)` is called only once and results
+--- are returned.
+---
+--- If the `mod` found does not export `func` (`Pandoc` or as found), then
+--- `mod` is assumed to be a list of filters each exporting `func` and they
+--- are called in the order listed, each receiving data from the last filter
+--- called. Filters in the list that do not export `func` are *skipped*.  So
+--- pandoc filters that don't export `Pandoc`, won't work.
+---
+--- @param data any
+--- @param name string
+--- @return any data, string msg
+local function filter(data, name)
+  local count = 0
+  if nil == data then return nil, 'no data supplied to filter' end
+  if nil == name or 0 == #name then return data, 'no filter supplied' end -- TODO: nil or "" -> still noop?
+  local mod, _, fun = need(name)
+  if nil == mod then return nil, sf('unable to require %q', name) end
+
+  fun = fun or 'Pandoc'
+  local filters = mod.fun and { mod } or mod
+
+  for _, f in ipairs(filters) do
+    if f[fun] then
+      local ok, tmp = pcall(f[fun], data)
+      data = ok and tmp or data
+      count = ok and count + 1 or count
+    end
+  end
+
+  return data, sf('%d/%d applied', count, #filters)
+end
 
 -- Poor man's semi-deep copy of t (table, userdata, etc..)
 --- @return any
@@ -469,19 +552,41 @@ local kb = {
   }),
 
   inc = setmetatable({}, {
-    __index = function(_, k)
-      return function(self)
-        log(self.opt.iod, 'error', 'include skip type %q (unknown)', k)
-        return {}
-      end
+    __index = function(inc, how)
+      -- nil means do default, otherwise how is unknown and an error
+      return nil == how and inc.any or inc.err
     end,
 
     __call = function(inc, self)
-      local oid = self.opt.oid
-      local includes = self.opt.inc
-      for idx, directive in pairs(includes) do
-        log(oid, 'debug', 'inc[%d] = %s', idx, tostr(directive))
+      local elms = {} -- accumulator for the includes
+      local opt = self.opt
+      local oid = opt.oid
+      for idx, todo in pairs(opt.inc) do
+        local dta, elm, msg, err
+        dta, err = read(opt[todo.what], opt[todo.read])
+        if err then
+          log(oid, 'error', 'include failed to read %s (%s)', opt[todo.what], err)
+          break
+        end
+
+        dta, msg = filter(dta, todo.filter)
+        if nil == dta then
+          log(oid, 'debug', 'include filter failed %s (%s)', todo.filter, msg)
+          break
+        else
+          log(oid, 'debug', 'include filter succeeded (%s)', todo.filter, msg)
+        end
+
+        elm = inc[todo.how](self, idx, dta) -- returns nil on failure
+        if elm then
+          elms[#elms + 1] = elm
+          log(oid, 'debug', 'include inc[%d] = %s -> succeeded', idx, tostr(todo)) -- TODO: real log msg
+        else
+          log(oid, 'debug', 'include inc[%d] = %s -> failed to produce a result', idx, tostr(todo))
+        end
       end
+      print('elms', tostr(elms))
+      return elms -- passed back to pandoc as result of CodeBlock(cb)
     end,
   }),
 }
@@ -533,9 +638,30 @@ end
 
 --[[----- kb.inc:<what> ----]]
 
-function kb.inc:fcb()
-  -- tja wat dan?
+function kb.inc:any() return '<any>' end
+function kb.inc:err() return '<error>' end
+function kb.inc:fcb(idx, dta)
+  -- return data in a fenced codeblock
+  local oid = self.opt.oid
+  local what = self.opt.inc[idx].what
+  local id = sf('%s-%d-%s', self.opt.oid, idx, what)
+  local fcb = self:clone(id)
+  log(oid, 'debug', 'run.inc:fcb called for %s', what)
+  if 'Pandoc' == type(dta) then
+    fcb.text = pd.write(dta, 'native')
+  elseif 'cbx' == what then
+    -- cbx:fcb -> discard data and wrap original codeblock
+    fcb.text = pd.write(pd.Pandoc({ self.org }, {}), 'markdown')
+  else
+    fcb.text = dta
+  end
+  print('fcb', tostr(fcb))
+  return fcb
+
+  -- return '<fcb>'
 end
+function kb.inc:fig() return '<fig>' end
+function kb.inc:img() return '<img>' end
 
 --[[----- kb:<others> ------]]
 
@@ -605,6 +731,23 @@ function kb:new(cb)
   return new
 end
 
+--- Returns an new clone of this codeblock instance with stitch stuff removed.
+---
+--- @param id string?
+--- @return table
+function kb:clone(id)
+  local rv = self.org:clone()
+
+  for idx, class in ipairs(rv.classes) do
+    if class == 'stitch' then table.remove(rv.classes, idx) end
+  end
+  for k, _ in pairs(hard_coded_opts) do
+    rv.attributes[k] = nil
+  end
+  rv.identifier = id and id or rv.identifier
+
+  return rv
+end
 --- Returns true if cbx-file and one or more of art,out,err-files exist
 ---
 --- If true, there is no real need to run codeblock again. Returns false when no
