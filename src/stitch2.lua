@@ -46,6 +46,9 @@ local hard_coded_opts = {
   run = 'system', -- {system, chunk, no, noop, data (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
   out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
+  -- set by stitch
+  oid = '', -- set to identifier or cb<nr>
+  sha = '', -- set to fingerprint of file
 }
 
 --- state stores the following:
@@ -645,8 +648,34 @@ end
 
 --[[----- kb.inc:<what> ----]]
 
-function kb.inc:any() return pd.Plain('<any>') end
-function kb.inc:err() return pd.Plain('<error>') end
+function kb.inc:any(idx, dta)
+  --
+  local opt = self.opt
+  local what = opt.inc[idx].what
+  local oid = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
+  local fcb = self:clone(oid)
+
+  if 'Pandoc' == pd.utils.type(dta) then
+    (dta.blocks[1] or {}).attr = fcb.attr
+    return dta.blocks
+  elseif 'art' == what then
+    return kb.inc.fig(self, idx)
+  elseif 'cbx' == what then
+    fcb.text = dta
+    return fcb
+  else
+    return kb.inc.fcb(idx, dta)
+  end
+end
+function kb.inc:err(idx)
+  -- what is unknown
+  local opt = self.opt
+  local what = opt.inc[idx].what
+  -- local oid = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
+  local err = sf('stitch: include error for "%s" in %s', what, tostr(opt.inc))
+  return pd.Plain(sf('<%s>', err))
+end
+
 --- Wraps `dta` in a new fenced codeblock
 --- If `dta` is a `Pandoc` document, it is converted into its native format.
 --- However, if the element to be included is the `cbx` element, the original
@@ -659,7 +688,7 @@ function kb.inc:fcb(idx, dta)
   local id = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
   dta = dta or '<nil>'
   local fcb = self:clone(id)
-  if 'Pandoc' == type(dta) then
+  if 'Pandoc' == pd.utils.type(dta) then
     (dta.blocks[1] or {}).attr = fcb.attr
     fcb.text = pd.write(dta, 'native')
   elseif 'cbx' == opt.inc[idx].what then
@@ -674,19 +703,32 @@ function kb.inc:fcb(idx, dta)
   end
   return fcb
 end
-function kb.inc:fig() return pd.Plain('<fig>') end
 
---- Return an image link
+--- Returns a Figure link
+function kb.inc:fig(idx)
+  -- img.identifier set correctly thanks to idx being passed on
+  local img = kb.inc.img(self, idx).content[1]
+  return pd.Figure(img, { img.caption }, img.attr)
+end
+
+--- Returns an Image link
 function kb.inc:img(idx)
-  local opt = self.opt
-  local inc = opt.inc
-  local title = self.org.attr.attributes.title or 'title'
-  local caption = self.org.attr.attributes.caption or 'cap'
-  local attr = self.org.attr
-
-  local rv = pd.Para(pd.Image({ caption }, opt[inc[idx].what], title, attr))
-  print('rv\n', tostr(rv))
-  return rv
+  local what = self.opt.inc[idx].what
+  local src = self.opt[what]
+  local img = pd.Image({}, src)
+  -- img fields: caption, src, title, attr, identifier, classes, attributes, tag
+  for k, v in pairs(self.opt) do
+    if not hard_coded_opts[k] then img.attributes[k] = tostr(v) end
+  end
+  for _, class in ipairs(self.cls) do
+    if 'stitch' ~= class then img.classes[#img.classes + 1] = class end
+  end
+  img.attributes.title = nil -- no longer needed
+  img.attributes.caption = nil -- dito
+  img.title = self.opt.title
+  img.caption = { self.opt.caption }
+  img.identifier = sf('%s-%d-%s', self.opt.oid, idx, what)
+  return pd.Para(img)
 end
 
 --[[----- kb:<others> ------]]
