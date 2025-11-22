@@ -95,7 +95,15 @@ end
 
 local function exists(filename) return true == os.rename(filename, filename) end
 
+-- Read filename, possibly as pandoc -f `format`.
+--
+-- Returns nil on error, data on success
+--- @param filename string
+--- @param format string?
+--- @return any?
+--- @return string? error
 local function read(filename, format)
+  if nil == filename then return nil, 'no filename given' end
   local fh, err = io.open(filename, 'r')
   if nil == fh then return nil, err end
 
@@ -565,7 +573,7 @@ local kb = {
         local dta, elm, msg, err
         dta, err = read(opt[todo.what], opt[todo.read])
         if err then
-          log(oid, 'error', 'include failed to read %s (%s)', opt[todo.what], err)
+          log(oid, 'error', 'include failed for inc[%s] = %s (%s)', idx, tostr(todo), err)
           break
         end
 
@@ -585,7 +593,6 @@ local kb = {
           log(oid, 'debug', 'include inc[%d] = %s -> failed to produce a result', idx, tostr(todo))
         end
       end
-      print('elms', tostr(elms))
       return elms -- passed back to pandoc as result of CodeBlock(cb)
     end,
   }),
@@ -638,30 +645,49 @@ end
 
 --[[----- kb.inc:<what> ----]]
 
-function kb.inc:any() return '<any>' end
-function kb.inc:err() return '<error>' end
+function kb.inc:any() return pd.Plain('<any>') end
+function kb.inc:err() return pd.Plain('<error>') end
+--- Wraps `dta` in a new fenced codeblock
+--- If `dta` is a `Pandoc` document, it is converted into its native format.
+--- However, if the element to be included is the `cbx` element, the original
+--- codeblock is converted to markdown and included in the new fenced codeblock.
+--- Otherwise, dta is assumed to be text and included as-is.
+--- @param idx number
+--- @return table
 function kb.inc:fcb(idx, dta)
-  -- return data in a fenced codeblock
-  local oid = self.opt.oid
-  local what = self.opt.inc[idx].what
-  local id = sf('%s-%d-%s', self.opt.oid, idx, what)
+  local opt = self.opt
+  local id = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
+  dta = dta or '<nil>'
   local fcb = self:clone(id)
-  log(oid, 'debug', 'run.inc:fcb called for %s', what)
   if 'Pandoc' == type(dta) then
+    (dta.blocks[1] or {}).attr = fcb.attr
     fcb.text = pd.write(dta, 'native')
-  elseif 'cbx' == what then
-    -- cbx:fcb -> discard data and wrap original codeblock
-    fcb.text = pd.write(pd.Pandoc({ self.org }, {}), 'markdown')
+  elseif 'cbx' == opt.inc[idx].what then
+    -- TODO: do we want to discard dta here?
+    -- cbx!json@pretty:fcb
+    -- local delme = self.org:clone()
+    -- delme.text = dta
+    -- fcb.text = pd.write(pd.Pandoc(delme, {}), 'markdown')
+    fcb.text = pd.write(pd.Pandoc(self.org, {}), 'markdown')
   else
     fcb.text = dta
   end
-  print('fcb', tostr(fcb))
   return fcb
-
-  -- return '<fcb>'
 end
-function kb.inc:fig() return '<fig>' end
-function kb.inc:img() return '<img>' end
+function kb.inc:fig() return pd.Plain('<fig>') end
+
+--- Return an image link
+function kb.inc:img(idx)
+  local opt = self.opt
+  local inc = opt.inc
+  local title = self.org.attr.attributes.title or 'title'
+  local caption = self.org.attr.attributes.caption or 'cap'
+  local attr = self.org.attr
+
+  local rv = pd.Para(pd.Image({ caption }, opt[inc[idx].what], title, attr))
+  print('rv\n', tostr(rv))
+  return rv
+end
 
 --[[----- kb:<others> ------]]
 
@@ -837,28 +863,21 @@ end
 local function CodeBlock(cb)
   local ccb = kb:new(cb) -- also registers oid as logger
   local oid = ccb.opt.oid
+
   if not ccb:is_eligible() then
     log(oid, 'warn', '(%s) skip, codeblock not eligible', oid)
     return nil
   end
+
   if ccb.flawed then
     log(oid, 'error', '(%s) skip, codeblock contains errors', oid)
     return nil
   end
 
   log(oid, 'info', 'codeblock selected using config %q', ccb.cfg)
-
-  -- process here
-  -- ccb:run()
-  -- 2. kb:purge(ccb)
-  -- 3. return kb:result(ccb)
-  -- print(ccb:total_recall())
   ccb:run()
   ccb:purge()
-
-  ccb:inc()
-  -- return ccb:inc()
-  return nil
+  return ccb:inc()
 end
 
 local function Pandoc(doc)
