@@ -43,6 +43,7 @@ luac.out
 scr/
 examples/.stitch/
 .stitch/new/
+.stitch
 
 # Scratch files
 *.html

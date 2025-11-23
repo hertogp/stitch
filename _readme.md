@@ -31,10 +31,11 @@ stitch:
     cmd: "gnuplot #cbx 1>#art 2>#err"
     inc: "art:fig cbx:fcb"
   chunk:
-    lua: chunk
     dir: ".stitch/readme/chunk"
     inc: out
     cmd: "" # is ignored anyway
+    run: chunk
+    exe: maybe
 ...
 
 
@@ -114,7 +115,7 @@ if ("stitch?") {
 
 ## [youplot](https://github.com/red-data-tools/YouPlot)
 
-Or a bit more dynamic: today's local temperature  (well, the last time the
+Or a bit more dynamic: today's local temperature in Honolulu (well, the last time the
 codeblock was changed before compiling this readme anyway).  The codeblock
 pulls in a csv file from `api.open-meteo.com`, cuts the output down to what is
 needed and modifies the first field keeping only the hours of the day.  That
@@ -124,11 +125,11 @@ output is then processed by
 
 ```{#cb02 stitch=youplot}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
-'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
-
+21.3069
 \newpage
 
 ## [Cetz](https://typst.app/universe/package/cetz)
@@ -979,27 +980,31 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## poor man's yaml
 
-```{.lua #nd-yaml stitch=chunk exe=yes lua=chunk log=debug}
-local fh = io.open(Stitch.opts.out, 'w')
+```{.lua #nd-yaml .chunk log=debug}
+local ccb = Stitch.ccb
+local ctx = Stitch.ctx
+local fh = io.open(ccb.opt.out, 'w')
+Stitch.log(ccb.opt.oid, 'warn', 'logging from a chunk!')
 
-fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
-local yaml = Stitch.tbl_yaml(Stitch.ctx, 2)
+local yaml = Stitch.toyaml(ctx, 2)
 fh:write(table.concat(yaml, "\n"))
 -- defaults was "promoted" to metatable of ctx
-yaml = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
+yaml = Stitch.toyaml(ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")
   fh:write(table.concat(yaml, "\n"))
 end
+-- hardcoded
+yaml = Stitch.toyaml(getmetatable(ctx.hard_coded).__index, 4)
+if #yaml > 0 then
+  fh:write("\n  hardcoded:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
 
 fh:write("\n...\n\n")
-fh:write("codeblock opts:\n")
-local opts = {} -- augment cb attr opts to full list of opts
-for k, _ in pairs(Stitch.hardcoded) do
-  opts[k] = Stitch.opts[k]
-end
-yaml = Stitch.tbl_yaml(opts, 2)
+fh:write("codeblock opt:\n")
+yaml = Stitch.toyaml(ccb.opt, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
 fh:close()
 ```

@@ -15,9 +15,7 @@ local sf = string.format
 local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
 
 -- opt resolution: cb.opt->ctx.section->ctx.defaults->hardcoded
--- reserved names: sha, oid, set by stitch
 local hard_coded_opts = {
-  -- `cid`, `sha` are calculated and added by stitch for its own use
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
   art = '#dir/#oid-#sha.#fmt', -- artifact (output) file (if any)
   cbx = '#dir/#oid-#sha.cbx', -- the codeblock.text as file on disk
@@ -33,9 +31,6 @@ local hard_coded_opts = {
   run = 'system', -- {system, chunk, no, noop, data (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
   out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
-  -- set by stitch
-  oid = '', -- set to identifier or cb<nr>
-  sha = '', -- set to fingerprint of file
 }
 
 --- state stores the following:
@@ -238,7 +233,7 @@ local function tostr(t, seen, first, acc)
   return acc
 end
 
--- Returns the sha fingerprint for given (parsed) `ccb`.
+-- Sets and returns the sha fingerprint for given (parsed) `ccb`.
 --
 -- The fingerprint is calculated using sorted, relevant option
 -- values and the codeblock's content.
@@ -258,7 +253,8 @@ local function tosha(ccb)
   vals[#vals + 1] = ccb.txt
 
   local str = table.concat(vals, ''):gsub('%s+', '')
-  return pd.sha1(str)
+  ccb.sha = pd.sha1(str)
+  return ccb.sha
 end
 
 --[[----- State ------------]]
@@ -334,9 +330,7 @@ end
 
 parse_elm_by = {
   -- parsers by pandoc type(s)
-  ['Inlines'] = function(v, d, s)
-    return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'markdown'):sub(1, -2)
-  end,
+  ['Inlines'] = function(v, d, s) return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'plain'):sub(1, -2) end,
   -- parsers by lua types
   -- nb: exe=yes/no/maybe, where yes/no comes out as true/false -> all booleans := yes/no strings
   ['nil'] = function() return nil end,
@@ -360,7 +354,7 @@ local parse_opt_by = {
   err = function(v) return 'string' == type(v) and v or nil end,
   exe = function(v) return 'string' == type(v) and ('yes maybe no'):match(v) and v or nil end,
   fmt = function(v) return 'string' == type(v) and v or nil end,
-  log = function(v) return 'string' == type(v) and ('debug error warn info silent'):match(v) and v or nil end,
+  log = function(v) return 'string' == type(v) and ('debug error warn note info silent'):match(v) and v or nil end,
   old = function(v) return 'string' == type(v) and ('purge keep'):match(v) and v or nil end,
   out = function(v) return 'string' == type(v) and v or nil end,
   run = function(v) return 'string' == type(v) and ('system chunk noop'):match(v) and v or nil end,
@@ -508,7 +502,8 @@ end
 --- - `inc` function table for handling include directives via `ccb:inc()`
 ---
 --- Instance fields:
---- `opt` ccb's attributes, includes `oid` used for logging
+--- `oid` ccb's object identifier
+--- `opt` ccb's attributes
 --- `cls` ccb's classes
 --- `txt` ccb's text (content)
 --- `ast` parsed ast for `cb`
@@ -524,25 +519,28 @@ local kb = {
       -- kb.run[run=method](ccb) -> _ is kb.run table, k is absent key being looked up
       return function(self)
         self.flawed = true
-        log(self.opt.oid, 'error', 'codeblock unknown run type %q', k)
+        log(self.oid, 'error', 'codeblock unknown run type %q', k)
       end
     end,
 
     __call = function(run, self)
       -- ccb:run() -> run is table kb.run, self is the ccb instance
-      local oid = self.opt.oid
+      local oid = self.oid
+
+      self:setup() -- required for cbx creation, also sets flawed on errors
       if self.flawed or self.opt.flawed then
-        log(oid, 'warn', 'codeblock not running due to errors')
+        log(oid, 'warn', 'codeblock run skipped due to errors')
         return nil
       elseif 'no' == self.opt.exe then
-        log(oid, 'warn', 'codeblock skipping skip run (exe = no)')
+        log(oid, 'warn', 'codeblock run skipped (exe = no)')
         return nil
       elseif 'maybe' == self.opt.exe and self:total_recall() then
         log(oid, 'info', 'codeblock run skipped, results already exist')
         return nil
       end
-      -- TODO: also check self.opt.run != noop ?
-      if self:setup() then run[self.opt.run](self) end
+      log(oid, 'debug', 'cmd is %s', self.opt.cmd)
+
+      run[self.opt.run](self)
     end,
   }),
 
@@ -558,7 +556,7 @@ local kb = {
     __call = function(inc, self)
       local elms = {} -- accumulator for the includes
       local opt = self.opt
-      local oid = opt.oid
+      local oid = self.oid
       for idx, todo in pairs(opt.inc) do
         log(oid, 'debug', 'include processing inc[%d] = %s', idx, tostr(todo))
         local dta, elm, msg, err
@@ -602,17 +600,15 @@ local kb = {
 -- ccb:run() -> __call does the setup and runs kb.run[<kind>](self)
 
 -- ccb run as noop, just logs it is not really running
-function kb.run:noop() log('stitch', 'info', '(%s) no run, codeblock is a noop', self.opt.oid) end
+function kb.run:noop() log('stitch', 'info', '(%s) no run, codeblock is a noop', self.oid) end
 
 -- run ccb as system command
 function kb.run:system()
-  --
-  local oid = self.opt.oid
+  local oid = self.oid
   local ok, code, nr = os.execute(self.opt.cmd)
   if ok then
     log(oid, 'info', 'codeblock succeeded as system command')
   else
-    -- TODO: make this self.lid
     log(oid, 'error', 'codeblock system command failed with %s(%s)', code, nr)
     self.flawed = true
   end
@@ -620,13 +616,16 @@ end
 
 -- run ccb as lua chunk with _ENV.Stitch set
 function kb.run:chunk()
-  -- TODO: use clone() instead of references to internal tables
   _ENV.Stitch = {
-    state = tcopy(state),
+    -- state = tcopy(state), -- log,ctx,ccb,seen,stack,doc
+    ctx = tcopy(state.ctx),
+    ccb = tcopy(state.ccb),
+    seen = tcopy(state.seen),
+    log = log,
     tostr = tostr,
     toyaml = toyaml,
   }
-  local oid = self.opt.oid
+  local oid = self.oid
 
   local f, lferr = loadfile(self.opt.cbx, 't', _ENV)
   if f == nil or lferr then
@@ -650,12 +649,19 @@ function kb.inc:any(idx, dta)
   log(self.oid, 'debug', 'include any for %s', tostr(todo))
   local opt = self.opt
   local what = opt.inc[idx].what
-  local oid = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
+  local oid = sf('%s-%d-%s', self.oid, idx, opt.inc[idx].what)
   local fcb = self:clone(oid)
 
   if 'Pandoc' == pd.utils.type(dta) then
-    (dta.blocks[1] or {}).attr = fcb.attr
+    -- try to transfer some attributes to dta.blocks[1]
     log(self.oid, 'debug', 'include pandoc fragement for %s', tostr(opt.inc[idx]))
+    if dta.blocks[1].attr then
+      dta.blocks[1].attributes = fcb.attributes
+      dta.blocks[1].classes = fcb.classes
+      dta.blocks[1].identifier = fcb.identifier
+    end
+    if dta.blocks[1].caption then dta.blocks[1].caption = { fcb.caption or fcb.attributes.caption } end
+
     return dta.blocks -- note: returning list of Block here!
   elseif 'art' == what then
     return kb.inc.fig(self, idx)
@@ -679,7 +685,6 @@ function kb.inc:err(idx, _)
   -- inc's `how` is unknown
   local opt = self.opt
   local how = opt.inc[idx].how
-  -- local oid = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
   local err = sf('stitch: include error, unknown how "%s" in %s', how, tostr(opt.inc[idx]))
   return pd.Plain(sf('<%s>', err))
 end
@@ -693,7 +698,7 @@ end
 --- @return table
 function kb.inc:fcb(idx, dta)
   local opt = self.opt
-  local id = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
+  local id = sf('%s-%d-%s', self.oid, idx, opt.inc[idx].what)
   dta = dta or '<nil>'
   local fcb = self:clone(id)
   if 'Pandoc' == pd.utils.type(dta) then
@@ -735,7 +740,7 @@ function kb.inc:img(idx, _)
   img.attributes.caption = nil -- dito
   img.title = self.opt.title
   img.caption = { self.opt.caption }
-  img.identifier = sf('%s-%d-%s', self.opt.oid, idx, what)
+  img.identifier = sf('%s-%d-%s', self.oid, idx, what)
   return pd.Para(img)
 end
 
@@ -795,15 +800,16 @@ function kb:new(cb)
     opt = opt, -- cb's options with valid values
     txt = ccb.text, -- for convenience
     ast = ccb, -- parsed ast for cb (for debugging)
+    oid = oid, -- object identifier
     org = cb, -- original cb (for debugging)
     flawed = flawed, -- if true, codeblock skipped, all operations check this flag
   }
+  new.sha = tosha(new)
 
   -- calculate sha & expand filenames (cmd must be last as it uses filenames)
-  opt.oid = oid
-  opt.sha = tosha(new)
   for _, tpl in ipairs({ 'cbx', 'art', 'out', 'err', 'cmd' }) do
     opt[tpl] = pd.path.normalize(opt[tpl]:gsub('%#(%w+)', opt))
+    opt[tpl] = pd.path.normalize(opt[tpl]:gsub('%#(%w+)', { sha = new.sha, oid = new.oid }))
   end
 
   self.__index = self
@@ -837,7 +843,7 @@ end
 --- If codeblock is flawed, purge is skipped
 --- @return number count
 function kb:purge()
-  local oid = self.opt.oid
+  local oid = self.oid
   local count = 0
 
   if self.flawed then return count end
@@ -851,7 +857,7 @@ function kb:purge()
     local fnew = self.opt[ftype]
     local pat = fnew:gsub('[][()%.*+^$?-]', '%%%1') -- literal magic
     local n = 0
-    pat, n = pat:gsub(self.opt.sha, '(%%w+)')
+    pat, n = pat:gsub(self.sha, '(%%w+)')
     if n ~= 1 then
       log(oid, 'warn', 'purge skipped, %s-file has no sha fingerprint', ftype)
       break
@@ -881,16 +887,22 @@ function kb:is_eligible() return self.cfg ~= nil end
 --- Return true setup succeeded, false otherwise
 --- Creates the necessary directories as well as the cbx-file
 function kb:setup()
-  local oid = self.opt.oid
+  local oid = self.oid
   for _, path in ipairs({ 'cbx', 'art', 'out', 'err' }) do
     local dir = pd.path.normalize(pd.path.directory(self.opt[path]))
-    if not os.execute(sf('mkdir -p %s', dir)) then
-      log(oid, 'error', 'permission denied when creating ', dir)
-      self.flawed = true
-      return false
+    if exists(dir) then
+      log(oid, 'debug', 'using directory %s for %s-files', dir, path)
+    else
+      log(oid, 'debug', 'creating directory %s for %s-files', dir, path)
+      if not os.execute(sf('mkdir -p %s', dir)) then
+        log(oid, 'error', 'permission denied when creating ', dir)
+        self.flawed = true
+        return false
+      end
     end
   end
 
+  log(oid, 'debug', 'writing out %d chars to %s', #self.txt, self.opt.cbx)
   local fh = io.open(self.opt.cbx, 'w')
   if not (fh and fh:write(self.txt)) then
     log(oid, 'error', 'error writing out cbx-file %s', self.opt.cbx)
@@ -911,7 +923,7 @@ end
 
 local function CodeBlock(cb)
   local ccb = kb:new(cb) -- also registers oid as logger
-  local oid = ccb.opt.oid
+  local oid = ccb.oid
 
   if not ccb:is_eligible() then
     log(oid, 'warn', '(%s) skipped, codeblock not eligible', oid)
