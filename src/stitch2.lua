@@ -1,19 +1,9 @@
---[[ stich2 oo-reimplementation of stitch ]]
--- https://github.com/luarocks/lua-style-guide (3 spaces, yikes!)
--- * the larger the scope, the more descriptive the name should be
--- * i for numeric index in loops
--- * use better names than k,v unless working with generic tables
--- * Classes use CamelCase
--- * has_, hasnt_, is_, isnt_ for bool funcs
--- * create tables with their population, e.g. hard_coded = { a = 1, b =2 }
---
--- Guidelines
--- * function return result -or- result/nil, error
--- * small functions donutnot log, just yield results
--- * classes that instantiate are Capatalized, otherwise all lower case
--- * large scopes means longer names
--- * keep local var declaration close to their use
--- * log facilities are: stitch, codeblock, filter etc ..
+--[[ stitch2, a better stitch ]]
+
+--[[ TODO: SUNDAY: ]]
+-- * artifact files are read, sometimes transformed by stitch but never saved:
+--   - cbx:!markdown -> pandoc doc -> blocks element inserted
+--   - cbx:!markdown:fcb -> pandoc doc -> native form inserted as fcb
 
 -- initialize only once (load vs require)
 if package.loaded.stitch2 then return package.loaded.stitch2 end
@@ -21,14 +11,11 @@ if package.loaded.stitch2 then return package.loaded.stitch2 end
 --[[----- locals -----------]]
 local pd = _ENV.pandoc -- if nil, we're probably not being loaded by pandoc
 local sf = string.format
-local dump = require 'dump' -- tmp: delme
-
---- predefined log levels in string or numeric form
+-- local dump = require 'dump' -- tmp: delme
 local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
 
---- hard coded defaults for stitch's options
 -- opt resolution: cb.opt->ctx.section->ctx.defaults->hardcoded
--- reserved names: sha, oid
+-- reserved names: sha, oid, set by stitch
 local hard_coded_opts = {
   -- `cid`, `sha` are calculated and added by stitch for its own use
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
@@ -61,27 +48,20 @@ local hard_coded_opts = {
 ---
 --- Note: `kb:new(cb)` creates the current `ccb` and adds it to `seen`.
 local state = {
-  log = { stitch = 6, run = 6, doc = 6, docopt = 6, cbopt = 6, CodeBlock = 6 }, -- log level per 'facility'
+  -- log = { stitch = 6, run = 6, doc = 6, docopt = 6, cbopt = 6, CodeBlock = 6 }, -- log level per 'facility'
+  log = { stitch = 6 }, -- log level per 'facility'
   ctx = nil, -- context of current document
   ccb = nil, -- current codeblock
-  seen = {}, -- previous codeblock's
+  seen = {}, -- list of *all* codeblocks seen
   stack = {}, -- previous doc's, gets pushed/popped
   doc = nil, -- ref to doc so it can be used in codeblock chunks
 }
 
 --[[----- logging ----------]]
--- facility, level, mnemonic, msg
--- facilities register their log level w/ state:logger(id, level)
--- mnemonic is upto facility to decide and use consistently
--- msg is whatever it wants to say at given level
 
 --- Prints formatted `msg` to stdout for given `id` at `tier`-level.
----
---- Valid tiers include: `1..6` or `fatal`, `error`, `warn`, `note`, `info` and `debug`.
---- Loggers must register their id and loglevel via `state:logger(id, level)` in order
---- to be able to log messages at that level or below.
----
---- Note: logging a message at level `fatal` is killing.
+--
+-- Note: logging a message at level `fatal` is killing.
 --- @param id string
 --- @param tier string
 --- @param msg string
@@ -100,7 +80,7 @@ local function exists(filename) return true == os.rename(filename, filename) end
 
 -- Read filename, possibly as pandoc -f `format`.
 --
--- Returns nil on error, data on success
+-- Returns `nil` on error, `data `on success
 --- @param filename string
 --- @param format string?
 --- @return any?
@@ -127,13 +107,10 @@ end
 -- Requires first available module `name`, dropping labels while searching.
 --
 -- Returns required `mod`,`name`,`func` on success or `nil` on failure.
--- Notes:
 -- - `mod` is the result of a succesful `require(name)`
 -- - `acc` collects labels dropped during search and is returned as `func`
 -- - whether `func` if actually exported is *not* checked
 -- - `func` is `nil` if the first `require` succeeds
---
--- Returns `nil` on failure.
 --
 --- @param name string
 --- @param acc string?
@@ -164,10 +141,7 @@ end
 ---
 --- If the `mod` found does not export `func` (`Pandoc` or as found), then
 --- `mod` is assumed to be a list of filters each exporting `func` and they
---- are called in the order listed, each receiving data from the last filter
---- called. Filters in the list that do not export `func` are *skipped*.  So
---- pandoc filters that don't export `Pandoc`, won't work.
----
+--- are called in the order listed.  So a pandoc filter needs to export `Pandoc`.
 --- @param data any
 --- @param name string
 --- @return any data, string msg
@@ -192,7 +166,7 @@ local function filter(data, name)
   return data, sf('%d/%d applied', count, #filters)
 end
 
--- Poor man's semi-deep copy of t (table, userdata, etc..)
+-- Returns a semi-deep copy of t (table, userdata, etc..)
 --- @return any
 local function tcopy(t, seen)
   seen = seen or {}
@@ -211,9 +185,7 @@ local function tcopy(t, seen)
   return tt
 end
 
---- poor man's yaml converter
 --- Returns a list of lines representing `t` as yaml.
---- Usage: `toyaml(some_var)`.
 --- @param t any
 --- @return table yaml
 local function toyaml(t, n, seen, acc)
@@ -240,8 +212,7 @@ local function toyaml(t, n, seen, acc)
   return acc
 end
 
--- poor man's `tostr(data)`
--- best used for small data since it's string ops intensive
+-- Returns a printable string representing given `t`
 local function tostr(t, seen, first, acc)
   seen = seen or {}
   acc = acc or ''
@@ -269,9 +240,8 @@ end
 
 -- Returns the sha fingerprint for given (parsed) `ccb`.
 --
--- The fingerprint is the sha1 hash of all relevant option values
--- sorted by key plus the codeblock's content.  The sha1 hash is
--- calculated using the combined values with all whitespace removed.
+-- The fingerprint is calculated using sorted, relevant option
+-- values and the codeblock's content.
 --- @param ccb table
 --- @return string sha
 local function tosha(ccb)
@@ -293,15 +263,14 @@ end
 
 --[[----- State ------------]]
 
+--- Returns the current recursion depth
 function state:depth() return #self.stack end
 
 --- Registers a logging `id` at given log `level` and returns `id`.
----
 --- Unknown levels are set as debug level.
 --- @param id string
 --- @param level string
 --- @return string identity
---- @return string? error
 function state:logger(id, level)
   self.log[id] = log_level[level] or log_level.debug
   return id
@@ -316,9 +285,8 @@ function state:save(ccb)
   return #self.seen
 end
 
---- Pushes current context onto its stack, sets `ctx` as new context and returns
---- current depth.
----
+--- Pushes current context onto its stack, sets `ctx` as new context
+--- and returns current depth.
 --- @param ctx table
 --- @return number
 function state:push(ctx)
@@ -328,10 +296,8 @@ function state:push(ctx)
 end
 
 --- Pops context from stack and restores it as current context.
----
 --- This also clears (TODO) current codeblock being processed ?
 function state:pop()
-  -- l={[0]=hidden}; l[#l] == l[0] == hidden (i.e. not so hidden)
   local ctx = self.stack[#self.stack]
   self.stack[#self.stack] = nil
   return ctx
@@ -339,8 +305,8 @@ end
 
 --[[----- parsers ----------]]
 
---- table of parsers per pandoc/lua type
-local parse_elm_by = {}
+--- table of parsers per pandoc and/or lua type
+local parse_elm_by = {} -- (forward declaration)
 
 --- Converts pandoc AST element `elm` to a regular Lua table
 --
@@ -371,7 +337,6 @@ parse_elm_by = {
   ['Inlines'] = function(v, d, s)
     return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'markdown'):sub(1, -2)
   end,
-
   -- parsers by lua types
   -- nb: exe=yes/no/maybe, where yes/no comes out as true/false -> all booleans := yes/no strings
   ['nil'] = function() return nil end,
@@ -423,7 +388,7 @@ local parse_opt_by = {
           how = part:match(':' .. pat),
         }
       else
-        log('opt', 'error', sf('ignoring inc[%s]=%s, illegal value', k, tostr(part)))
+        log('stitch', 'error', sf('ignoring inc[%s]=%s, illegal value', k, tostr(part)))
       end
     end
     return spec
@@ -431,19 +396,13 @@ local parse_opt_by = {
 }
 setmetatable(parse_opt_by, {
   __index = function(_, k)
-    log('opt', 'debug', sf('%q is not a stitch option, kept as-is', k))
+    log('stitch', 'debug', sf('%q is not a stitch option, kept as-is', k))
     return function(v) return v end
   end,
 })
 
 --- Returns a parsed, validated value for given `opt` and `val` or nil.
----
---- Stitch options with illegal values are removed.  Most options are simply
---- string values.  Option `inc` will be parsed into a sequence of directives
---- which themselves are not validated at this point.
----
---- Non-stitch options are kept as-is, they're not used anyway.
----
+--- nb: non-stitch options are kept as-is, they're not used anyway.
 --- @param opt string
 --- @param val string|table
 --- @return string|table?
@@ -457,33 +416,42 @@ end
 --- Returns an options table for given `doc`, based on `doc.meta.stitch`.
 ---
 --- Each section (table) under `doc.meta.stitch` is turned into a stitch
---- configuration section.  The names `stitch`, `defaults` and `meta` are special.
+--- configuration section in `opt`.  The names `stitch`, `defaults` and
+--- `meta` are special.
 ---
---- Top level options that are not tables, are collected in a `stitch` section
---- while `defaults` will be set as metatable for all section tables.  The
+--- Top level options that are not tables, are collected in a `opt.stitch` section
+--- while `defaults` will be set as metatable for all opt.<section> tables.  The
 --- `defaults` table itself, will have the `hard_coded` option table as metatable.
---- If `doc.meta.stitch.defaults` does not exist, it is created.
----
---- Additionally, a `meta` section is added which holds the doc's `title`, `author`
---- and `date` (if available).
+--- If `opt.defaults` does not exist, it is created.  Additionally, an `opt.meta`
+--- section is added which holds the doc's `title`, `author` and `date` (if available).
 ---
 --- Option `x` resolution order: cb.x -> section?.x -> defaults.x -> hard_coded.x
 --- Note: non-existing sections also fall back to using defaults.
----
 --- @param doc table
 --- @return table
 local function doc_options(doc)
-  local meta = parse_elm(doc.meta) --- @cast meta table
-  local loglevel = meta.stitch and sf('%s', meta.stitch.log) or 'info'
-  local lid = state:logger('docopt', loglevel)
-  if not doc.meta.stitch then log(lid, 'warn', 'doc has no stitch configs..') end
+  local meta = parse_elm(doc.meta)
+  -- meta may not have stitch section(s) at all, codeblocks might still use it
+  local loglevel = sf('%s', ((meta.stitch or {}).stitch or {}).log or 'info')
+  local lid = state:logger('stitch', loglevel)
+  if not doc.meta.stitch then log(lid, 'warn', 'doc.meta has no stitch configs..') end
 
   local opt = meta.stitch or {} -- toplevel meta.stitch
   opt.stitch = opt.stitch or {} -- ensure stitch's own section
+  for k, v in pairs(opt) do
+    -- move top level non-table opts into opt.stitch before parsing values
+    if 'table' ~= type(v) then
+      opt[k] = nil -- remove toplevel
+      if opt.stitch[k] then
+        local msg = 'stitch top level "%s=%s" overruled by section stitch: "%s=%s"'
+        log('stitch', 'warn', msg, k, tostr(v), k, tostr(opt.stitch[k]))
+      else
+        opt.stitch[k] = v
+      end
+    end
+  end
 
-  -- ensure valid values for stitch options in all sections
-  -- TODO: set err-flag on section level, codeblocks that associate with a
-  --       section with errors will have to be skipped!
+  -- ensure valid values for options in all sections
   local flawed = false
   for name, section in pairs(opt) do
     log(lid, 'debug', '%q-options', name)
@@ -495,6 +463,15 @@ local function doc_options(doc)
       log(lid, 'debug', '- %s.%s = %s', name, option, tostr(section[option], {}, true, ''))
     end
     section.flawed = flawed
+  end
+
+  -- setup log levels for all sections
+  print('opt')
+  print(table.concat(toyaml(opt), '\n'))
+  for name, section in pairs(opt) do
+    local level = section.log or 'info'
+    state:logger(name, level)
+    log('stitch', 'info', '%s log level set to %s', name, level)
   end
 
   -- setup metatable chain for option resolution order
@@ -517,7 +494,7 @@ local function doc_options(doc)
     author = meta.author,
     date = meta.date,
   }
-  log(lid, 'info', 'got doc options for doc titled %q', opt.meta.title)
+  if doc.meta.stitch then log(lid, 'info', 'got doc options for doc titled %q', opt.meta.title) end
 
   return opt
 end
@@ -527,7 +504,8 @@ end
 --- Class to represent codeblock instances (`ccb`'s) within stitch.
 ---
 --- Class fields:
---- `run` function table for running the codeblock via `ccb:run()`
+--- - `run` function table for running the codeblock via `ccb:run()`
+--- - `inc` function table for handling include directives via `ccb:inc()`
 ---
 --- Instance fields:
 --- `opt` ccb's attributes, includes `oid` used for logging
@@ -538,7 +516,9 @@ end
 --- `cfg` ccb's configuration name (nil = not eligible)
 --- `flawed` flags that codeblock has errors or not
 local kb = {
-  -- run methods per type of codeblock (system, chunk or noop)
+
+  -- function jump-table for the `run`-option attribute of codeblock
+  -- * types include `system`, `chunk` or `noop`
   run = setmetatable({}, {
     __index = function(_, k)
       -- kb.run[run=method](ccb) -> _ is kb.run table, k is absent key being looked up
@@ -547,6 +527,7 @@ local kb = {
         log(self.opt.oid, 'error', 'codeblock unknown run type %q', k)
       end
     end,
+
     __call = function(run, self)
       -- ccb:run() -> run is table kb.run, self is the ccb instance
       local oid = self.opt.oid
@@ -565,12 +546,15 @@ local kb = {
     end,
   }),
 
+  --- function jump-table for `how`-to part of an directive
+  --- * `how` includes `fcb`, `img`, `fig`, absent `how` means `any`-how
   inc = setmetatable({}, {
     __index = function(inc, how)
       -- nil means do default, otherwise how is unknown and an error
       return nil == how and inc.any or inc.err
     end,
 
+    --- handles `how` to include an artifact
     __call = function(inc, self)
       local elms = {} -- accumulator for the includes
       local opt = self.opt
@@ -618,7 +602,7 @@ local kb = {
 -- ccb:run() -> __call does the setup and runs kb.run[<kind>](self)
 
 -- ccb run as noop, just logs it is not really running
-function kb.run:noop() log('run', 'info', '(%s) no run, codeblock is a noop', self.opt.oid) end
+function kb.run:noop() log('stitch', 'info', '(%s) no run, codeblock is a noop', self.opt.oid) end
 
 -- run ccb as system command
 function kb.run:system()
@@ -700,14 +684,6 @@ function kb.inc:err(idx, _)
   return pd.Plain(sf('<%s>', err))
 end
 
--- TODO: SUNDAY:
--- ---------------------------------------------------------------------------
--- * include any doesn't work -> inc="cbx!markdown" or inc=cbx!markdown:fcb
---   - file is not read, cbx is not saved?
--- * config is true <-- error cb uses config true ??
--- * filter succeeded (nil) <-- lame!
--- ---------------------------------------------------------------------------
-
 --- Wraps `dta` in a new fenced codeblock
 ---
 --- A `Pandoc` document to be included, is converted to `native` format.
@@ -772,31 +748,36 @@ end
 -- stitch config section exists for its identifier (rare) or when one of its
 -- classes matches a section that has `cls=yes` option set.
 --
--- Note: use `kb:is_eligible(ccb)` to check if stitch can process the codeblock.
+-- Note: use `kb:is_eligible(ccb)` to check if stitch can process the codeblock
+-- after `kb:new(cb)`
 --
 --- @param cb table
 --- @return table ccb
 function kb:new(cb)
   local oid = sf('%s', cb.attr.identifier)
-  oid = #oid == 0 and sf('cb%03d', #state.seen + 1) or oid
+  oid = #oid == 0 and sf('anon%02d', #state.seen + 1) or oid
   state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
   local ccb = parse_elm(cb)
 
+  local how -- how 1..4 codeblock was linked to a config (or not)
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
-  cfg = cfg or pd.List.includes(ccb.attr.classes, 'stitch') -- 2. .stitch class
-  cfg = cfg or rawget(state.ctx, oid) and oid -- 3. #id has config section
-  if 'no' ~= cb.attr.attributes.cls and not cfg then
-    -- 4. cb class matches with a section, disable search on cb-level w/ cls=no
+  how = cfg and sf('by stitch=%s', cfg)
+  cfg = cfg or rawget(state.ctx, oid) and oid -- 2. #id has config section
+  how = how or cfg and sf('by id=#%s', cfg)
+  if not cfg and 'no' ~= cb.attr.attributes.cls then
+    -- 3. a ccb's class matches with a section when not disable at cb level
     for _, class in ipairs(ccb.attr.classes) do
-      if cfg then break end
-      local section = rawget(state.ctx, class)
-      -- nb: resolution is section->defaults->hard_coded_opts
-      -- * require for the section to actually exists (hence rawget)
-      -- * disable class matching on on section-level or defaults level
+      local section = rawget(state.ctx, class) -- don't fallback to defaults
       cfg = section and 'no' ~= section.cls and class or nil
+      how = how or cfg and sf('by class "%s" (cls not "no")', class)
+      if cfg then break end
     end
   end
+  cfg = cfg or pd.List.find(ccb.attr.classes, 'stitch') -- 4. .stitch class
+  how = how or cfg and sf('by class .%s (uses defaults)', cfg)
+  cfg = cfg or 'defaults' -- last ditch effort defaults->hardcoded
   cfg = cfg or nil -- ensure nil as failure value (i.e. false := nil)
+  log(oid, 'debug', 'stitch config %s', how or 'not found')
 
   -- ensure cb options have valid values, set err for any mistakes found
   local flawed = false --> later ops will check err and skip codeblock entirely
@@ -832,15 +813,12 @@ function kb:new(cb)
 end
 
 --- Returns an new clone of this codeblock instance with stitch stuff removed.
----
 --- @param id string?
 --- @return table
 function kb:clone(id)
   local rv = self.org:clone()
 
-  for idx, class in ipairs(rv.classes) do
-    if class == 'stitch' then table.remove(rv.classes, idx) end
-  end
+  rv.classes = pd.List.filter(rv.classes, function(c) return c ~= 'stitch' end)
   for k, _ in pairs(hard_coded_opts) do
     rv.attributes[k] = nil
   end
@@ -848,17 +826,15 @@ function kb:clone(id)
 
   return rv
 end
+
 --- Returns true if cbx-file and one or more of art,out,err-files exist
----
---- If true, there is no real need to run codeblock again. Returns false when no
---- such files exist or could not be determined due to lack of fingerprints.
 function kb:total_recall()
   local artifacts = exists(self.opt.art) or exists(self.opt.out) or exists(self.opt.err)
   return exists(self.opt.cbx) and artifacts
 end
 
---- Returns the number of old files removed that were previously generated
---- by this codeblock.  If codeblock is flawed, purge is skipped.
+--- Removes old files, returns the number of files removed
+--- If codeblock is flawed, purge is skipped
 --- @return number count
 function kb:purge()
   local oid = self.opt.oid
@@ -902,9 +878,8 @@ end
 --- Returns true if `ccb` can be processed by stitch, false otherwise
 function kb:is_eligible() return self.cfg ~= nil end
 
---- Setup creates the necessary directories and sets up the cbx-file
----
---- Return true if setup succeeded, false otherwise
+--- Return true setup succeeded, false otherwise
+--- Creates the necessary directories as well as the cbx-file
 function kb:setup()
   local oid = self.opt.oid
   for _, path in ipairs({ 'cbx', 'art', 'out', 'err' }) do
@@ -939,32 +914,29 @@ local function CodeBlock(cb)
   local oid = ccb.opt.oid
 
   if not ccb:is_eligible() then
-    log(oid, 'warn', '(%s) skip, codeblock not eligible', oid)
+    log(oid, 'warn', '(%s) skipped, codeblock not eligible', oid)
     return nil
   end
 
   if ccb.flawed then
-    log(oid, 'error', '(%s) skip, codeblock contains errors', oid)
+    log(oid, 'error', '(%s) skipped, codeblock contains errors', oid)
     return nil
   end
 
-  log(oid, 'info', 'codeblock selected using config %q', ccb.cfg)
+  log(oid, 'info', 'processing codeblock using config %q', ccb.cfg)
   ccb:run()
   ccb:purge()
   return ccb:inc()
 end
 
 local function Pandoc(doc)
-  local lid = state:logger('doc', 'info')
+  local lid = state:logger('stitch', 'info')
   -- log(lid, 'info', 'new document, title "%s"', pd.utils.stringify(doc.meta.title))
   log(lid, 'info', 'new document, title %q', tostr(parse_elm_by['Inlines'](doc.meta.title)))
   state.ctx = doc_options(doc) -- TODO: should simply set state.ctx ?
   state.doc = doc
   local rv = doc:walk({ CodeBlock = CodeBlock })
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
-
-  -- tmp
-  -- tmp
 
   return rv
 end
