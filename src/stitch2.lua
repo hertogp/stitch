@@ -61,7 +61,7 @@ local hard_coded_opts = {
 ---
 --- Note: `kb:new(cb)` creates the current `ccb` and adds it to `seen`.
 local state = {
-  log = { stitch = 5, run = 5, doc = 5, docopt = 5, cbopt = 5, CodeBlock = 5 }, -- log level per 'facility'
+  log = { stitch = 6, run = 6, doc = 6, docopt = 6, cbopt = 6, CodeBlock = 6 }, -- log level per 'facility'
   ctx = nil, -- context of current document
   ccb = nil, -- current codeblock
   seen = {}, -- previous codeblock's
@@ -106,6 +106,7 @@ local function exists(filename) return true == os.rename(filename, filename) end
 --- @return any?
 --- @return string? error
 local function read(filename, format)
+  log('stitch', 'debug', 'read file %s, format %s', filename, format or '<n/a>')
   if nil == filename then return nil, 'no filename given' end
   local fh, err = io.open(filename, 'r')
   if nil == fh then return nil, err end
@@ -116,6 +117,8 @@ local function read(filename, format)
   if format and #format > 0 then
     local ok, data = pcall(pd.read, dta, format)
     if not ok then return nil, data end
+    dta = data
+    log('stitch', 'debug', 'data converted to %s', format)
   end
 
   return dta
@@ -573,27 +576,35 @@ local kb = {
       local opt = self.opt
       local oid = opt.oid
       for idx, todo in pairs(opt.inc) do
+        log(oid, 'debug', 'include processing inc[%d] = %s', idx, tostr(todo))
         local dta, elm, msg, err
-        dta, err = read(opt[todo.what], opt[todo.read])
+        dta, err = read(opt[todo.what], todo.read)
         if err then
-          log(oid, 'error', 'include failed for inc[%s] = %s (%s)', idx, tostr(todo), err)
+          log(oid, 'error', 'include failed for inc[%d] = %s (%s)', idx, tostr(todo), err)
           break
         end
 
-        dta, msg = filter(dta, todo.filter)
-        if nil == dta then
-          log(oid, 'debug', 'include filter failed %s (%s)', todo.filter, msg)
-          break
-        else
-          log(oid, 'debug', 'include filter succeeded (%s)', todo.filter, msg)
+        if todo.filter then
+          dta, msg = filter(dta, todo.filter)
+          if nil == dta then
+            log(oid, 'debug', 'include filter failed %s (%s)', todo.filter, msg)
+            break
+          end
         end
 
-        elm = inc[todo.how](self, idx, dta) -- returns nil on failure
-        if elm then
+        elm = inc[todo.how](self, idx, dta) -- returns nil, Block or Blocks
+        if nil == elm then
+          log(oid, 'debug', 'include inc[%d] = %s -> failed to produce a result', idx, tostr(todo))
+        elseif 'Block' == pd.utils.type(elm) then
           elms[#elms + 1] = elm
           log(oid, 'debug', 'include inc[%d] = %s -> succeeded', idx, tostr(todo)) -- TODO: real log msg
+        elseif 'Blocks' == pd.utils.type(elm) then
+          for _, block in pairs(elm) do
+            elms[#elms + 1] = block
+          end
         else
-          log(oid, 'debug', 'include inc[%d] = %s -> failed to produce a result', idx, tostr(todo))
+          msg = 'include inc[%d] = %s produced unknown pandoc type %s'
+          log(oid, 'debug', msg, idx, tostr(todo), pd.utils.type(elm))
         end
       end
       return elms -- passed back to pandoc as result of CodeBlock(cb)
@@ -648,8 +659,11 @@ end
 
 --[[----- kb.inc:<what> ----]]
 
+--- Returns a default pandoc element for `inc[idx]` directive without a `how`.
 function kb.inc:any(idx, dta)
   --
+  local todo = self.opt.inc[idx]
+  log(self.oid, 'debug', 'include any for %s', tostr(todo))
   local opt = self.opt
   local what = opt.inc[idx].what
   local oid = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
@@ -657,30 +671,48 @@ function kb.inc:any(idx, dta)
 
   if 'Pandoc' == pd.utils.type(dta) then
     (dta.blocks[1] or {}).attr = fcb.attr
-    return dta.blocks
+    log(self.oid, 'debug', 'include pandoc fragement for %s', tostr(opt.inc[idx]))
+    return dta.blocks -- note: returning list of Block here!
   elseif 'art' == what then
     return kb.inc.fig(self, idx)
   elseif 'cbx' == what then
     fcb.text = dta
     return fcb
   else
-    return kb.inc.fcb(idx, dta)
+    return kb.inc.fcb(self, idx, dta)
   end
 end
-function kb.inc:err(idx)
-  -- what is unknown
+
+--- Returns a Plain element (error message) for `inc[idx]`'s directive.
+---
+--- When this function gets called, `kb.inc` was indexed with an unknown `how` to
+--- include, i.e. not an `fcb`, `fig`, `img` or `any` which figures out a default for
+--- the `what` being included.  In other words, the `inc`-option contains an illegal
+--- 'how' either in the codeblock attributes or the meta section of the document.
+--- @param idx number
+--- @return table
+function kb.inc:err(idx, _)
+  -- inc's `how` is unknown
   local opt = self.opt
-  local what = opt.inc[idx].what
+  local how = opt.inc[idx].how
   -- local oid = sf('%s-%d-%s', opt.oid, idx, opt.inc[idx].what)
-  local err = sf('stitch: include error for "%s" in %s', what, tostr(opt.inc))
+  local err = sf('stitch: include error, unknown how "%s" in %s', how, tostr(opt.inc[idx]))
   return pd.Plain(sf('<%s>', err))
 end
 
+-- TODO: SUNDAY:
+-- ---------------------------------------------------------------------------
+-- * include any doesn't work -> inc="cbx!markdown" or inc=cbx!markdown:fcb
+--   - file is not read, cbx is not saved?
+-- * config is true <-- error cb uses config true ??
+-- * filter succeeded (nil) <-- lame!
+-- ---------------------------------------------------------------------------
+
 --- Wraps `dta` in a new fenced codeblock
---- If `dta` is a `Pandoc` document, it is converted into its native format.
---- However, if the element to be included is the `cbx` element, the original
---- codeblock is converted to markdown and included in the new fenced codeblock.
---- Otherwise, dta is assumed to be text and included as-is.
+---
+--- A `Pandoc` document to be included, is converted to `native` format.
+--- A codeblock to included, is converted to markdown (including its attributes).
+--- Otherwise, `dta` is assumed to be text and included as-is as `fcb.text`.
 --- @param idx number
 --- @return table
 function kb.inc:fcb(idx, dta)
@@ -704,15 +736,15 @@ function kb.inc:fcb(idx, dta)
   return fcb
 end
 
---- Returns a Figure link
-function kb.inc:fig(idx)
+--- Returns a Figure link for `inc[idx]`
+function kb.inc:fig(idx, _)
   -- img.identifier set correctly thanks to idx being passed on
   local img = kb.inc.img(self, idx).content[1]
   return pd.Figure(img, { img.caption }, img.attr)
 end
 
---- Returns an Image link
-function kb.inc:img(idx)
+--- Returns an Image link for `inc[idx]`.
+function kb.inc:img(idx, _)
   local what = self.opt.inc[idx].what
   local src = self.opt[what]
   local img = pd.Image({}, src)
