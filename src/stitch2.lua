@@ -4,6 +4,8 @@
 -- * artifact files are read, sometimes transformed by stitch but never saved:
 --   - cbx:!markdown -> pandoc doc -> blocks element inserted
 --   - cbx:!markdown:fcb -> pandoc doc -> native form inserted as fcb
+-- * recurse on itself using stitch not stitch2
+-- * stitch2 generated PDF's don't have an index???
 
 -- initialize only once (load vs require)
 if package.loaded.stitch2 then return package.loaded.stitch2 end
@@ -17,20 +19,21 @@ local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3
 -- opt resolution: cb.opt->ctx.section->ctx.defaults->hardcoded
 local hard_coded_opts = {
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-  art = '#dir/#oid-#sha.#fmt', -- artifact (output) file (if any)
-  cbx = '#dir/#oid-#sha.cbx', -- the codeblock.text as file on disk
   cls = 'no', -- {'yes', 'no'}
-  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
-  err = '#dir/#oid-#sha.err', -- capture of stderr (if any)
   exe = 'maybe', -- {yes, no, maybe}
   fmt = 'png', -- format for images (if any)
-  -- inc: {what=.., how=.., read=.., filter=..}, default how for out,err is fcb
-  inc = { { what = 'cbx', how = 'fcb' }, { what = 'out' }, { what = 'art', how = 'img' }, { what = 'err' } },
   log = 'info', -- {debug, error, warn, info, silent}
   run = 'system', -- {system, chunk, no, noop, data (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
+  art = '#dir/#oid-#sha.#fmt', -- artifact (output) file (if any)
+  cbx = '#dir/#oid-#sha.cbx', -- the codeblock.text as file on disk
   out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
+  err = '#dir/#oid-#sha.err', -- capture of stderr (if any)
+  -- cmd expansion needs art, cbx, out and err to be expanded first
+  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
+  -- inc: {what=.., how=.., read=.., filter=..}, default how for out,err is fcb
+  inc = { { what = 'cbx', how = 'fcb' }, { what = 'out' }, { what = 'art', how = 'img' }, { what = 'err' } },
 }
 
 --- state stores the following:
@@ -43,7 +46,6 @@ local hard_coded_opts = {
 ---
 --- Note: `kb:new(cb)` creates the current `ccb` and adds it to `seen`.
 local state = {
-  -- log = { stitch = 6, run = 6, doc = 6, docopt = 6, cbopt = 6, CodeBlock = 6 }, -- log level per 'facility'
   log = { stitch = 6 }, -- log level per 'facility'
   ctx = nil, -- context of current document
   ccb = nil, -- current codeblock
@@ -125,6 +127,47 @@ local function need(name, acc)
   end
 end
 
+-- Returns a semi-deep copy of t (table, userdata, etc..)
+--- @return any
+local function tcopy(t, seen)
+  seen = seen or {}
+
+  if seen[t] then return seen[t] end
+  -- most pandoc type are clone()'able (except for CommonState ..)
+  if 'userdata' == type(t) and t.clone then return t:clone() end
+  if 'table' ~= type(t) then return t end
+
+  local tt = {}
+  seen[t] = tt
+  for k, v in next, t, nil do
+    tt[tcopy(k, seen)] = tcopy(v, seen)
+  end
+  setmetatable(tt, tcopy(getmetatable(t), seen))
+  return tt
+end
+
+--- Recursively merges tables `src` and `dst` without overwriting, unless `forced` is true.
+local function tmerge(dst, src, forced)
+  assert('table' == type(dst), 'expected d to be a table, got ' .. type(dst))
+  assert('table' == type(src), 'expected s to be a table, got ' .. type(src))
+  if not dst then return tcopy(src) end
+  forced = forced or false
+
+  local m = tcopy(dst)
+  for k, v in pairs(src) do
+    if not m[k] then
+      m[k] = tcopy(v)
+    elseif 'table' == type(m[k]) and 'table' == type(v) then
+      m[k] = tmerge(m[k], v, forced)
+      if not getmetatable(m[k]) then setmetatable(m[k], tcopy(getmetatable(v))) end
+    elseif forced then
+      m[k] = tcopy(v)
+    end
+  end
+  if not getmetatable(m) then setmetatable(m, tcopy(getmetatable(src))) end
+  return m
+end
+
 --- Returns filtered `data`,`stats` or nil,`error` on failure.
 ---
 --- Searches to require `name`, which may be split into a `mod` and `func`
@@ -147,9 +190,17 @@ local function filter(data, name)
   local mod, _, fun = need(name)
   if nil == mod then return nil, sf('unable to require %q', name) end
 
+  -- TODO:
+  -- * if data is Pandoc, merge dta.meta <- doc.meta
   fun = fun or 'Pandoc'
   local filters = mod.fun and { mod } or mod
 
+  if 'Pandoc' == pd.utils.type(data) then
+    --
+    data.meta = tmerge(data.meta, state.doc.meta)
+  end
+
+  state:push()
   for _, f in ipairs(filters) do
     if f[fun] then
       local ok, tmp = pcall(f[fun], data)
@@ -157,29 +208,10 @@ local function filter(data, name)
       count = ok and count + 1 or count
     end
   end
+  state:pop()
 
   return data, sf('%d/%d applied', count, #filters)
 end
-
--- Returns a semi-deep copy of t (table, userdata, etc..)
---- @return any
-local function tcopy(t, seen)
-  seen = seen or {}
-
-  if seen[t] then return seen[t] end
-  -- most pandoc type are clone()'able (except for CommonState ..)
-  if 'userdata' == type(t) and t.clone then return t:clone() end
-  if 'table' ~= type(t) then return t end
-
-  local tt = {}
-  seen[t] = tt
-  for k, v in next, t, nil do
-    tt[tcopy(k, seen)] = tcopy(v, seen)
-  end
-  setmetatable(tt, tcopy(getmetatable(t), seen))
-  return tt
-end
-
 --- Returns a list of lines representing `t` as yaml.
 --- @param t any
 --- @return table yaml
@@ -259,6 +291,7 @@ end
 
 --[[----- State ------------]]
 
+-- state is { log, ctx (*), ccb (*), seen, stack, doc (*)}
 --- Returns the current recursion depth
 function state:depth() return #self.stack end
 
@@ -275,28 +308,29 @@ end
 --- Saves current codeblock `ccb` on its stack and returns new total count.
 --- @param ccb table
 --- @return number
-function state:save(ccb)
+function state:saw(ccb)
   self.seen[#self.seen + 1] = ccb
   self.ccb = ccb
   return #self.seen
 end
 
---- Pushes current context onto its stack, sets `ctx` as new context
---- and returns current depth.
---- @param ctx table
---- @return number
-function state:push(ctx)
-  self.stack[#self.stack + 1] = self.ctx
-  self.ctx = ctx
-  return #self.stack
+--- Pushes a copy of current context and codeblock onto the stack
+---
+--- A call to `state:pop` will restore both
+function state:push()
+  --
+  self.stack[#self.stack + 1] = { tcopy(self.ctx), tcopy(self.ccb) }
 end
 
---- Pops context from stack and restores it as current context.
---- This also clears (TODO) current codeblock being processed ?
+--- Restores context and current codeblock, it is fatal to pop an empty stack
+---
 function state:pop()
-  local ctx = self.stack[#self.stack]
-  self.stack[#self.stack] = nil
-  return ctx
+  if 0 == #self.stack then
+    log('stitch', 'fatal', '*** Cannot pop from empty stack ***')
+  else
+    self.ctx, self.ccb = table.unpack(self.stack[#self.stack])
+    self.stack[#self.stack] = nil
+  end
 end
 
 --[[----- parsers ----------]]
@@ -349,16 +383,19 @@ local parse_opt_by = {
   arg = function(v) return 'string' == type(v) and v or nil end,
   art = function(v) return 'string' == type(v) and v or nil end,
   cbx = function(v) return 'string' == type(v) and v or nil end,
-  cid = function(v) return 'string' == type(v) and v or nil end,
-  cls = function(v) return 'string' == type(v) and ('no yes'):match(v) and v or nil end,
+  cmd = function(v) return 'string' == type(v) and v or nil end,
+  dir = function(v) return 'string' == type(v) and v or nil end,
   err = function(v) return 'string' == type(v) and v or nil end,
-  exe = function(v) return 'string' == type(v) and ('yes maybe no'):match(v) and v or nil end,
   fmt = function(v) return 'string' == type(v) and v or nil end,
+  oid = function(v) return 'string' == type(v) and v or nil end,
+  out = function(v) return 'string' == type(v) and v or nil end,
+  -- check values
+  cls = function(v) return 'string' == type(v) and ('no yes'):match(v) and v or nil end,
+  exe = function(v) return 'string' == type(v) and ('yes maybe no'):match(v) and v or nil end,
   log = function(v) return 'string' == type(v) and ('debug error warn note info silent'):match(v) and v or nil end,
   old = function(v) return 'string' == type(v) and ('purge keep'):match(v) and v or nil end,
-  out = function(v) return 'string' == type(v) and v or nil end,
   run = function(v) return 'string' == type(v) and ('system chunk noop'):match(v) and v or nil end,
-
+  -- parse value
   inc = function(v)
     -- `inc` in cb.attr is always a string, in meta it can be string or a table
     local t = {}
@@ -460,8 +497,6 @@ local function doc_options(doc)
   end
 
   -- setup log levels for all sections
-  print('opt')
-  print(table.concat(toyaml(opt), '\n'))
   for name, section in pairs(opt) do
     local level = section.log or 'info'
     state:logger(name, level)
@@ -763,13 +798,72 @@ function kb:new(cb)
   oid = #oid == 0 and sf('anon%02d', #state.seen + 1) or oid
   state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
   local ccb = parse_elm(cb)
+  local cfg = self:config(oid, ccb)
+  local flawed = cfg == nil
 
+  -- check option values
+  local opt = setmetatable({}, { __index = state.ctx[cfg] })
+  for option, value in pairs(ccb.attr.attributes) do
+    local val = parse_opt(option, value)
+    if nil == val then
+      flawed = true
+      log(oid, 'error', '(#%s) %s=%s (illegal value)', oid, option, tostr(value))
+    end
+    opt[option] = val
+  end
+
+  local new = {
+    cfg = cfg, -- if nil, cb is not eligible for stitch processing
+    cls = ccb.attr.classes,
+    opt = opt, -- cb's options with valid values
+    txt = ccb.text, -- for convenience
+    ast = ccb, -- parsed ast for cb (for debugging)
+    oid = oid, -- object identifier
+    org = cb, -- original cb (for debugging)
+    sha = '', -- calculated later using new itself
+    flawed = flawed, -- if true, codeblock skipped, all operations check this flag
+  }
+  new.sha = tosha(new)
+
+  -- expand #var's used in option values
+  -- TODO: may use #cfg -> art='#dir/#cfg/#oid-#sha.#ft' e.g. ?
+  -- * makes it easy to seggregate by tool/section
+  local kvmap = tmerge(opt, { sha = new.sha, oid = new.oid })
+  local expandables = { 'cbx', 'art', 'out', 'err', 'cmd' }
+  for _, tpl in ipairs(expandables) do
+    opt[tpl] = pd.path.normalize(opt[tpl]:gsub('%#(%w+)', kvmap))
+    kvmap[tpl] = opt[tpl] -- tricky: needed for cmd to expand fully
+  end
+  -- check all are expanded
+  for k, v in pairs(expandables) do
+    if 'string' == type(v) and v:match('%#' .. k) then
+      log(oid, 'error', 'option %s not fully expanded: %s', k, v)
+      new.flawed = true
+    end
+  end
+
+  self.__index = self
+  setmetatable(new, self)
+  state:saw(new) -- save to state.seen
+  return new
+end
+
+-- Returns section config name for given `ccb`, nil when no config was found
+--
+-- nb: option stitch=<not-a-section> yields 'defaults' as config name
+function kb:config(oid, ccb)
   local how -- how 1..4 codeblock was linked to a config (or not)
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
-  how = cfg and sf('by stitch=%s', cfg)
+  if cfg and nil == rawget(state.ctx, cfg) then
+    how = sf('by stitch=%s, but no such config section so using defaults', cfg)
+    cfg = 'defaults' -- TODO: explicit ref does not exist, treat it as error in cb?
+    -- return nil -- TODO: which causes flawed to be set and cb skipped ??
+  elseif cfg then
+    how = sf('by stitch=%s', cfg)
+  end
   cfg = cfg or rawget(state.ctx, oid) and oid -- 2. #id has config section
   how = how or cfg and sf('by id=#%s', cfg)
-  if not cfg and 'no' ~= cb.attr.attributes.cls then
+  if not cfg and 'no' ~= ccb.attr.attributes.cls then
     -- 3. a ccb's class matches with a section when not disable at cb level
     for _, class in ipairs(ccb.attr.classes) do
       local section = rawget(state.ctx, class) -- don't fallback to defaults
@@ -783,39 +877,7 @@ function kb:new(cb)
   cfg = cfg or 'defaults' -- last ditch effort defaults->hardcoded
   cfg = cfg or nil -- ensure nil as failure value (i.e. false := nil)
   log(oid, 'debug', 'stitch config %s', how or 'not found')
-
-  -- ensure cb options have valid values, set err for any mistakes found
-  local flawed = false --> later ops will check err and skip codeblock entirely
-  local opt = setmetatable({}, { __index = state.ctx[cfg] })
-  for option, value in pairs(ccb.attr.attributes) do
-    local val = parse_opt(option, value)
-    if nil == val then log(oid, 'error', '(#%s) %s=%s (illegal value)', oid, option, tostr(value)) end
-    flawed = flawed or val == nil
-    opt[option] = val
-  end
-
-  local new = {
-    cfg = cfg, -- if nil, cb is not eligible for stitch processing
-    cls = ccb.attr.classes,
-    opt = opt, -- cb's options with valid values
-    txt = ccb.text, -- for convenience
-    ast = ccb, -- parsed ast for cb (for debugging)
-    oid = oid, -- object identifier
-    org = cb, -- original cb (for debugging)
-    flawed = flawed, -- if true, codeblock skipped, all operations check this flag
-  }
-  new.sha = tosha(new)
-
-  -- calculate sha & expand filenames (cmd must be last as it uses filenames)
-  for _, tpl in ipairs({ 'cbx', 'art', 'out', 'err', 'cmd' }) do
-    opt[tpl] = pd.path.normalize(opt[tpl]:gsub('%#(%w+)', opt))
-    opt[tpl] = pd.path.normalize(opt[tpl]:gsub('%#(%w+)', { sha = new.sha, oid = new.oid }))
-  end
-
-  self.__index = self
-  setmetatable(new, self)
-  state:save(new)
-  return new
+  return cfg
 end
 
 --- Returns an new clone of this codeblock instance with stitch stuff removed.
@@ -949,6 +1011,14 @@ local function Pandoc(doc)
   state.doc = doc
   local rv = doc:walk({ CodeBlock = CodeBlock })
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
+
+  -- tmp
+  -- local dump = require 'dump'
+  -- local a = parse_elm(doc.meta)
+  -- print('stack depth', #state.stack)
+  -- print(dump(state.ctx))
+  -- print(dump(tmerge(a, state.ctx)))
+  -- tmp
 
   return rv
 end

@@ -127,52 +127,54 @@ if ("stitch?") {
 
 ## [youplot](https://github.com/red-data-tools/YouPlot)
 
-Or a bit more dynamic: today’s local temperature (well, the last time
-the codeblock was changed before compiling this readme anyway). The
-codeblock pulls in a csv file from `api.open-meteo.com`, cuts the output
-down to what is needed and modifies the first field keeping only the
-hours of the day. That output is then processed by
+Or a bit more dynamic: today’s local temperature in Honolulu (well, the
+last time the codeblock was changed before compiling this readme
+anyway). The codeblock pulls in a csv file from `api.open-meteo.com`,
+cuts the output down to what is needed and modifies the first field
+keeping only the hours of the day. That output is then processed by
 [youplot](https://github.com/red-data-tools/YouPlot)
 
 ```
                   Temperature (˚C) Today
          ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■ 6.6                    
-   01:00 ┤■■■■■■■■■■■■■■■■ 5.9                      
-   02:00 ┤■■■■■■■■■■■■■■■■ 5.6                      
-   03:00 ┤■■■■■■■■■■■■■■ 5.1                        
-   04:00 ┤■■■■■■■■■■■■■■ 5.1                        
-   05:00 ┤■■■■■■■■■■■■■■ 5.0                        
-   06:00 ┤■■■■■■■■■■■■■ 4.8                         
-   07:00 ┤■■■■■■■■■■■■■ 4.5                         
-   08:00 ┤■■■■■■■■■■■■■■ 4.9                        
-   09:00 ┤■■■■■■■■■■■■■■■■■■ 6.5                    
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■ 7.9                
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.6           
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.4     
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.0    
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.2   
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 11.6     
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.9       
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 10.3        
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.9          
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.8           
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.7           
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 9.4            
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 9.0             
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 8.6              
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.2    
+   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.3     
+   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.1     
+   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.4      
+   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.5       
+   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.2       
+   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.1       
+   07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.0       
+   08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.8        
+   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.6        
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.5        
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.3        
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.9         
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.9         
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.9        
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.2      
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.4     
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.1    
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.6   
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.7   
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.5   
          └                                        ┘ 
 ```
 
 ````
 ``` {#cb02 stitch="youplot"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
-'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
 ````
+
+21.3069
 
 ## [Cetz](https://typst.app/universe/package/cetz)
 
@@ -379,11 +381,11 @@ Installation is straightforward:
 
 The filter will process a codeblock if it has a:
 
-- `.stitch` class,
-- `stitch=name` attribute, where `<name>` refers to a
-  `meta.stitch`-section
-- class that matches named `meta.stitch`-section that has [`cls`](#cls)
-  set to yes
+- `stitch=name` attribute, linking it to a `meta.stitch`-section
+- class that matches a `meta.stitch`-section which has [`cls`](#cls) set
+  to yes
+- `.stitch` class (which uses `meta.stitch.defaults` or hardcoded
+  defaults)
 
 Processing a codeblock follows these steps:
 
@@ -392,7 +394,8 @@ Processing a codeblock follows these steps:
     (always)
 3.  check if anything has changed [`cid`](#cid) (1+ of the other
     artifacts exist)
-4.  conditionally run [`cmd`](#cmd) to produce new artifacts:
+4.  conditionally run [`cmd`](#cmd) or [`lua`](#lua) load
+    [`cbx`](#cbx)-file & run, producing artifacts
     1.  an [`art`](#art)-file (usually an image file, depends on
         [`cmd`](#cmd)),
     2.  an [`out`](#out)-file (if [`cmd`](#cmd) redirects `stdout` here)
@@ -401,18 +404,10 @@ Processing a codeblock follows these steps:
 6.  parse the [`inc`](#inc)-option and include artifacts in order (if
     any)
 
-As a special case, the [`lua`](#lua)-option will override step 4 and
-loads the [`cbx`](#cbx)-file as a chunk and executes it. Regardless, the
-last step will try to include 0 or more of the resulting files.
-
-Another special case is the [`hdr`](#hdr)-option which specifies a delta
-to apply to headers encountered in the document. Mainly meant for
-incorporating externally acquired documents.
-
-In the face of errors, stitch just complains and carries on if possible
-usually skipping the offending codeblock. If things don’t pan out, check
-the logs and perhaps set the codeblock’s [`log`](#log)-option to
-`debug`.
+In the face of errors, stitch just complains and carries on, if
+possible, usually skipping the offending codeblock or artifact. If
+things don’t pan out, check the logs and perhaps set the codeblock’s
+[`log`](#log)-option to `debug`.
 
 ## Features
 
@@ -598,10 +593,6 @@ An example of such an element id is: `csv-3-err` where
 
 Valid values:
 
-```
-[true,false,"true","false","yes","no"]
-```
-
 Normally, codeblocks are marked by:
 
 - setting an attribute like `stitch=name`, or
@@ -680,10 +671,6 @@ data.
 *exe* specifies whether a codeblock should actually run.
 
 Valid values:
-
-```
-[true,false,"true","false","yes","no","maybe"]
-```
 
 If *exe* is either `yes`, `true` or true, the codeblock is always run.
 Values like `no`, `false` or false means it won’t be run.
@@ -827,10 +814,6 @@ codeblock.
 
 Valid values:
 
-```
-["silent","error","warn","notify","info","debug"]
-```
-
 Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to
 turn off all logging except for one codeblock where logging happens on
 the debug level.
@@ -868,72 +851,73 @@ out:close()
 
 codeblock #opt-lua options:
 {
-  out: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.out'
-  art: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.png'
-  cmd: ''
-  cid: 'opt-lua'
   err: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.err'
-  inc: 'cbx:fcb out:fcb'
+  cid: 'opt-lua'
   lua: 'chunk'
-  cbx: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.cbx'
+  cmd: ''
+  art: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.png'
   sha: 'c61abaacae56d570ce942ff5308e0ed3882b276b'
+  inc: 'cbx:fcb out:fcb'
   stitch: 'chunk'
+  cbx: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.cbx'
+  out: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.out'
 }
 
 From doc.meta:
 stitch:
+  youplot:
+    cmd: '#cbx 1>#out'
+    dir: '.stitch/readme/youplot'
+  download:
+    exe: 'yes'
+    dir: '.stitch/readme/download'
+    inc: 'cbx:fcb'
+    out: '#dir/#arg'
+  stitch:
+    hdr: '0'
+    log: 'debug'
   chunk:
     dir: '.stitch/readme/chunk'
-    lua: 'chunk'
-    inc: 'out'
+    run: 'chunk'
+    exe: 'maybe'
     cmd: ''
+    inc: 'out'
+  diagon:
+    cmd: 'diagon #arg <#cbx 1>#out'
+    dir: '.stitch/readme/diagon'
   cetz:
     arg: 'compile'
     dir: '.stitch/readme/cetz'
-    inc: 'art cbx:fcb'
     cmd: 'typst #arg #cbx #art'
-  boxes:
-    inc: 'out'
-    cls: 'true'
-    cmd: '#cbx #arg 1>#out'
-  youplot:
-    dir: '.stitch/readme/youplot'
-    cmd: '#cbx 1>#out'
-  download:
-    dir: '.stitch/readme/download'
-    out: '#dir/#arg'
-    inc: 'cbx:fcb'
-    exe: 'yes'
+    inc: 'art cbx:fcb'
   gnuplot:
     dir: '.stitch/readme/gnuplot'
-    inc: 'art:fig cbx:fcb'
     cmd: 'gnuplot #cbx 1>#art 2>#err'
-  stitch:
-    log: 'debug'
-    hdr: '0'
-  diagon:
-    dir: '.stitch/readme/diagon'
-    cmd: 'diagon #arg <#cbx 1>#out'
+    inc: 'art:fig cbx:fcb'
+  boxes:
+    cls: 'true'
+    cmd: '#cbx #arg 1>#out'
+    inc: 'out'
   defaults:
-    dir: '.stitch/readme/defaults'
     inc: 'out cbx:fcb'
+    dir: '.stitch/readme/defaults'
 
 
 Hardcoded option defaults:
-  log: 'info'
-  art: '#dir/#cid-#sha.#fmt'
-  cmd: '#cbx #arg #art 1>#out 2>#err'
-  cid: 'x'
-  dir: '.stitch'
-  cls: 'no'
+  fmt: 'png'
   err: '#dir/#cid-#sha.err'
+  cls: 'no'
+  cid: 'x'
+  exe: 'maybe'
+  lua: ''
+  cmd: '#cbx #arg #art 1>#out 2>#err'
+  art: '#dir/#cid-#sha.#fmt'
+  dir: '.stitch'
+  inc: 'cbx:fcb out:fcb art:img err:fcb'
+  log: 'info'
   arg: ''
   old: 'purge'
-  inc: 'cbx:fcb out:fcb art:img err:fcb'
-  lua: ''
   cbx: '#dir/#cid-#sha.cbx'
-  fmt: 'png'
-  exe: 'maybe'
   out: '#dir/#cid-#sha.out'
 ```
 
@@ -942,10 +926,6 @@ Hardcoded option defaults:
 *old* specifies whether or not old files can be removed.
 
 Valid values:
-
-```
-["keep","purge"]
-```
 
 Old incarnations of an artifact file are detected when their filenames
 match the new filename except for the last `-#sha.<ext>` part. If a
@@ -1252,27 +1232,31 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## poor man's yaml
 
-```{.lua #nd-yaml stitch=chunk exe=yes lua=chunk log=debug}
-local fh = io.open(Stitch.opts.out, 'w')
+```{.lua #nd-yaml .chunk log=debug}
+local ccb = Stitch.ccb
+local ctx = Stitch.ctx
+local fh = io.open(ccb.opt.out, 'w')
+Stitch.log(ccb.opt.oid, 'warn', 'logging from a chunk!')
 
-fh:write("\n")
 fh:write('\nIn doc.meta\n---\nstitch:\n')
-local yaml = Stitch.tbl_yaml(Stitch.ctx, 2)
+local yaml = Stitch.toyaml(ctx, 2)
 fh:write(table.concat(yaml, "\n"))
 -- defaults was "promoted" to metatable of ctx
-yaml = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
+yaml = Stitch.toyaml(ctx.defaults, 4)
 if #yaml > 0 then
   fh:write("\n  defaults:\n")
   fh:write(table.concat(yaml, "\n"))
 end
+-- hardcoded
+yaml = Stitch.toyaml(getmetatable(ctx.hard_coded).__index, 4)
+if #yaml > 0 then
+  fh:write("\n  hardcoded:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
 
 fh:write("\n...\n\n")
-fh:write("codeblock opts:\n")
-local opts = {} -- augment cb attr opts to full list of opts
-for k, _ in pairs(Stitch.hardcoded) do
-  opts[k] = Stitch.opts[k]
-end
-yaml = Stitch.tbl_yaml(opts, 2)
+fh:write("codeblock opt:\n")
+yaml = Stitch.toyaml(ccb.opt, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
 fh:close()
 ```
@@ -1294,34 +1278,6 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 ## The weather today
 
 ``` stitched
-                  Temperature (˚C) Today
-         ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■ 8.3                    
-   01:00 ┤■■■■■■■■■■■■■■■■■ 8.0                     
-   02:00 ┤■■■■■■■■■■■■■■■■■ 7.8                     
-   03:00 ┤■■■■■■■■■■■■■■■■ 7.6                      
-   04:00 ┤■■■■■■■■■■■■■■■■ 7.5                      
-   05:00 ┤■■■■■■■■■■■■■■■■ 7.5                      
-   06:00 ┤■■■■■■■■■■■■■■■■ 7.5                      
-   07:00 ┤■■■■■■■■■■■■■■■■■■ 8.2                    
-   08:00 ┤■■■■■■■■■■■■■■■■■■■ 9.0                   
-   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■ 10.5               
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.4          
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 14.0       
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.4    
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.8   
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.9   
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 15.3    
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 14.3      
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 13.4        
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.7          
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.3           
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 12.0           
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 11.8            
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 11.7            
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 11.5            
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 11.2             
-         └                                        ┘ 
 ```
 
 ## Gnuplot again
@@ -1352,67 +1308,40 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## poor man’s yaml
 
+```` lua
+``` {#nd-yaml .lua .chunk log="debug"}
+local ccb = Stitch.ccb
+local ctx = Stitch.ctx
+local fh = io.open(ccb.opt.out, 'w')
+Stitch.log(ccb.opt.oid, 'warn', 'logging from a chunk!')
+
+fh:write('\nIn doc.meta\n---\nstitch:\n')
+local yaml = Stitch.toyaml(ctx, 2)
+fh:write(table.concat(yaml, "\n"))
+-- defaults was "promoted" to metatable of ctx
+yaml = Stitch.toyaml(ctx.defaults, 4)
+if #yaml > 0 then
+  fh:write("\n  defaults:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
+-- hardcoded
+yaml = Stitch.toyaml(getmetatable(ctx.hard_coded).__index, 4)
+if #yaml > 0 then
+  fh:write("\n  hardcoded:\n")
+  fh:write(table.concat(yaml, "\n"))
+end
+
+fh:write("\n...\n\n")
+fh:write("codeblock opt:\n")
+yaml = Stitch.toyaml(ccb.opt, 2)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+fh:close()
+```
+````
+
 ``` lua
+```
 
-
-In doc.meta
----
-stitch:
-  gnuplot:
-    inc: 'art:fig cbx:fcb'
-    dir: '.stitch/readme/gnuplot'
-    cmd: 'gnuplot #cbx 1>#art 2>#err'
-  diagon:
-    dir: '.stitch/readme/diagon'
-    cmd: 'diagon #arg <#cbx 1>#out'
-  stitch:
-    hdr: '2'
-    log: 'debug'
-  chunk:
-    inc: 'out'
-    dir: '.stitch/readme/chunk'
-    lua: 'chunk'
-    cmd: ''
-  boxes:
-    cls: 'true'
-    inc: 'out'
-    cmd: '#cbx #arg 1>#out'
-  youplot:
-    dir: '.stitch/readme/youplot'
-    cmd: '#cbx 1>#out'
-  download:
-    inc: 'cbx:fcb'
-    dir: '.stitch/readme/download'
-    exe: 'yes'
-    out: '#dir/#arg'
-  cetz:
-    inc: 'art cbx:fcb'
-    dir: '.stitch/readme/cetz'
-    arg: 'compile'
-    cmd: 'typst #arg #cbx #art'
-  defaults:
-    cls: 'yes'
-    dir: '.stitch/readme/nested'
-    hdr: '2'
-    log: 'debug'
-...
-
-codeblock opts:
-{
-  fmt: 'png'
-  cid: 'nd-yaml'
-  err: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.err'
-  cls: 'yes'
-  lua: 'chunk'
-  old: 'purge'
-  arg: ''
-  art: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.png'
-  dir: '.stitch/readme/chunk'
-  out: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.out'
-  cmd: ''
-  inc: 'out'
-  cbx: '.stitch/readme/chunk/nd-yaml-1fb35c24c23a2da6d64bc28a939ba8b28eb79ec3.cbx'
-  exe: 'yes'
-  log: 'debug'
-}
+``` lua
+.stitch/readme/nested/nd-yaml-0e4bfbd2630d90bef55f508ed49f2cc18215a897.cbx: 1: local: not in a function
 ```
