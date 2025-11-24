@@ -1,847 +1,1103 @@
---[[-- stitch --]]
--- TODO:
--- [o] check utf8 requirements (if any)
--- [o] add mediabag to store files related to cb's
--- [o] add `Code` handler to insert pieces of a CodeBlock from mediabag
--- [?] add `meta` as inc target for troubleshooting meta!read@filter:fcb
--- [ ] check all pd.<f>'s used and establish oldest version possible
--- [x] make stitch also shift headers based on doc.meta.stitch.xxx.hdr
--- [ ] REVIEW: add stitch classes list to treat as stichable
--- [?] REVIEW: option lua=chunk just runs dofile(cbx)()() ?
--- [ ] add I.dump(table) -> list of strings, shallow dump of table
+--[[ stitch2, a better stitch ]]
 
--- initiatlize only once (load vs require)
-if package.loaded.stitch then return package.loaded.stitch end
+--[[ TODO: SUNDAY: ]]
+-- * artifact files are read, sometimes transformed by stitch but never saved:
+--   - cbx:!markdown -> pandoc doc -> blocks element inserted
+--   - cbx:!markdown:fcb -> pandoc doc -> native form inserted as fcb
+-- * state.doc should be state.doc_meta <- only needed for filters
+-- * add hdr option for meta.stitch for doc oe ccb for included doc
+-- ? support multiple filters like @f1@f2@f3 .. etc ?
 
-local pd = require('pandoc') -- shorthand & no more 'undefined global "pandoc"'
-local F = string.format
+-- initialize only once (load vs require)
+if package.loaded.stitch2 then return package.loaded.stitch2 end
 
-_ENV.PANDOC_VERSION:must_be_at_least('3.0')
+--[[----- locals -----------]]
+local pd = _ENV.pandoc -- if nil, we're probably not being loaded by pandoc
+local sf = string.format
+-- local dump = require 'dump' -- tmp: delme
+local log_level = { 1, 2, 3, 4, 5, 6, silent = 0, fatal = 1, error = 2, warn = 3, note = 4, info = 5, debug = 6 }
 
---[[-- state --]]
-
-local MAXTAIL = 4 -- max recursion depth
-local tail = {} -- stack of saved states during recursion
-local I = {} -- I[mplementation]; for testing
-I.opts = {} -- { log = 'info' } --> for initial logging, is reset for each cb
-I.cbc = 0 -- codeblock counter, across recursive calls
-I.hdc = 0 -- header counter, dito
-I.ctx = {} -- this doc's context (= meta.stitch)
-
---[[-- logging --]]
-local levels = { silent = 0, error = 1, warn = 2, note = 3, info = 4, debug = 5 }
-
-function I.log(tier, action, msg, ...)
-  local level = levels[I.opts.log or I.ctx.stitch.log] or 0
-  if level >= levels[tier] then
-    local caller = I.opts.cid or 'stitch'
-    local fmt = F('[stitch:%d %6s] %-7s:%7s| %s', #tail, tier, caller, action, msg)
-    io.stderr:write(F(fmt, ...), '\n')
-    io.stderr:flush()
-  end
-end
-
---[[-- tables --]]
-
--- return a semi-deep copy of table t
--- (used to provide a copy of I to external filters)
-function I.tbl_copy(t, seen)
-  seen = seen or {}
-  if 'table' ~= type(t) then return t end
-  if seen[t] then return seen[t] end
-
-  local tt = {}
-  seen[t] = tt
-  for k, v in pairs(t) do
-    tt[I.tbl_copy(k, seen)] = I.tbl_copy(v, seen)
-  end
-  setmetatable(tt, I.tbl_copy(getmetatable(t), seen))
-  return tt
-end
-
--- return a table's keys in sorted order
---- @param t table with k,v-pairs
---- @return table keys the sorted list of keys
-function I.tbl_keys(t)
-  local keys = {}
-  for k, _ in pairs(t) do
-    keys[#keys + 1] = k
-  end
-  table.sort(keys)
-  return keys
-end
--- recursively merge s onto d without overwriting anything, unless `forced`
---- @param d table? destination table
---- @param s table source table
---- @return table m the (new) merged table m
-function I.tbl_merge(d, s, forced)
-  -- TODO: cfg = I.tbl_merge(I.mta_tolua(dta.meta), {stitch=I.ctx}) fails?
-  if not d then return I.tbl_copy(s) end
-  assert('table' == type(d), 'expected d to be a table, got ' .. type(d))
-  assert('table' == type(s), 'expected s to be a table, got ' .. type(s))
-  forced = forced or false
-
-  local m = I.tbl_copy(d)
-  for k, v in pairs(s) do
-    if not m[k] then
-      m[k] = I.tbl_copy(v)
-    elseif 'table' == type(m[k]) and 'table' == type(v) then
-      m[k] = I.tbl_merge(m[k], v, forced)
-      if not getmetatable(m[k]) then setmetatable(m[k], I.tbl_copy(getmetatable(v))) end
-    elseif forced then
-      m[k] = I.tbl_copy(v)
-    end
-  end
-  if not getmetatable(m) then setmetatable(m, I.tbl_copy(getmetatable(s))) end
-  return m
-end
-
--- poor man's yaml representation of a table as a list of lines
--- (assumes all keys are strings)
-function I.tbl_yaml(t, n, seen)
-  seen = seen or {}
-  n = n or 0
-  if 'table' ~= type(t) then return F("'%s'", t) end
-  if seen[t] then return seen[t] end
-
-  local tt = {}
-  seen[t] = tt
-  for k, v in pairs(t) do
-    local indent = string.rep(' ', n)
-    local nl = 'table' == type(v) and '\n' or ' '
-    local kk = 'string' == type(k) and k or F('[%s]', k)
-    local vv = I.tbl_yaml(v, n + 2, seen)
-    if 'table' == type(vv) then vv = table.concat(vv, '\n') end
-    tt[#tt + 1] = F('%s%s:%s%s', indent, kk, nl, vv)
-  end
-  return tt
-end
-
---[[-- data --]]
-
-I.optvalues = {
-  cls = { true, false, 'true', 'false', 'yes', 'no' },
-  exe = { 'yes', 'no', 'maybe' },
-  -- * cli = 'system', 'chunk' (default system) <-- like run better
-  -- * run = 'system', 'chunk' (default system) <-- TODO
-  -- log = I.tbl_keys(levels),
-  log = { 'silent', 'error', 'warn', 'notify', 'info', 'debug' },
-  lua = { 'chunk', '' },
-  old = { 'keep', 'purge' },
-  inc_what = { 'cbx', 'art', 'out', 'err' },
-  inc_how = { "''", 'any', 'fcb', 'img', 'fig' },
-}
-
-I.hardcoded = {
-  -- resolution order: cb->stitch.section->stitch.defaults->hardcoded
+-- opt resolution: cb.opt->ctx.section->ctx.defaults->hardcoded
+local hard_coded_opts = {
   arg = '', -- (extra) arguments to pass in to `cmd`-program on the cli (if any)
-  art = '#dir/#cid-#sha.#fmt', -- artifact (output) file (if any)
-  cbx = '#dir/#cid-#sha.cbx', -- the codeblock.text as file on disk
-  cid = 'x', -- either cb.identifier or set by stitch using I.cbc
-  cls = 'no', -- {'true', 'false', 'yes', 'no', '0', '1', '2', '3'}
-  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
+  cls = 'no', -- {'yes', 'no'}
   dir = '.stitch', -- where to store files (abs or rel path to cwd)
-  err = '#dir/#cid-#sha.err', -- capture of stderr (if any)
   exe = 'maybe', -- {yes, no, maybe}
   fmt = 'png', -- format for images (if any)
-  inc = 'cbx:fcb out:fcb art:img err:fcb',
+  hdr = '0', -- shift headers by '+/-n'
   log = 'info', -- {debug, error, warn, info, silent}
-  lua = '', -- {chunk, ''}
+  run = 'system', -- {system, chunk, no, noop, data (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
-  out = '#dir/#cid-#sha.out', -- capture of stdout (if any)
+  -- expandables; #sha & #oid are provided by stitch
+  art = '#dir/#oid-#sha.#fmt', -- artifact (output) file (if any)
+  cbx = '#dir/#oid-#sha.cbx', -- the codeblock.text as file on disk
+  out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
+  err = '#dir/#oid-#sha.err', -- capture of stderr (if any)
+  cmd = '#cbx #arg #art 1>#out 2>#err', -- cmd template string, expanded last
+  -- include directive defaults for cbx, art, out and err (what-types)
+  inc = { { what = 'cbx', how = 'fcb' }, { what = 'out' }, { what = 'art', how = 'img' }, { what = 'err' } },
 }
 
---[[-- options --]]
+--- state stores the following:
+--- * `log`, logging levels per facility. Predefined are 'stitch, doc, cb'.
+---   Others (cb's e.g.) register via `state:logger(id, level)`
+--- * `ctx`, the current document's stitch context (options basically)
+--- * `ccb`, the current codeblock being processed as created by `kb:new(cb)`
+--- * `seen`, a list of codeblocks seen sofar
+--- * `stack`, push/pop stack for `state.ctx` when recursing
+---
+--- Note: `kb:new(cb)` creates the current `ccb` and adds it to `seen`.
+local state = {
+  log = { stitch = 6 }, -- log level per 'facility'
+  ctx = nil, -- context of current document
+  ccb = nil, -- current codeblock
+  seen = {}, -- list of *all* codeblocks seen
+  stack = {}, -- previous {ctx, ccb}'s when filters are called
+  meta = {}, -- copy of doc.meta to be used in chunks or handed to filters
+}
 
--- check table of options for valid values, invalid v -> k,v is removed
----@param opts table single, flat, k,v store of options (v's are strings)
----@return table opts same table with illegal option,values removed
-function I.check(opts)
-  for k, _ in pairs(I.optvalues) do
-    local val = opts[k]
-    local ok, err = I.vouch(k, val)
-    if val and not ok then
-      opts[k] = nil -- k falls back: cb->section->defaults->hardcoded
-      I.log('error', 'check', err)
-    end
-  end
-  return opts
+--[[----- logging ----------]]
+
+--- Prints formatted `msg` to stdout for given `id` at `tier`-level.
+--
+-- Note: logging a message at level `fatal` is killing.
+--- @param id string
+--- @param tier string
+--- @param msg string
+local function log(id, tier, msg, ...)
+  local level = log_level[tier] or 3 -- unknown tier is warning
+  if (log_level[tier] or 0) > (state.log[id] or 0) then return end
+  local prefix = sf('stitch[%s] %-5s %8s| ', #state.stack, tier, id)
+  io.output():write(prefix, sf(msg, ...), '\n')
+  io.output():flush()
+  assert(level ~= 1, sf('fatal error logged by %s', id))
 end
 
--- parse `I.opts.inc` list of directives into it constituents: {{what, format, filter, how}, ..}
--- a directive is "what:type!format+extensions@module.function"
----@param inc string the I.opts.inc string of comma/space separated directives
----@return table directives list of 4-element lists of strings
-function I.parse(inc)
-  -- inc is comma/space separated list of directives
-  local directives = {}
-  local part = '([^!@:]+)'
+--[[----- helpers ----------]]
 
-  inc = pd.utils.stringify(inc):gsub('[,%s]+', ' ')
-  for p in inc:gmatch('%S+') do
-    -- `what` needs to come first, order of the others not important
-    directives[#directives + 1] = {
-      p:match('^' .. part) or '', -- what
-      p:match('!' .. part) or '', -- read
-      p:match('@' .. part) or '', -- filter
-      p:match(':' .. part) or 'any', -- how
-    }
-  end
-  I.log('debug', 'include', "found %s inc's in '%s'", #directives, inc)
+--- Returns a list of lines representing `t` as yaml.
+--- @param t any
+--- @return table yaml
+local function toyaml(t, n, seen, acc)
+  seen = seen or {}
+  acc = acc or {}
+  n = n or 0
+  local indent = string.rep(' ', n)
 
-  return directives
-end
-
--- checks if `name`,`value` is a valid pair according to `I.optvalues`
--- (not all options have predefines value ranges)
----@param name string the name of the option
----@param value any the value of the option
----@return boolean ok true if `value` is valid for given, valid, `name`, false otherwise
----@return string? err message in case of invalid `name` or `value`, nil otherwise
-function I.vouch(name, value)
-  local values = I.optvalues[name]
-  if not values then return false, F("'%s' is not a known option", name) end
-  value = F('%s', value) -- valid values listed as strings
-
-  for _, v in ipairs(values) do
-    if value == v then return true, nil end
+  if 'table' ~= type(t) or seen[t] then
+    acc[#acc + 1] = sf('%s%s', indent, t)
+    return acc
   end
 
-  local err = "option '%s' expects one of {%s}, got %q"
-  local valid = {}
-  for _, v in ipairs(values) do
-    valid[#valid + 1] = F('%q', v)
-  end
-
-  err = F(err, name, table.concat(valid, ', '), value)
-  return false, err
-end
-
--- translate an AST to a lua table (wildly incomplete, covers just doc.meta)
----@param elm any either `doc.meta`, a `CodeBlock` or lua table
----@return any regular table with lua key,values-pairs
-function I.mta_tolua(elm)
-  -- note: xlate(doc.blocks) -> list of cb tables.
-  -- `:Open https://pandoc.org/MANUAL.html#extension-fenced_code_attributes`
-  -- `:Open https://pandoc.org/MANUAL.html#extension-fenced_code_blocks`
-  local ptype = pd.utils.type(elm)
-  if 'Meta' == ptype or 'table' == ptype or 'AttributeList' == ptype then
-    local t = {}
-    for k, v in pairs(elm) do
-      t[k] = I.mta_tolua(v)
-    end
-    return t
-  elseif 'List' == ptype or 'Blocks' == ptype then
-    local l = {}
-    for _, v in ipairs(elm) do
-      l[#l + 1] = I.mta_tolua(v)
-    end
-    return l
-  elseif 'Inlines' == ptype or 'string' == ptype then
-    return pd.utils.stringify(elm)
-  elseif 'boolean' == ptype or 'number' == ptype then
-    return elm
-  elseif 'nil' == ptype then
-    return nil
-  elseif 'Attr' == ptype then
-    local t = {
-      identifier = elm.identifier,
-      classes = I.mta_tolua(elm.classes),
-      attributes = {},
-    }
-    for k, v in pairs(elm.attributes) do
-      t.attributes[k] = I.mta_tolua(v)
-    end
-    return t
-  elseif 'CodeBlock' == elm.tag then
-    -- note: pd.utils.type(cb) == Block, while cb.tag == CodeBlock
-    return {
-      text = elm.text,
-      attr = I.mta_tolua(elm.attr),
-    }
-  else
-    I.log('warn', 'xlate', "skipping unknown type '%s'? for %s", ptype, tostring(elm))
-    return nil
-  end
-end
-
---[[-- files --]]
-
--- sha1 hash of (stitch) option values and codeblock text
----@param cb table a pandoc codeblock
----@return string sha1 hash of option values and codeblock content
-function I.fingerprint(cb)
-  local skip = 'exe old log'
-  local keys = I.tbl_keys(I.hardcoded)
-  local vals = {}
-
-  for _, key in ipairs(keys) do
-    if not skip:match(key) then vals[#vals + 1] = pd.utils.stringify(I.opts[key]):gsub('%s', '') end
-  end
-  vals[#vals + 1] = cb.text:gsub('%s', '') -- also no wspace
-
-  return pd.utils.sha1(table.concat(vals, ''))
-end
-
--- save cb.text to its `cbx`-path, mark executable & expand cmd for the cli
----@param cb table pandoc codeblock
----@return boolean ok false on any failure(s), true otherwise
-function I.command(cb)
-  -- create dirs for cb's possible output files
-  for _, fpath in ipairs({ 'cbx', 'out', 'err', 'art' }) do
-    local dir = pd.path.normalize(pd.path.directory(I.opts[fpath]))
-    if not os.execute('mkdir -p ' .. dir) then
-      I.log('error', 'command', 'permission denied when creating ' .. dir)
-      return false
+  seen[t] = true
+  for k, v in pairs(t) do
+    local kk = 'string' == type(k) and k or sf('[%s]', k)
+    if 'table' == type(v) then
+      acc[#acc + 1] = sf('%s%s:', indent, kk)
+      acc = toyaml(v, n + 2, seen, acc)
+    else
+      acc[#acc + 1] = sf('%s%s: %s', indent, kk, v)
     end
   end
+  return acc
+end
 
-  local fh = io.open(I.opts.cbx, 'w')
-  if not fh then
-    I.log('error', 'command', 'cbx could not open file: ' .. I.opts.cbx)
-    return false
+-- Returns a printable string representing given `t`
+local function tostr(t, seen, first, acc)
+  seen = seen or {}
+  acc = acc or ''
+  first = nil == first or false -- first call or not
+
+  local comma = #acc > 0 and ', ' or ''
+  if seen[t] then return sf('%s%s<%s>', acc, comma, t) end
+  if 'table' ~= type(t) then return sf('%s%s%s', acc, comma, t) end
+
+  seen[t] = true
+  for k, v in pairs(t) do
+    local kk = 'string' == type(k) and sf('%s: ', k) or ''
+    comma = #acc > 0 and ', ' or ''
+    if 'table' == type(v) then
+      local vv = tostr(v, seen, false)
+      local fmt = vv:match('^%<.-%>$') and '%s%s%s%s' or '%s%s%s{%s}'
+      acc = sf(fmt, acc, comma, kk, vv)
+    else
+      acc = sf('%s%s%s%s', acc, comma, kk, v)
+    end
   end
-  if not fh:write(cb.text) then
-    fh:close()
-    I.log('error', 'command', 'cbx could not write to: ' .. I.opts.cbx)
-    return false
-  end
+  acc = first and sf('{%s}', acc) or acc
+  return acc
+end
+local function exists(filename) return true == os.rename(filename, filename) end
+
+-- Read filename, possibly as pandoc -f `format`.
+--
+-- Returns `nil` on error, `data `on success
+--- @param filename string
+--- @param format string?
+--- @return any?
+--- @return string? error
+local function read(filename, format)
+  log('stitch', 'debug', 'read file %s, format %s', filename, format or '<n/a>')
+  if nil == filename then return nil, 'no filename given' end
+  local fh, err = io.open(filename, 'r')
+  if nil == fh then return nil, err end
+
+  local dta = fh:read('*a')
   fh:close()
-
-  if not os.execute('chmod u+x ' .. I.opts.cbx) then
-    I.log('error', 'command', 'cbx could not mark executable: ' .. I.opts.cbx)
-    return false
-  end
-
-  I.log('info', 'command', "expanding template '%s'", I.opts.cmd)
-  I.opts.cmd = I.opts.cmd:gsub('%#(%w+)', I.opts)
-  I.log('info', 'command', '%s', I.opts.cmd)
-  return true
-end
-
--- return true if `filename` exists, false otherwise
----@param filename string path to a file
----@return boolean exists true or false
-function I.exists(filename) return true == os.rename(filename, filename) end
-
--- read file `name` and, possibly, convert to pandoc ast using `format`
----@param name string file to read
----@param format? string convert file data to ast using a pandoc reader ("" to skip)
----@return string|table? data file data, ast or nil (in case of errors)
-function I.read(name, format)
-  local ok, dta
-  local fh, err = io.open(name, 'r')
-
-  if nil == fh then
-    I.log('error', 'read', '%s %s', name, err)
-    return nil
-  end
-
-  dta = fh:read('*a')
-  fh:close()
-  I.log('debug', 'read', '%s, %d bytes', name, #dta)
 
   if format and #format > 0 then
-    ok, dta = pcall(pd.read, dta, format)
-    if ok then
-      I.log('info', 'read', 'pandoc.read as %s succeeded (got type %s)', format, pd.utils.type(dta))
-      return dta
-    else
-      I.log('error', 'read', 'pandoc.read as %s failed: %s', format, dta)
-      return nil
-    end
+    local ok, data = pcall(pd.read, dta, format)
+    if not ok then return nil, data end
+    dta = data
+    log('stitch', 'debug', 'data converted to %s', format)
   end
 
   return dta
 end
 
--- save `doc` to given `fname`, except when it's an ast
----@param doc string|table? doc to be saved
----@param fname string filename to save doc with
----@return boolean ok success indicator
-function I.write(doc, fname)
-  if 'string' ~= type(doc) then
-    I.log('info', 'write', "%s, skipped writing '%s'", fname, type(doc))
-    return false
+-- Requires first available module `name`, dropping labels while searching.
+--
+-- Returns required `mod`,`name`,`func` on success or `nil` on failure.
+-- - `mod` is the result of a succesful `require(name)`
+-- - `acc` collects labels dropped during search and is returned as `func`
+-- - whether `func` if actually exported is *not* checked
+-- - `func` is `nil` if the first `require` succeeds
+--
+--- @param name string
+--- @param acc string?
+--- @return any mod, string? name, string? func
+local function need(name, acc)
+  if nil == name or 0 == #name then return nil end
+
+  local ok, mod = pcall(require, name)
+  if false == ok or true == mod then
+    local last_dot = name:find('%.[^%.]+$')
+    if not last_dot then return nil end
+    local mm, ff = name:sub(1, last_dot - 1), name:sub(last_dot + 1)
+    if ff and acc then ff = sf('%s.%s', ff, acc) end
+    return need(mm, ff)
+  else
+    return mod, name, acc
   end
-
-  local fh = io.open(fname, 'w')
-  if nil == fh then
-    I.log('error', 'write', '%s, unable to open for writing', fname)
-    return false
-  end
-
-  local ok, err = fh:write(doc)
-  fh:close()
-
-  if not ok then
-    I.log('error', 'write', '%s, error: %s', fname, err)
-    return false
-  end
-
-  I.log('debug', 'write', '%s, %d bytes', fname, #doc)
-  return true
 end
 
--- remove old files from past runs of current codeblock
----@return number count number of files removed
-function I.purge()
+-- Returns a semi-deep copy of t (table, userdata, etc..)
+--- @return any
+local function tcopy(t, seen)
+  seen = seen or {}
+
+  if seen[t] then return seen[t] end
+  -- most pandoc type are clone()'able (except for CommonState ..)
+  if 'userdata' == type(t) and t.clone then return t:clone() end
+  if 'table' ~= type(t) then return t end
+
+  local tt = {}
+  seen[t] = tt
+  for k, v in next, t, nil do
+    tt[tcopy(k, seen)] = tcopy(v, seen)
+  end
+  setmetatable(tt, tcopy(getmetatable(t), seen))
+  return tt
+end
+
+--- Recursively merges tables `src` and `dst` without overwriting, unless `forced` is true.
+local function tmerge(dst, src, forced)
+  assert('table' == type(dst), 'expected d to be a table, got ' .. type(dst))
+  assert('table' == type(src), 'expected s to be a table, got ' .. type(src))
+  if not dst then return tcopy(src) end
+  forced = forced or false
+
+  local m = tcopy(dst)
+  for k, v in pairs(src) do
+    if not m[k] then
+      m[k] = tcopy(v)
+    elseif 'table' == type(m[k]) and 'table' == type(v) then
+      m[k] = tmerge(m[k], v, forced)
+      if not getmetatable(m[k]) then setmetatable(m[k], tcopy(getmetatable(v))) end
+    elseif forced then
+      m[k] = tcopy(v)
+    end
+  end
+  if not getmetatable(m) then setmetatable(m, tcopy(getmetatable(src))) end
+  return m
+end
+
+--- Returns filtered `data`,`stats` or nil,`error` on failure.
+---
+--- Searches to require `name`, which may be split into a `mod` and `func`
+--- during search.  Returns `nil`,`error` when no module could be found.
+---
+--- If a module was required without the search also producing a `func`, than
+--- `Pandoc` is assumed.  Then `mod.func(data)` is called only once and results
+--- are returned.
+---
+--- If the `mod` found does not export `func` (`Pandoc` or as found), then
+--- `mod` is assumed to be a list of filters each exporting `func` and they
+--- are called in the order listed.  So a pandoc filter needs to export `Pandoc`.
+--- @param data any
+--- @param name string
+--- @return any data, string msg
+local function filter(data, name)
   local count = 0
-  if 'purge' ~= I.opts.old then
-    I.log('info', 'files', "not purging old files: cb.old='%s'", I.opts.old)
-    return count
+  if nil == data then return nil, 'no data supplied to filter' end
+  if nil == name or 0 == #name then return data, 'no filter supplied' end -- TODO: nil or "" -> still noop?
+  local mod, _, fun = need(name)
+  if nil == mod then return nil, sf('unable to require %q', name) end
+
+  -- TODO:
+  -- * if data is Pandoc, merge dta.meta <- doc.meta
+  fun = fun or 'Pandoc'
+  local filters = mod.fun and { mod } or mod
+
+  if 'Pandoc' == pd.utils.type(data) then
+    --
+    print('pre-merge')
+    print(table.concat(toyaml(data.meta), '\n'))
+    print(table.concat(toyaml(state.meta), '\n'))
+
+    data.meta = tmerge(data.meta, state.meta)
+    print('\npost-merge')
+    print(table.concat(toyaml(data.meta), '\n'))
   end
-  I.log('info', 'files', 'looking for old files ..')
 
-  for _, what in ipairs({ 'cbx', 'out', 'err', 'art' }) do
-    local fnew = I.opts[what]
-    local pat, cnt = fnew, 0 -- since filenames are expanded, pat includes full path
-    local dir = pd.path.directory(pat)
-    -- nomagic chars
-    local magic = '^$()%.[]*+-?'
-    for i = 1, #magic do
-      local char = '%' .. magic:sub(i, i)
-      pat = pat:gsub(char, '%' .. char)
+  state:push()
+  for _, f in ipairs(filters) do
+    if f[fun] then
+      local ok, tmp = pcall(f[fun], data)
+      data = ok and tmp or data
+      count = ok and count + 1 or count
     end
+  end
+  state:pop()
 
-    -- this only works is file template is <other text>-#sha.<ext>
-    pat, cnt = pat:gsub(I.opts.sha, '(%%w+)') -- swap sha of un-magic'd fnew with capture pattern
-    -- usage of #sha in filename templates is not mandatory, so check pattern
-    if cnt == 1 then
-      for _, fold in ipairs(pd.system.list_directory(dir)) do
-        fold = pd.path.join({ dir, fold })
-        if fold:match(pat) and fold ~= fnew then
-          local ok, err = os.remove(fold) -- pd.system.remove needs version >=3.7.1
-          if not ok then
-            I.log('error', 'files', 'unable to remove: %s (%s)', fold, err)
-          else
-            count = count + 1
-            I.log('debug', 'files', '- removed %s', fold)
-          end
-        end
+  return data, sf('%d/%d applied', count, #filters)
+end
+
+-- Sets and returns the sha fingerprint for given (parsed) `ccb`.
+--
+-- The fingerprint is calculated using sorted, relevant option
+-- values and the codeblock's content.
+--- @param ccb table
+--- @return string sha
+local function tosha(ccb)
+  local keys = {}
+  for k, _ in pairs(hard_coded_opts) do
+    if not ('exe log old'):match(k) then keys[#keys + 1] = k end
+  end
+  table.sort(keys)
+
+  local vals = {}
+  for _, k in pairs(keys) do
+    vals[#vals + 1] = tostr(ccb.opt[k])
+  end
+  vals[#vals + 1] = ccb.txt
+
+  local str = table.concat(vals, ''):gsub('%s+', '')
+  ccb.sha = pd.sha1(str)
+  return ccb.sha
+end
+
+--[[----- parsers ----------]]
+
+--- table of parsers per pandoc and/or lua type
+local parse_elm_by = {} -- (forward declaration)
+
+--- Converts pandoc AST element `elm` to a regular Lua table
+--
+-- It converts `Inlines` back to string, eliminates `function` fields and
+-- ignores any metatables.  Set `detail` to true to also parse `Inlines`,
+-- retain function fields and add a map at index `[0]` with the objects' lua
+-- and pandoc type, as well as `'%p`' formatted string for the object.  Still
+-- ignores metatables though.
+--- @param elm table
+--- @param detail boolean?
+--- @param seen table?
+--- @return table
+local function parse_elm(elm, detail, seen)
+  seen = seen or {}
+  detail = detail and true or false
+  local t = detail and { [0] = { pandoc = pd.utils.type(elm), lua = type(elm), pointer = sf('%p', elm) } } or {}
+  for k, v in pairs(elm) do
+    if seen[v] then return v end --{ [k] = sf('<cyclic: %p> %s', v, v) } end
+    if 'table' == type(v) or 'userdata' == type(v) then seen[v] = v end
+    local parse = parse_elm_by[pd.utils.type(v)] or parse_elm_by[type(v)]
+    t[k] = parse and parse(v, detail, seen)
+  end
+  return t
+end
+
+parse_elm_by = {
+  -- parsers by pandoc type(s)
+  ['Inlines'] = function(v, d, s) return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'plain'):sub(1, -2) end,
+  -- parsers by lua types
+  -- nb: exe=yes/no/maybe, where yes/no comes out as true/false -> all booleans := yes/no strings
+  ['nil'] = function() return nil end,
+  thread = function() return nil end,
+  table = function(v, d, s) return parse_elm(v, d, s) end,
+  userdata = function(v, d, s) return parse_elm(v, d, s) end,
+  ['function'] = function(v, d) return d and v or nil end,
+  string = function(v) return v end,
+  boolean = function(v) return v and 'yes' or 'no' end,
+  number = function(v) return v end,
+}
+
+-- validating parsers for stitch options
+-- nb: nil means option value error, only inc can skip parts with illegal values
+local parse_opt_by = {
+  arg = function(v) return 'string' == type(v) and v or nil end,
+  art = function(v) return 'string' == type(v) and v or nil end,
+  cbx = function(v) return 'string' == type(v) and v or nil end,
+  cmd = function(v) return 'string' == type(v) and v or nil end,
+  dir = function(v) return 'string' == type(v) and v or nil end,
+  err = function(v) return 'string' == type(v) and v or nil end,
+  fmt = function(v) return 'string' == type(v) and v or nil end,
+  oid = function(v) return 'string' == type(v) and v or nil end,
+  out = function(v) return 'string' == type(v) and v or nil end,
+  hdr = function(v) return tonumber(v) end,
+  -- check values
+  cls = function(v) return 'string' == type(v) and ('no yes'):match(v) and v or nil end,
+  exe = function(v) return 'string' == type(v) and ('yes maybe no'):match(v) and v or nil end,
+  log = function(v) return 'string' == type(v) and ('debug error warn note info silent'):match(v) and v or nil end,
+  old = function(v) return 'string' == type(v) and ('purge keep'):match(v) and v or nil end,
+  run = function(v) return 'string' == type(v) and ('system chunk noop'):match(v) and v or nil end,
+  -- parse value
+  inc = function(v)
+    -- `inc` in cb.attr is always a string, in meta it can be string or a table
+    local t = {}
+    if 'string' == type(v) then
+      for p in v:gsub('[%s,]+', ' '):gmatch('%S+') do
+        t[#t + 1] = p
       end
-    else
-      I.log('warn', 'files', '`#%s` template without `#sha` (%s), unable to detect old files', what, I.opts.sha)
+    elseif 'table' == type(v) then
+      t = v
     end
-  end
-
-  I.log('info', 'files', '%d old files removed', count)
-  return count
-end
-
--- says whether this cb was seen before (2+ artifacts already exist)
----@return boolean deja_vu true iff cb's `cbx` & 1+ artifacts exist, false otherwise
-function I.deja_vu()
-  -- don't collapse this
-  return I.exists(I.opts.cbx) and (I.exists(I.opts.out) or I.exists(I.opts.err) or I.exists(I.opts.art))
-end
-
---[[-- AST --]]
-
-I.element = {}
-setmetatable(I.element, {
-  __index = function(t, how)
-    -- local keys = {}
-    -- for k, _ in pairs(t) do
-    --   keys[#keys + 1] = F('%q', k)
-    -- end
-    -- table.sort(keys)
-    local keys = I.tbl_keys(t)
-    local valid = table.concat(keys, ', ')
-    local msg = F("expected `how` to be one of {%s}, got '%s'", valid, how)
-    I.log('error', 'include', msg)
-    return function() return {} end
+    local pat = '([^!@:]+)'
+    local spec = {}
+    for k, part in pairs(t) do
+      if 'string' == type(part) then
+        spec[#spec + 1] = {
+          what = part:match('^' .. pat),
+          read = part:match('!' .. pat),
+          filter = part:match('@' .. pat),
+          how = part:match(':' .. pat),
+        }
+      else
+        log('stitch', 'error', sf('ignoring inc[%s]=%s, illegal value', k, tostr(part)))
+      end
+    end
+    return spec
+  end,
+}
+setmetatable(parse_opt_by, {
+  __index = function(_, k)
+    log('stitch', 'debug', sf('%q is not a stitch option, kept as-is', k))
+    return function(v) return v end
   end,
 })
 
--- functions result should be either type Block or type Blocks
-function I.element.fcb(fcb, cb, doc, what)
-  -- pandoc.CodeBlock type is Block
+--- Returns a parsed, validated value for given `opt` and `val` or nil.
+--- nb: non-stitch options are kept as-is, they're not used anyway.
+--- @param opt string
+--- @param val string|table
+--- @return string|number|table?
+local function parse_opt(opt, val)
+  local parsed = parse_opt_by[opt](val)
+  return parsed
+end
 
-  if 'Pandoc' == pd.utils.type(doc) then
-    -- doc converted to pandoc native form, attr copied if possible
-    if doc and doc.blocks[1].attr then
-      doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
-    end
-    fcb.text = pd.write(doc, 'native')
-  elseif 'cbx' == what then
-    -- doc discarded, org cb included (in markdown format)
-    fcb.text = pd.write(pd.Pandoc({ cb }, {}), 'markdown')
+--[[----- State ------------]]
+
+-- state is { log, ctx (*), ccb (*), seen, stack, doc (*)}
+--- Returns the current recursion depth
+function state:depth() return #self.stack end
+
+--- Registers a logging `id` at given log `level` and returns `id`.
+--- Unknown levels are set as debug level.
+--- @param id string
+--- @param level string
+--- @return string identity
+function state:logger(id, level)
+  self.log[id] = log_level[level] or log_level.debug
+  return id
+end
+
+--- Saves current codeblock `ccb` on its stack and returns new total count.
+--- @param ccb table
+--- @return number
+function state:saw(ccb)
+  self.seen[#self.seen + 1] = ccb
+  self.ccb = ccb
+  return #self.seen
+end
+
+--- Pushes a copy of current context and codeblock onto the stack
+---
+--- A call to `state:pop` will restore both
+function state:push()
+  --
+  self.stack[#self.stack + 1] = { tcopy(self.ctx), tcopy(self.ccb) }
+end
+
+--- Restores context and current codeblock, it is fatal to pop an empty stack
+---
+function state:pop()
+  if 0 == #self.stack then
+    log('stitch', 'fatal', '*** Cannot pop from empty stack ***')
   else
-    -- doc used as-is for out, err
-    fcb.text = doc
+    self.ctx, self.ccb = table.unpack(self.stack[#self.stack])
+    self.stack[#self.stack] = nil
   end
-  I.log('info', 'include', "'#%s' for '%s:fcb' as fenced pandoc.CodeBlock", fcb.attr.identifier, what)
+end
 
+function state:context(doc)
+  local meta = parse_elm(doc.meta)
+  -- meta may not have stitch section(s) at all, codeblocks might still use it
+  local loglevel = sf('%s', ((meta.stitch or {}).stitch or {}).log or 'info')
+  local lid = state:logger('stitch', loglevel)
+  if not doc.meta.stitch then log(lid, 'warn', 'doc.meta has no stitch configs..') end
+
+  local opt = meta.stitch or {} -- toplevel meta.stitch
+  opt.stitch = opt.stitch or {} -- ensure stitch's own section
+  for k, v in pairs(opt) do
+    -- move top level non-table opts into opt.stitch before parsing values
+    if 'table' ~= type(v) then
+      opt[k] = nil -- remove toplevel
+      if opt.stitch[k] then
+        local msg = 'stitch top level "%s=%s" overruled by section stitch: "%s=%s"'
+        log('stitch', 'warn', msg, k, tostr(v), k, tostr(opt.stitch[k]))
+      else
+        opt.stitch[k] = v
+      end
+    end
+  end
+
+  -- ensure valid values for options in all sections
+  local flawed = false
+  for name, section in pairs(opt) do
+    log(lid, 'debug', '%q-options', name)
+    for option, value in pairs(section) do
+      local val = parse_opt(option, value)
+      if nil == val then log(lid, 'error', '(%s) ignoring %s=%s, illegal value', name, option, tostr(value)) end
+      flawed = flawed or val == nil
+      section[option] = val
+      log(lid, 'debug', '- %s.%s = %s', name, option, tostr(section[option], {}, true, ''))
+    end
+    section.flawed = flawed
+  end
+
+  -- setup log levels for all sections
+  for name, section in pairs(opt) do
+    local level = section.log or 'info'
+    state:logger(name, level)
+    log('stitch', 'info', '%s log level set to %s', name, level)
+  end
+
+  -- setup metatable chain for option resolution order
+  local defaults = opt.defaults or {}
+  setmetatable(defaults, { __index = hard_coded_opts })
+  setmetatable(opt, { __index = function() return defaults end })
+  opt.defaults = nil
+  for name, section in pairs(opt) do
+    if 'table' == type(section) then
+      setmetatable(section, { __index = defaults })
+    else
+      log(lid, 'debug', 'stitch.%s=%s', name, section)
+      opt.stitch[name] = section -- aka opt[name] is a value, not table
+      opt[name] = nil
+    end
+  end
+
+  if doc.meta.stitch then log(lid, 'info', 'got doc options for doc titled %q', opt.meta.title) end
+  self.ctx = opt
+  self.meta = tcopy(doc.meta)
+end
+
+--[[----- options ----------]]
+
+--- Returns an options table for given `doc`, based on `doc.meta.stitch`.
+---
+--- Each section (table) under `doc.meta.stitch` is turned into a stitch
+--- configuration section in `opt`.  The names `stitch`, `defaults` and
+--- `meta` are special.
+---
+--- Top level options that are not tables, are collected in a `opt.stitch` section
+--- while `defaults` will be set as metatable for all opt.<section> tables.  The
+--- `defaults` table itself, will have the `hard_coded` option table as metatable.
+--- If `opt.defaults` does not exist, it is created.  Additionally, an `opt.meta`
+--- section is added which holds the doc's `title`, `author` and `date` (if available).
+---
+--- Option `x` resolution order: cb.x -> section?.x -> defaults.x -> hard_coded.x
+--- Note: non-existing sections also fall back to using defaults.
+--- @param doc table
+--- @return table
+local function doc_options(doc)
+  local meta = parse_elm(doc.meta)
+  -- meta may not have stitch section(s) at all, codeblocks might still use it
+  local loglevel = sf('%s', ((meta.stitch or {}).stitch or {}).log or 'info')
+  local lid = state:logger('stitch', loglevel)
+  if not doc.meta.stitch then log(lid, 'warn', 'doc.meta has no stitch configs..') end
+
+  local opt = meta.stitch or {} -- toplevel meta.stitch
+  opt.stitch = opt.stitch or {} -- ensure stitch's own section
+  for k, v in pairs(opt) do
+    -- move top level non-table opts into opt.stitch before parsing values
+    if 'table' ~= type(v) then
+      opt[k] = nil -- remove toplevel
+      if opt.stitch[k] then
+        local msg = 'stitch top level "%s=%s" overruled by section stitch: "%s=%s"'
+        log('stitch', 'warn', msg, k, tostr(v), k, tostr(opt.stitch[k]))
+      else
+        opt.stitch[k] = v
+      end
+    end
+  end
+
+  -- ensure valid values for options in all sections
+  local flawed = false
+  for name, section in pairs(opt) do
+    log(lid, 'debug', '%q-options', name)
+    for option, value in pairs(section) do
+      local val = parse_opt(option, value)
+      if nil == val then log(lid, 'error', '(%s) ignoring %s=%s, illegal value', name, option, tostr(value)) end
+      flawed = flawed or val == nil
+      section[option] = val
+      log(lid, 'debug', '- %s.%s = %s', name, option, tostr(section[option], {}, true, ''))
+    end
+    section.flawed = flawed
+  end
+
+  -- setup log levels for all sections
+  for name, section in pairs(opt) do
+    local level = section.log or 'info'
+    state:logger(name, level)
+    log('stitch', 'info', '%s log level set to %s', name, level)
+  end
+
+  -- setup metatable chain for option resolution order
+  local defaults = opt.defaults or {}
+  setmetatable(defaults, { __index = hard_coded_opts })
+  setmetatable(opt, { __index = function() return defaults end })
+  opt.defaults = nil
+  for name, section in pairs(opt) do
+    if 'table' == type(section) then
+      setmetatable(section, { __index = defaults })
+    else
+      log(lid, 'debug', 'stitch.%s=%s', name, section)
+      opt.stitch[name] = section -- aka opt[name] is a value, not table
+      opt[name] = nil
+    end
+  end
+
+  -- TODO: remove, see state.meta
+  opt.meta = {
+    title = meta.title,
+    author = meta.author,
+    date = meta.date,
+  }
+  if doc.meta.stitch then log(lid, 'info', 'got doc options for doc titled %q', opt.meta.title) end
+
+  return opt
+end
+
+--[[----- kodeblock --------]]
+
+--- Class to represent codeblock instances (`ccb`'s) within stitch.
+---
+--- Class fields:
+--- - `run` function table for running the codeblock via `ccb:run()`
+--- - `inc` function table for handling include directives via `ccb:inc()`
+---
+--- Instance fields:
+--- `oid` ccb's object identifier
+--- `opt` ccb's attributes
+--- `cls` ccb's classes
+--- `txt` ccb's text (content)
+--- `ast` parsed ast for `cb`
+--- `org` the original `cb`
+--- `cfg` ccb's configuration name (nil = not eligible)
+--- `flawed` flags that codeblock has errors or not
+local kb = {
+
+  -- function jump-table for the `run`-option attribute of codeblock
+  -- * types include `system`, `chunk` or `noop`
+  run = setmetatable({}, {
+    __index = function(_, k)
+      -- kb.run[run=method](ccb) -> _ is kb.run table, k is absent key being looked up
+      return function(self)
+        self.flawed = true
+        log(self.oid, 'error', 'codeblock unknown run type %q', k)
+      end
+    end,
+
+    __call = function(run, self)
+      -- ccb:run() -> run is table kb.run, self is the ccb instance
+      local oid = self.oid
+
+      self:setup() -- required for cbx creation, also sets flawed on errors
+      if self.flawed or self.opt.flawed then
+        log(oid, 'warn', 'codeblock run skipped due to errors')
+        return nil
+      elseif 'no' == self.opt.exe then
+        log(oid, 'warn', 'codeblock run skipped (exe = no)')
+        return nil
+      elseif 'maybe' == self.opt.exe and self:total_recall() then
+        log(oid, 'info', 'codeblock run skipped, results already exist')
+        return nil
+      end
+      log(oid, 'debug', 'cmd is %s', self.opt.cmd)
+
+      run[self.opt.run](self)
+    end,
+  }),
+
+  --- function jump-table for `how`-to part of an directive
+  --- * `how` includes `fcb`, `img`, `fig`, absent `how` means `any`-how
+  inc = setmetatable({}, {
+    __index = function(inc, how)
+      -- nil means do default, otherwise how is unknown and an error
+      return nil == how and inc.any or inc.err
+    end,
+
+    --- handles `how` to include an artifact
+    __call = function(inc, self)
+      local elms = {} -- accumulator for the includes
+      local opt = self.opt
+      local oid = self.oid
+      for idx, todo in pairs(opt.inc) do
+        log(oid, 'debug', 'include processing inc[%d] = %s', idx, tostr(todo))
+        local dta, elm, msg, err
+        dta, err = read(opt[todo.what], todo.read)
+        if err then
+          log(oid, 'error', 'include failed for inc[%d] = %s (%s)', idx, tostr(todo), err)
+          break
+        end
+
+        if todo.filter then
+          dta, msg = filter(dta, todo.filter)
+          if nil == dta then
+            log(oid, 'debug', 'include filter failed %s (%s)', todo.filter, msg)
+            break
+          end
+        end
+
+        elm = inc[todo.how](self, idx, dta) -- returns nil, Block or Blocks
+        if nil == elm then
+          log(oid, 'debug', 'include inc[%d] = %s -> failed to produce a result', idx, tostr(todo))
+        elseif 'Block' == pd.utils.type(elm) then
+          elms[#elms + 1] = elm
+          log(oid, 'debug', 'include inc[%d] = %s -> succeeded', idx, tostr(todo)) -- TODO: real log msg
+        elseif 'Blocks' == pd.utils.type(elm) then
+          for _, block in pairs(elm) do
+            elms[#elms + 1] = block
+          end
+        else
+          msg = 'include inc[%d] = %s produced unknown pandoc type %s'
+          log(oid, 'debug', msg, idx, tostr(todo), pd.utils.type(elm))
+        end
+      end
+      return elms -- passed back to pandoc as result of CodeBlock(cb)
+    end,
+  }),
+}
+
+--[[----- kb.run:<as> ------]]
+
+-- run=<kind> - function for each kind of run
+-- ccb:run() -> __call does the setup and runs kb.run[<kind>](self)
+
+-- ccb run as noop, just logs it is not really running
+function kb.run:noop() log('stitch', 'info', '(%s) no run, codeblock is a noop', self.oid) end
+
+-- run ccb as system command
+function kb.run:system()
+  local oid = self.oid
+  local ok, code, nr = os.execute(self.opt.cmd)
+  if ok then
+    log(oid, 'info', 'codeblock succeeded as system command')
+  else
+    log(oid, 'error', 'codeblock system command failed with %s(%s)', code, nr)
+    self.flawed = true
+  end
+end
+
+-- run ccb as lua chunk with _ENV.Stitch set
+function kb.run:chunk()
+  _ENV.Stitch = {
+    -- state = tcopy(state), -- log,ctx,ccb,seen,stack,doc
+    ctx = tcopy(state.ctx),
+    ccb = tcopy(state.ccb),
+    seen = tcopy(state.seen),
+    log = log,
+    tostr = tostr,
+    toyaml = toyaml,
+  }
+  local oid = self.oid
+
+  local f, lferr = loadfile(self.opt.cbx, 't', _ENV)
+  if f == nil or lferr then
+    log(oid, 'error', 'codeblock chunk failed: %s', lferr)
+  else
+    local ok, err = pcall(f)
+    if ok then
+      log(oid, 'info', 'codeblock succeeded as chunk', oid)
+    else
+      log(oid, 'error', 'codeblock chunk failed wih: %s', err)
+    end
+  end
+end
+
+--[[----- kb.inc:<what> ----]]
+
+--- Returns a default pandoc element for `inc[idx]` directive without a `how`.
+function kb.inc:any(idx, dta)
+  --
+  local todo = self.opt.inc[idx]
+  log(self.oid, 'debug', 'include any for %s', tostr(todo))
+  local opt = self.opt
+  local what = opt.inc[idx].what
+  local oid = sf('%s-%d-%s', self.oid, idx, opt.inc[idx].what)
+  local fcb = self:clone(oid)
+
+  if 'Pandoc' == pd.utils.type(dta) then
+    -- try to transfer some attributes to dta.blocks[1]
+    log(self.oid, 'debug', 'include pandoc fragement for %s', tostr(opt.inc[idx]))
+    if dta.blocks[1].attr then
+      dta.blocks[1].attributes = fcb.attributes
+      dta.blocks[1].classes = fcb.classes
+      dta.blocks[1].identifier = fcb.identifier
+    end
+    if dta.blocks[1].caption then dta.blocks[1].caption = { fcb.caption or fcb.attributes.caption } end
+
+    return dta.blocks -- note: returning list of Block here!
+  elseif 'art' == what then
+    return kb.inc.fig(self, idx)
+  elseif 'cbx' == what then
+    fcb.text = dta
+    return fcb
+  else
+    return kb.inc.fcb(self, idx, dta)
+  end
+end
+
+--- Returns a Plain element (error message) for `inc[idx]`'s directive.
+---
+--- When this function gets called, `kb.inc` was indexed with an unknown `how` to
+--- include, i.e. not an `fcb`, `fig`, `img` or `any` which figures out a default for
+--- the `what` being included.  In other words, the `inc`-option contains an illegal
+--- 'how' either in the codeblock attributes or the meta section of the document.
+--- @param idx number
+--- @return table
+function kb.inc:err(idx, _)
+  -- inc's `how` is unknown
+  local opt = self.opt
+  local how = opt.inc[idx].how
+  local err = sf('stitch: include error, unknown how "%s" in %s', how, tostr(opt.inc[idx]))
+  return pd.Plain(sf('<%s>', err))
+end
+
+--- Wraps `dta` in a new fenced codeblock
+---
+--- A `Pandoc` document to be included, is converted to `native` format.
+--- A codeblock to included, is converted to markdown (including its attributes).
+--- Otherwise, `dta` is assumed to be text and included as-is as `fcb.text`.
+--- @param idx number
+--- @return table
+function kb.inc:fcb(idx, dta)
+  local opt = self.opt
+  local id = sf('%s-%d-%s', self.oid, idx, opt.inc[idx].what)
+  dta = dta or '<nil>'
+  local fcb = self:clone(id)
+  if 'Pandoc' == pd.utils.type(dta) then
+    (dta.blocks[1] or {}).attr = fcb.attr
+    fcb.text = pd.write(dta, 'native')
+  elseif 'cbx' == opt.inc[idx].what then
+    -- TODO: do we want to discard dta here?
+    -- cbx!json@pretty:fcb
+    -- local delme = self.org:clone()
+    -- delme.text = dta
+    -- fcb.text = pd.write(pd.Pandoc(delme, {}), 'markdown')
+    fcb.text = pd.write(pd.Pandoc(self.org, {}), 'markdown')
+  else
+    fcb.text = dta
+  end
   return fcb
 end
 
-function I.element.img(fcb, _, _, what)
-  -- wrap pandoc.Image (type Inline) in a pandoc.Para (type Block)
-  -- `:Open https://github.com/pandoc/lua-filters/blob/master/diagram-generator/diagram-generator.lua#L360`
-  --  [ ] TODO: if PD_VERSION < 3 -> title := fig:title, then pandoc will treat it as a Figure
-  local title = fcb.attributes.title or ''
-  local caption = fcb.attributes.caption
-  I.log('info', 'include', "'#%s' for '%s:img' as pandoc.Image", fcb.attr.identifier, what)
-  return pd.Para(pd.Image({ caption }, I.opts[what], title, fcb.attr))
+--- Returns a Figure link for `inc[idx]`
+function kb.inc:fig(idx, _)
+  -- img.identifier set correctly thanks to idx being passed on
+  local img = kb.inc.img(self, idx).content[1]
+  return pd.Figure(img, { img.caption }, img.attr)
 end
 
-function I.element.fig(fcb, _, _, what)
-  local img = pd.Image({}, I.opts[what], '', {})
-  img.attr.identifier = fcb.attr.identifier .. '-img'
-  I.log('info', 'include', "'#%s' for '%s:fig' as pandoc.Figure", fcb.attr.identifier, what)
-  return pd.Figure(img, { fcb.attributes.caption }, fcb.attr)
+--- Returns an Image link for `inc[idx]`.
+function kb.inc:img(idx, _)
+  local what = self.opt.inc[idx].what
+  local src = self.opt[what]
+  local img = pd.Image({}, src)
+  -- img fields: caption, src, title, attr, identifier, classes, attributes, tag
+  for k, v in pairs(self.opt) do
+    if not hard_coded_opts[k] then img.attributes[k] = tostr(v) end
+  end
+  for _, class in ipairs(self.cls) do
+    if 'stitch' ~= class then img.classes[#img.classes + 1] = class end
+  end
+  img.attributes.title = nil -- no longer needed
+  img.attributes.caption = nil -- dito
+  img.title = self.opt.title
+  img.caption = { self.opt.caption }
+  img.identifier = sf('%s-%d-%s', self.oid, idx, what)
+  return pd.Para(img)
 end
 
-function I.element.any(fcb, cb, doc, what)
-  -- no type of ast element specified, do default per `what` (except for a Pandoc doc)
-  local cid = fcb.attr.identifier
-  I.log('debug', 'include', "'%s' for '%s' -> no type specified (using default)", cid, what)
-  if 'Pandoc' == pd.utils.type(doc) then
-    if doc and doc.blocks and doc.blocks[1] and doc.blocks[1].attr then
-      doc.blocks[1].attr = fcb.attr -- else wrap in Div w/ fcb.attr?
+--[[----- kb:<others> ------]]
+
+--- Returns a new current codeblock `ccb` for given Pandoc.CodeBlock `cb`.
+--
+-- A codeblock is explicitly eligible for stitch processing if it has a `stitch=name`
+-- attribute or it has `stitch` as one of its classes.  A codeblock also qualifies if a
+-- stitch config section exists for its identifier (rare) or when one of its
+-- classes matches a section that has `cls=yes` option set.
+--
+-- Note: use `kb:is_eligible(ccb)` to check if stitch can process the codeblock
+-- after `kb:new(cb)`
+--
+--- @param cb table
+--- @return table ccb
+function kb:new(cb)
+  local oid = sf('%s', cb.attr.identifier)
+  oid = #oid == 0 and sf('anon%02d', #state.seen + 1) or oid
+  state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
+  local ccb = parse_elm(cb)
+  local cfg = self:config(oid, ccb)
+  local flawed = cfg == nil
+
+  -- check option values
+  local opt = setmetatable({}, { __index = state.ctx[cfg] })
+  for option, value in pairs(ccb.attr.attributes) do
+    local val = parse_opt(option, value)
+    if nil == val then
+      flawed = true
+      log(oid, 'error', '(#%s) %s=%s (illegal value)', oid, option, tostr(value))
     end
-    I.log('info', 'include', "'%s' for '%s' ~> merging %d pandoc.Block's", cid, what, #doc.blocks)
-    return doc.blocks
-  elseif 'art' == what then
-    return I.element.fig(fcb, cb, doc, what)
-  elseif 'cbx' == what then
-    fcb.text = doc
-    I.log('info', 'include', "'%s' for id %s as plain pandoc.CodeBlock", cid, what)
-    return fcb
-  else
-    return I.element.fcb(fcb, cb, doc, what) -- for cbx, out or err
-  end
-end
-
--- clones `cb`, removes stitch properties, adds a 'stitched' class
----@param cb table a codeblock instance
----@return table clone a new codeblock instance
-function I.clone(cb)
-  local clone = cb:clone()
-
-  clone.classes = cb.classes:map(function(class) return class:gsub('^stitch$', 'stitched') end)
-
-  -- remove attributes from codeblock if present in I.opts
-  for k, _ in pairs(cb.attributes) do
-    if I.hardcoded[k] then clone.attributes[k] = nil end
+    opt[option] = val
   end
 
-  return clone
-end
+  local new = {
+    cfg = cfg, -- if nil, cb is not eligible for stitch processing
+    cls = ccb.attr.classes,
+    opt = opt, -- cb's options with valid values
+    txt = ccb.text, -- for convenience
+    ast = ccb, -- parsed ast for cb (for debugging)
+    oid = oid, -- object identifier
+    org = cb, -- original cb (for debugging)
+    sha = '', -- calculated later using new itself
+    flawed = flawed, -- if true, codeblock skipped, all operations check this flag
+  }
+  new.sha = tosha(new)
 
--- find and load module given by `m`, dropping labels during search
---- @param m string module name, with or without path and or function labels
---- @param f string? collects labels that are stripped while searching for `m`
---- @return any mod the result of requiring a module, or nil otherwise
---- @return string? name the name that was required as a module, nil otherwise
---- @return string? func the stripped labels (on the right) while searching, or nil
-function I.load(m, f)
-  if nil == m or 0 == #m then return nil, nil, nil end
-  I.log('debug', 'load', 'trying module %q', m)
-
-  local suc6, mod = pcall(require, m)
-  if false == suc6 or true == mod then
-    local last_dot = m:find('%.[^%.]+$')
-    if not last_dot then return nil, m, f end
-    local mm, ff = m:sub(1, last_dot - 1), m:sub(last_dot + 1)
-    if ff and f then ff = F('%s.%s', ff, f) end
-    return I.load(mm, ff)
-  else
-    I.log('debug', 'load', 'found module %q, pkg.loaded=%s', m, package.loaded[m])
-    return mod, m, f
+  -- expand #var's used in option values
+  -- TODO: may use #cfg -> art='#dir/#cfg/#oid-#sha.#ft' e.g. ?
+  -- * makes it easy to seggregate by tool/section
+  local kvmap = tmerge(opt, { sha = new.sha, oid = new.oid })
+  local expandables = { 'cbx', 'art', 'out', 'err', 'cmd' }
+  for _, expandable in ipairs(expandables) do
+    opt[expandable] = pd.path.normalize(opt[expandable]:gsub('%#(%w+)', kvmap))
+    kvmap[expandable] = opt[expandable] -- tricky: needed for cmd to expand fully
   end
+  -- check all are expanded
+  for k, v in pairs(expandables) do
+    if 'string' == type(v) and v:match('%#' .. k) then
+      log(oid, 'error', 'option %s not fully expanded: %s', k, v)
+      new.flawed = true
+    end
+  end
+
+  self.__index = self
+  setmetatable(new, self)
+  state:saw(new) -- save to state.seen
+  return new
 end
 
--- run (a new) doc through lua filter(s), count how many were actually applied
----@param dta any file data, pandoc ast or nil
----@param filter string name of lua mod[.fun] to run (if any)
----@return string|table? doc the, possibly, modified doc
----@return number count the number of filters actually applied
-function I.filter(dta, filter)
+-- Returns section config name for given `ccb`, nil when no config was found
+--
+-- nb: option stitch=<not-a-section> yields 'defaults' as config name
+function kb:config(oid, ccb)
+  local how -- how 1..4 codeblock was linked to a config (or not)
+  local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
+  if cfg and nil == rawget(state.ctx, cfg) then
+    how = sf('by stitch=%s, but no such config section so using defaults', cfg)
+    cfg = 'defaults' -- TODO: explicit ref does not exist, treat it as error in cb?
+    -- return nil -- TODO: which causes flawed to be set and cb skipped ??
+  elseif cfg then
+    how = sf('by stitch=%s', cfg)
+  end
+  cfg = cfg or rawget(state.ctx, oid) and oid -- 2. #id has config section
+  how = how or cfg and sf('by id=#%s', cfg)
+  if not cfg and 'no' ~= ccb.attr.attributes.cls then
+    -- 3. a ccb's class matches with a section when not disable at cb level
+    for _, class in ipairs(ccb.attr.classes) do
+      local section = rawget(state.ctx, class) -- don't fallback to defaults
+      cfg = section and 'no' ~= section.cls and class or nil
+      how = how or cfg and sf('by class "%s" (cls not "no")', class)
+      if cfg then break end
+    end
+  end
+  cfg = cfg or pd.List.find(ccb.attr.classes, 'stitch') -- 4. .stitch class
+  how = how or cfg and sf('by class .%s (uses defaults)', cfg)
+  cfg = cfg or 'defaults' -- last ditch effort defaults->hardcoded
+  cfg = cfg or nil -- ensure nil as failure value (i.e. false := nil)
+  log(oid, 'debug', 'stitch config %s', how or 'not found')
+  return cfg
+end
+
+--- Returns an new clone of this codeblock instance with stitch stuff removed.
+--- @param id string?
+--- @return table
+function kb:clone(id)
+  local rv = self.org:clone()
+
+  rv.classes = pd.List.filter(rv.classes, function(c) return c ~= 'stitch' end)
+  for k, _ in pairs(hard_coded_opts) do
+    rv.attributes[k] = nil
+  end
+  rv.identifier = id and id or rv.identifier
+
+  return rv
+end
+
+--- Returns true if cbx-file and one or more of art,out,err-files exist
+function kb:total_recall()
+  local artifacts = exists(self.opt.art) or exists(self.opt.out) or exists(self.opt.err)
+  return exists(self.opt.cbx) and artifacts
+end
+
+--- Removes old files, returns the number of files removed
+--- If codeblock is flawed, purge is skipped
+--- @return number count
+function kb:purge()
+  local oid = self.oid
   local count = 0
 
-  assert('string' == type(filter), 'expected filter to be a string, got "%s"', type(filter))
-  assert(nil ~= dta, 'expected dta to be non-nil!')
-  if 0 == #filter then return dta, count end -- "" means silent noop
+  if self.flawed then return count end
 
-  local mod, name, fun = I.load(filter)
-  if not mod then
-    I.log('error', 'filter', '@%s skipped, could not require filter', filter)
-    return dta, count
+  if 'purge' ~= self.opt.old then
+    log(oid, 'info', 'purge skipped (old=%s)', self.opt.old)
+    return count
   end
 
-  -- save state before calling any filters
-  tail[#tail + 1] = { opts = I.tbl_copy(I.opts), ctx = I.tbl_copy(I.ctx), meta = I.mta_tolua(dta.meta) }
-  if dta and 'Pandoc' == pd.utils.type(dta) then
-    -- pass along stitch's config when filtering subdoc's
-    local mta = I.tbl_merge(I.mta_tolua(dta.meta), { stitch = I.ctx })
-    local cb2defaults = { cls = I.opts.cls, hdr = I.opts.hdr, log = I.opts.log }
-    mta.stitch.defaults = I.tbl_merge(mta.stitch.defaults, cb2defaults)
-    mta.stitch.stitch = I.tbl_merge(mta.stitch.stitch, { hdr = I.opts.hdr }, true) -- same for shifting headers
-    dta.meta = pd.MetaMap(mta)
-    I.opts = {} -- reset in case a filter recurses onto stitch
-  end
-
-  fun = fun or 'Pandoc' -- no exported function, so default to `Pandoc`
-  local filters = mod[fun] and { mod } or mod
-  I.log('debug', 'filter', '@%s yields %d filter(s)', filter, #filters)
-  for n, f in ipairs(filters) do
-    if f[fun] then
-      local ok, tmp = pcall(f[fun], dta)
-
-      if not ok then
-        I.log('error', 'filter', "@%s, skipped, filter '%s[%s].%s' failed", filter, name, n, fun)
-      else
-        dta = tmp -- assumes pd.utils.type(tmp) is string or Pandoc, not a function, table (e.g.)
-        count = count + 1
-        I.log('debug', 'filter', '@%s[%d].%s, ok, got a %s (%s)', name, n, fun, type(dta), pd.utils.type(dta))
-      end
-    else
-      I.log('warn', 'filter', "@%s, skipped, filter '%s[%d]' does not export %q", filter, name, n, fun)
+  for _, ftype in ipairs({ 'cbx', 'out', 'err', 'art' }) do
+    local fnew = self.opt[ftype]
+    local pat = fnew:gsub('[][()%.*+^$?-]', '%%%1') -- literal magic
+    local n = 0
+    pat, n = pat:gsub(self.sha, '(%%w+)')
+    if n ~= 1 then
+      log(oid, 'warn', 'purge skipped, %s-file has no sha fingerprint', ftype)
+      break
     end
-  end
 
-  -- restore state after filters are done
-  I.opts = tail[#tail].opts
-  I.ctx = tail[#tail].ctx
-  tail[#tail] = nil
-
-  I.log('info', 'filter', '@%s, applied %d filter(s) to given `dta`', filter, count)
-  return dta, count
-end
-
--- create doc element(s) per codeblock's inc-attribute
----@param cb table codeblock
----@return table result sequence of pandoc ast elements
-function I.result(cb)
-  local elms = {}
-
-  for idx, elm in ipairs(I.parse(I.opts.inc)) do
-    local what, format, filter, how = table.unpack(elm)
-    local fname = I.opts[what]
-    if fname and I.exists(fname) then
-      local count = 0 -- num of filters actually applied
-      local doc = I.read(fname, format) -- TODO: doc might be nil
-      if nil == doc then
-        I.log('error', 'include', "'#%s', skipping %s:%s", I.opts.cid, what, how)
-        return {}
-      end
-      doc, count = I.filter(doc, filter)
-      if count > 0 then
-        -- a filter was actually applied, try to save altered doc
-        I.write(doc, fname)
-      end
-
-      -- TODO: if count > 0 we cannot assume the filter actually returns
-      -- either data or a pandoc doc.  Could be a table, userdata or even
-      -- a function (!).  @_G.load -> would load cbx as a chunk
-
-      local fcb = I.clone(cb) -- must be fresh fcb per inclusion(!)
-      fcb.attr.identifier = F('%s-%d-%s', I.opts.cid, idx, what)
-
-      local new = I.element[how](fcb, cb, doc, what) -- returns either Block or Blocks
-      new = 'Blocks' == pd.utils.type(new) and new or pd.Blocks(new)
-      for _, block in ipairs(new) do
-        elms[#elms + 1] = block
-      end
-      if #new == 0 then I.log('warn', 'include', "'#%s', skipping '%s:%s' (came up empty)", I.opts.cid, what, how) end
-    else
-      if fname then
-        I.log('error', 'include', "'#%s', skipping '%s:%s' (no file produced)", I.opts.cid, what, how)
-      else
-        I.log('error', 'include', "'#%s', skipping '%s:%s' (invalid `what`)", I.opts.cid, what, how)
-      end
-    end
-  end
-
-  I.opts = {} -- codeblock is finished, reset I.opts
-  return elms
-end
-
---[[-- setup --]]
-
----sets I.opts for the current codeblock
----@param cb table codeblock with `.stitch` class (or not)
----@param section string name of section that made cb eligible
----@return boolean ok success indicator
-function I.options(cb, section)
-  -- resolution: cb->stitch.section->stitch.defaults->hardcoded
-  I.opts = I.mta_tolua(cb.attributes)
-  I.opts.cid = #cb.identifier > 0 and cb.identifier or F('cb%02d', I.cbc)
-  I.opts = I.check(I.opts)
-  local cfg = I.opts.stitch or section -- {.. stitch=cfg .. }, pickup cfg section name
-  local x = section == 'defaults' and '' or '->defaults'
-  I.log('note', 'option', "'%s' uses cb->%s%s->hardcoded.", I.opts.cid, cfg, x)
-  setmetatable(I.opts, { __index = I.ctx[cfg] })
-  I.opts.sha = I.fingerprint(cb) -- derived only
-
-  -- expand filenames for this codeblock (cmd is expanded as exe later)
-  local expandables = { 'cbx', 'out', 'err', 'art' }
-  for _, k in ipairs(expandables) do
-    I.opts[k] = I.opts[k]:gsub('%#(%w+)', I.opts)
-  end
-
-  -- check against circular refs
-  local ok = true
-  for k, _ in pairs(I.hardcoded) do
-    -- TODO: exclude 'arg' as well?
-    I.log('debug', 'option', '%s = %q', k, I.opts[k])
-    if 'cmd' ~= k and 'string' == type(I.opts[k]) and I.opts[k]:match('#%w+') then
-      I.log('error', 'option', '%s not entirely expanded: %s', k, I.opts[k])
-      ok = false -- keep checking the rest & log accordingly
-    end
-  end
-
-  return ok
-end
-
---- create I.ctx using `doc.meta.stitch`, always creates I.ctx.stitch as well
----@param doc table the doc's ast
----@return table config doc.meta.stitch's named configs: option,value-pairs
-function I.context(doc)
-  -- create context from doc.meta.stitch for resolving opts
-  -- cb -> context[section] -> defaults -> hardcoded
-  -- note: ctx takes in all cb.attr's, not just those known to stitch
-  I.ctx = I.mta_tolua(doc.meta.stitch or {})
-
-  -- defaults -> hardcoded
-  local defaults = I.ctx.defaults or {}
-  setmetatable(defaults, { __index = I.hardcoded })
-  I.ctx.defaults = nil -- defaults will be metatable, not a section
-  I.ctx.stitch = I.ctx.stitch or {}
-
-  -- sections -> defaults -> hardcoded
-  for _, options in pairs(I.ctx) do
-    setmetatable(options, { __index = defaults })
-  end
-
-  -- missing stitch sections also fallback to defaults -> hardcoded
-  setmetatable(I.ctx, {
-    __index = function() return defaults end,
-  })
-  setmetatable(I.ctx.stitch, nil) -- no metable for stitch.stitch section
-  -- REVIEW: why no mta table for stitch.stitch (aka I.ctx.stitch) ?
-
-  defaults = I.check(defaults)
-  for section, map in pairs(I.ctx) do
-    I.ctx[section] = I.check(map)
-  end
-
-  return I.ctx
-end
-
---[[-- filter --]]
-
--- return meta section name that makes this cb eligible or nil
-function I.eligible(cb)
-  -- a cb is 'stitchable' iff it has:
-  -- 1. a stitch=section attribute (section need not exist)
-  -- 2. a class that matches a section with cls=yes
-  -- 3. a .stitch class (uses defaults)
-  if cb.attributes.stitch then return cb.attributes.stitch end
-  for _, class in ipairs(cb.classes) do
-    local cls = tostring(I.ctx[class].cls)
-    if cls == 'true' or cls == 'yes' then return class end
-  end
-  if cb.classes:find('stitch') then return 'defaults' end
-  -- TODO: cb does not always have an identifier
-  local tag = #cb.identifier > 0 and cb.identifier or F('cb%s', I.cbc)
-  I.log('note', 'select', '%s is not eligible for stitch processing', tag)
-  return false
-end
-
--- optionally run a codeblock as a chunk or system command
----@poram cb a pandoc.codeblock
----@return any result a sequence of nodes to replace given `cb` or nil
-function I.CodeBlock(cb)
-  I.cbc = I.cbc + 1 -- this is the nth cb seen (for generating cid if missing)
-  local section = I.eligible(cb)
-  if not section then return nil end
-
-  if I.options(cb, section) and I.command(cb) then
-    if 'no' == I.opts.exe then
-      I.log('info', 'execute', "skipped (exe='%s')", I.opts.exe)
-    elseif I.deja_vu() and 'maybe' == I.opts.exe then
-      I.log('info', 'execute', "skipped, output files exist (exe='%s')", I.opts.exe)
-    elseif 'chunk' == I.opts.lua then
-      I.log('info', 'execute', "codeblock as a chunk (exe='%s')", I.opts.exe)
-      _ENV.Stitch = I.tbl_copy(I) -- enables introspection by a chunk
-      local f, err = loadfile(I.opts.cbx, 't', _ENV) -- lexcial scope
-      if f == nil or err then
-        I.log('error', 'execute', 'skipped, chunk compile error: %s', err)
-      else
-        I.log('info', 'execute', 'running chunk, fingers crossed ..')
-        local ok
-        ok, err = pcall(f)
-        if not ok or err then
-          I.log('error', 'execute', 'error running chunk: %s', tostring(err))
+    local dir = pd.path.directory(fnew)
+    for _, fold in ipairs(pd.system.list_directory(dir)) do
+      fold = pd.path.join({ dir, fold })
+      if fold:match(pat) and fold ~= fnew then
+        local ok, err = os.remove(fold) -- pd.system.remove is version >=3.7.1
+        if not ok then
+          log(oid, 'error', 'purge failed to remove old file %s (%s)', fold, err)
         else
-          I.log('info', 'execute', 'chunk ran ok')
+          count = count + 1
+          log(oid, 'debug', 'purge removed old file %s', fold)
         end
       end
+    end
+  end
+  log(oid, 'debug', 'purge removed %d old files', count)
+  return count
+end
+
+--- Returns true if `ccb` can be processed by stitch, false otherwise
+function kb:is_eligible() return self.cfg ~= nil end
+
+--- Return true setup succeeded, false otherwise
+--- Creates the necessary directories as well as the cbx-file
+function kb:setup()
+  local oid = self.oid
+  for _, path in ipairs({ 'cbx', 'art', 'out', 'err' }) do
+    local dir = pd.path.normalize(pd.path.directory(self.opt[path]))
+    if exists(dir) then
+      log(oid, 'debug', 'using directory %s for %s-files', dir, path)
     else
-      I.log('info', 'execute', "running codeblock (exe='%s')", I.opts.exe)
-      local ok, code, nr = os.execute(I.opts.cmd)
-      if not ok then
-        I.log('error', 'execute', '%s, codeblock failed with %s(%s)', I.opts.cid, code, nr)
-      else
-        I.log('info', 'execute', '%s, codeblock ran successfully', I.opts.cid)
+      log(oid, 'debug', 'creating directory %s for %s-files', dir, path)
+      if not os.execute(sf('mkdir -p %s', dir)) then
+        log(oid, 'error', 'permission denied when creating ', dir)
+        self.flawed = true
+        return false
       end
     end
   end
 
-  I.purge() -- purge old files, if allowed
-  return I.result(cb)
-end
-
--- add a delta to header levels as specified in a caller's codeblock hdr-option
---- @param elm any a header from document being walked
---- @return any elm same header with possibly updated `header.level`
-function I.Header(elm)
-  I.hdc = I.hdc + 1 -- counter
-  local level = elm.level + math.floor(tonumber(I.ctx.stitch.header) or 0)
-  if level ~= elm.level then
-    level = level > 0 and level or 0
-    local hid = elm.identifier
-    hid = #hid > 0 and 'id ' .. hid .. ': ' or hid
-    I.log('info', 'header', '%sshifting level from %d to %d', hid, elm.level, level)
-    elm.level = level
+  log(oid, 'debug', 'writing out %d chars to %s', #self.txt, self.opt.cbx)
+  local fh = io.open(self.opt.cbx, 'w')
+  if not (fh and fh:write(self.txt)) then
+    log(oid, 'error', 'error writing out cbx-file %s', self.opt.cbx)
+    self.flawed = true
+    return false
   end
-  return elm
+  fh:close()
+
+  if not os.execute(sf('chmod u+x %s', self.opt.cbx)) then
+    log(oid, 'error', 'could not mark cbx as executable: %s', self.opt.cbx)
+    self.flawed = true
+    return false
+  end
+  return true
 end
 
---[[-- Stitch --]]
+--[[----- STITCH -----------]]
 
-local Stitch = {
-  _ = I, -- Stitch's implementation, for testing
+local function CodeBlock(cb)
+  local ccb = kb:new(cb) -- also registers oid as logger
+  local oid = ccb.oid
 
-  Pandoc = function(doc)
-    if #tail > MAXTAIL then
-      I.log('error', 'stitch', 'recursion level %d too deep, max is %d', #tail, MAXTAIL)
-      error('maximum recursion level exceeded') -- simply skips doc
-    end
+  if not ccb:is_eligible() then
+    log(oid, 'warn', '(%s) skipped, codeblock not eligible', oid)
+    return nil
+  end
 
-    I.context(doc)
-    local cbc, hdc = I.cbc, I.hdc -- keep count (in case we're recursing)
-    I.ctx.stitch.hdr = math.floor(tonumber(I.ctx.stitch.hdr) or 0)
-    local header = 0 ~= I.ctx.stitch.hdr and I.Header or nil
-    I.log('info', 'stitch', 'processing CodeBlocks and %sHeaders', header and '' or 'not ')
-    local rv = doc:walk({ CodeBlock = I.CodeBlock, Header = header })
-    I.log('info', 'stitch', 'saw %d CodeBlocks and %d Headers', I.cbc - cbc, I.hdc - hdc)
+  if ccb.flawed then
+    log(oid, 'error', '(%s) skipped, codeblock contains errors', oid)
+    return nil
+  end
 
-    return rv
-  end,
-}
+  log(oid, 'info', 'processing codeblock using config %q', ccb.cfg)
+  ccb:run()
+  ccb:purge()
+  return ccb:inc()
+end
 
--- Notes:
--- * just returning Stitch requires pandoc version >=3.5
--- * pandoc loads filters as a chunk, we require ourselves (potentially)
---   so claim a spot to avoid initializing twice
+local function Pandoc(doc)
+  local lid = state:logger('stitch', 'info')
+  -- log(lid, 'info', 'new document, title "%s"', pd.utils.stringify(doc.meta.title))
+  log(lid, 'info', 'new document, title %q', tostr(parse_elm_by['Inlines'](doc.meta.title)))
+  -- state.ctx = doc_options(doc) -- TODO: should simply set state.ctx ?
+  state:context(doc)
+  print('Pandoc func')
+  print(table.concat(toyaml(state.ctx), '\n'))
+  print('Pandoc doc.meta')
+  print(tostr(doc.meta))
+  local rv = doc:walk({ CodeBlock = CodeBlock })
+  log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
 
--- package.loaded.stitch = Stitch -- pandoc >= 3.5
-package.loaded.stitch = { Stitch } -- pandoc < 3.5
-return package.loaded.stitch
+  return rv
+end
 
--- package.loaded.stitch = I
--- return { Stitch }
+--[[ shenanigens ]]
+
+package.loaded.stitch2 = { { Pandoc = Pandoc } }
+
+if pd then
+  if _ENV.PANDOC_VERSION >= { 3, 5 } then
+    -- single filters will become the norm
+    package.loaded.stitch2 = { Pandoc = Pandoc }
+  end
+end
+return package.loaded.stitch2

@@ -6,10 +6,12 @@ stitch:
   defaults:
     inc: "out cbx:fcb"
     dir: ".stitch/readme/defaults"
+    cls: yes
   boxes:
     cmd: "#cbx #arg 1>#out"
-    cls: true
+    cls: yes
     inc: out
+    dir: .stitch/readme/boxes
   diagon:
     dir: ".stitch/readme/diagon"
     cmd: "diagon #arg <#cbx 1>#out"
@@ -17,7 +19,7 @@ stitch:
     dir: ".stitch/readme/youplot"
     cmd: "#cbx 1>#out"
   cetz:
-    dir: ".stitch/readme/cetz"
+    dir: ".stitch/new/cetz"
     arg: compile
     cmd: "typst #arg #cbx #art" # ignore stderr
     inc: "art cbx:fcb"
@@ -27,9 +29,10 @@ stitch:
     inc: "cbx:fcb"
     exe: "yes"
   gnuplot:
-    dir: ".stitch/readme/gnuplot"
+    dir: ".stitch/new/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
     inc: "art:fig cbx:fcb"
+    run: system
   chunk:
     dir: ".stitch/readme/chunk"
     inc: out
@@ -39,7 +42,7 @@ stitch:
 ...
 
 
-```{#preface .boxes arg="'S t i t c h'"}
+```{#preface stitch=boxes inc=out arg="'S t i t c h'"}
 (figlet -w 50 -krf slant ${1}; printf "%18s""- a lua-filter -") | boxes -d ian_jones -p h6v1
 ```
 
@@ -115,7 +118,7 @@ if ("stitch?") {
 
 ## [youplot](https://github.com/red-data-tools/YouPlot)
 
-Or a bit more dynamic: today's local temperature in Honolulu (well, the last time the
+Or a bit more dynamic: today's local temperature  (well, the last time the
 codeblock was changed before compiling this readme anyway).  The codeblock
 pulls in a csv file from `api.open-meteo.com`, cuts the output down to what is
 needed and modifies the first field keeping only the hours of the day.  That
@@ -123,13 +126,12 @@ output is then processed by
 [youplot](https://github.com/red-data-tools/YouPlot)
 
 
-```{#cb02 stitch=youplot}
+```{#youplot}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
-21.3069
 \newpage
 
 ## [Cetz](https://typst.app/universe/package/cetz)
@@ -263,7 +265,7 @@ which is then used in the following codeblock to create a graph.
 
 Another example using the trusty `gnuplot`.
 
-```{#cb07 stitch=gnuplot log=debug}
+```{#gnuplot .gnuplot log=debug}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
@@ -481,13 +483,7 @@ An example of such an element id is: `csv-3-err` where
 
 *cls* specifies whether or not a codeblock can be selected by class.
 
-Valid values:
-
-```{#opt-cls stitch=chunk exe=true}
-local fh = io.open(Stitch.opts.out, 'w')
-fh:write(pandoc.json.encode(Stitch.optvalues.cls))
-fh:close()
-```
+Valid values: `{yes, no}`
 
 Normally, codeblocks are marked by:
 - setting an attribute like `stitch=name`, or
@@ -560,17 +556,9 @@ as desired in the `defaults`-section of stitch in the doc's meta data.
 
 *exe* specifies whether a codeblock should actually run.
 
-Valid values:
+Valid values: `{yes, no, maybe}`
 
-```{#opt-exe stitch=chunk}
-local fh = io.open(Stitch.opts.out, 'w')
-fh:write(pandoc.json.encode(Stitch.optvalues.exe))
-fh:close()
-```
-
-If *exe* is either `yes`, `true` or true, the codeblock is always run.  Values
-like `no`, `false` or false means it won't be run.
-
+If *exe* is `yes` the codeblock is always run.  A `no` means just that.
 When the value is `maybe` (the default), the codeblock is only executed when
 something changed and new or different results are expected.  To detect
 changes, stitch uses a fingerprint of the codeblock.
@@ -702,58 +690,18 @@ re-reading and possibly filtering.
 
 *log* specifies logging level for stitch(-section) or an individual codeblock.
 
-Valid values:
-
-```{#opt-log stitch=chunk}
-local fh = io.open(Stitch.opts.out, 'w')
-fh:write(pandoc.json.encode(Stitch.optvalues.log))
-fh:close()
-```
+Valid values: `{debug, info, note, warn, error, silent}`
 
 Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to turn
 off all logging except for one codeblock where logging happens on the debug
 level.
 
 
-### `lua`
-
-`lua=chunk` loads the codeblock as a chunk and runs it.
-
-The chunk is compiled with a copy of `Stitch` supplied in its environment,
-which enables introspection.
-
-```{.lua #opt-lua stitch=chunk inc="cbx:fcb out:fcb" lua=chunk}
-local out = io.open(Stitch.opts.out, 'w')
-out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
-out:write("{\n", table.concat(Stitch.tbl_yaml(Stitch.opts, 2), "\n"), "\n}\n")
-
-out:write("\nFrom doc.meta:\n")
-local yaml = table.concat(Stitch.tbl_yaml(Stitch.ctx, 2), "\n")
-local mta = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
-table.insert(mta, 1, "\n  defaults:")
-mta = table.concat(mta, "\n")
-out:write("stitch:\n", yaml, mta, "\n\n")
-
-out:write("\nHardcoded option defaults:\n")
-out:write(table.concat(Stitch.tbl_yaml(Stitch.hardcoded, 2), "\n"))
-out:write("\n")
-
-out:close()
-```
-
-
-
 ### `old`
 
 *old* specifies whether or not old files can be removed.
 
-Valid values:
-
-```{#opt-old stitch=chunk}
-local fh = io.open(Stitch.opts.out, 'w')
-fh:write(pandoc.json.encode(Stitch.optvalues.old))
-fh:close()
-```
+Valid values: `{keep, purge}`
 
 Old incarnations of an artifact file are detected when their filenames match
 the new filename except for the last `-#sha.<ext>` part.  If a filename template
@@ -875,7 +823,7 @@ The logs show:
 
 If `stitch` isn't behaving as expected:
 
-```{.stitch exe=no inc="cbx!csv"}
+```{#gotcha .stitch log=debug caption="gotcha's" exe=no inc="cbx!csv"}
 #,gotcha,description
 1,no quotes,most values are strings and without quotes only the first word remains
 2,no section,rememer: stitch falls back to hardcoded options if none are speficied
@@ -925,7 +873,7 @@ exe, maybe, execute?
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
 
-````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls=yes hdr=2}
+````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch2" log="debug" cls=yes hdr=2}
 #! /usr/bin/env lua
 
 print [[---
@@ -953,7 +901,7 @@ tue,2
 
 ```{#nd-temps .stitch inc="out"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
-'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
@@ -984,7 +932,7 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 local ccb = Stitch.ccb
 local ctx = Stitch.ctx
 local fh = io.open(ccb.opt.out, 'w')
-Stitch.log(ccb.opt.oid, 'warn', 'logging from a chunk!')
+Stitch.log(ccb.oid, 'warn', 'logging from a chunk!')
 
 fh:write('\nIn doc.meta\n---\nstitch:\n')
 local yaml = Stitch.toyaml(ctx, 2)

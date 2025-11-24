@@ -1,7 +1,6 @@
 PANDOC   = pandoc
 BUSTED   = busted
 FILTER   = --lua-filter stitch.lua
-FILTER2  = --lua-filter stitch2.lua
 EX_DIR   = examples
 ST_DIR   = .stitch
 FROM     = --from markdown
@@ -17,12 +16,6 @@ GFMLOGS  = $(ST_DIR)/readme/readme.gfm.log
 TOCDEPTH = --toc-depth=4
 
 default: show
-
-new:
-	@echo "NEW stitch!"
-	# $(PANDOC) $(FILTER2) $(ENGINE) $(FROM)+$(EXTS) scr/_new.md -t pdf -o scr/NEW.pdf 2>&1 | tee scr/stitch2.log
-
-	cd scr; $(PANDOC) $(FILTER2) $(ENGINE) $(FROM)+$(EXTS) _readme_new.md -t pdf -o NEW.pdf 2>&1 | tee stitch2.log
 
 readme: readme.pdf
 	@echo "creating README.md, logging to $(GFMLOGS)"
