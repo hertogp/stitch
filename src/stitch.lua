@@ -207,19 +207,19 @@ local function tmerge(dst, src, forced)
   if not dst then return tcopy(src) end
   forced = forced or false
 
-  local m = tcopy(dst)
+  -- local m = dst -- tcopy(dst)
   for k, v in pairs(src) do
-    if not m[k] then
-      m[k] = tcopy(v)
-    elseif 'table' == type(m[k]) and 'table' == type(v) then
-      m[k] = tmerge(m[k], v, forced)
-      if not getmetatable(m[k]) then setmetatable(m[k], tcopy(getmetatable(v))) end
+    if not dst[k] then
+      dst[k] = tcopy(v)
+    elseif 'table' == type(dst[k]) and 'table' == type(v) then
+      dst[k] = tmerge(dst[k], v, forced)
+      if not getmetatable(dst[k]) then setmetatable(dst[k], tcopy(getmetatable(v))) end
     elseif forced then
-      m[k] = tcopy(v)
+      dst[k] = tcopy(v)
     end
   end
-  if not getmetatable(m) then setmetatable(m, tcopy(getmetatable(src))) end
-  return m
+  if not getmetatable(dst) then setmetatable(dst, tcopy(getmetatable(src))) end
+  return dst
 end
 
 --- Returns filtered `data`,`stats` or nil,`error` on failure.
@@ -250,14 +250,19 @@ local function filter(data, name)
   local filters = mod.fun and { mod } or mod
 
   if 'Pandoc' == pd.utils.type(data) then
+    data.meta = tmerge(data.meta, state.meta) -- works
+    data.meta = tmerge(data.meta, { stitch = { stitch = { hdr = 2 } } }, true)
+    -- set data.meta.stitch.stitch.hdr = opt.hdr
+    -- note: state.meta may not have stitch section or stitch.stitch section
+    -- TODO: can I have doc without doc.meta.stitch? -> yes since state:context
+    -- uses opt = doc.meta.stitch or {} and proceeds to create opt.stitch as well.
     --
-    print('pre-merge')
-    print(table.concat(toyaml(data.meta), '\n'))
-    print(table.concat(toyaml(state.meta), '\n'))
 
-    data.meta = tmerge(data.meta, state.meta)
-    print('\npost-merge')
-    print(table.concat(toyaml(data.meta), '\n'))
+    -- data.meta = pd.MetaMap(tmerge(data.meta, { stitch = state.ctx })) --> won't work:
+    -- config messed up: inc param in ctx is sequence and should be string when
+    -- put into a doc.meta section (!) or parser should accept maps
+    -- inc: { {what: cbx, how: fcb}, .. } Currently we support:
+    -- inc: [cbx:fcb out:fcb ..]
   end
 
   state:push()
@@ -1080,10 +1085,7 @@ local function Pandoc(doc)
   log(lid, 'info', 'new document, title %q', tostr(parse_elm_by['Inlines'](doc.meta.title)))
   -- state.ctx = doc_options(doc) -- TODO: should simply set state.ctx ?
   state:context(doc)
-  print('Pandoc func')
-  print(table.concat(toyaml(state.ctx), '\n'))
-  print('Pandoc doc.meta')
-  print(tostr(doc.meta))
+  print('doc has hdr', state.ctx.stitch.hdr)
   local rv = doc:walk({ CodeBlock = CodeBlock })
   log(lid, 'info', 'done .. saw %s codeblocks', #state.seen)
 

@@ -73,7 +73,7 @@ See [features](#features) for a more complete list.
 `stitch.lua` is, like any lua-filter that executes codeblocks, totally _insecure_
 and any CISO's nightmare.  Before running an externally supplied document
 through the `stitch.lua` filter, be sure you have vetted each and every
-codeblock that is marked for stitching since it probably runs a pletora of
+codeblock that is marked for stitching since it probably runs a plethora of
 system commands on your machine, potentially causing chaos and/or harm.
 
 # Examples
@@ -826,7 +826,7 @@ If `stitch` isn't behaving as expected:
 ```{#gotcha .stitch log=debug caption="gotcha's" exe=no inc="cbx!csv"}
 #,gotcha,description
 1,no quotes,most values are strings and without quotes only the first word remains
-2,no section,rememer: stitch falls back to hardcoded options if none are speficied
+2,no section,remember: stitch falls back to hardcoded options if none are specified
 3,no result,a 0-byte artifact file may result in an empty element
 4,wrong art,if output is absent check the right `what` is in `inc`
 5,cb is skipped,probably because it it not recognized as such: check your markdown
@@ -873,7 +873,7 @@ exe, maybe, execute?
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
 
-````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch2" log="debug" cls=yes hdr=2}
+````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls=yes hdr=2}
 #! /usr/bin/env lua
 
 print [[---
