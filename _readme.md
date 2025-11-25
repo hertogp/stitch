@@ -868,12 +868,12 @@ exe, maybe, execute?
 
 \newpage
 
-## Nested doc
+# Nested doc
 
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
 
-````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls=yes hdr=2}
+````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls=yes hdr=1}
 #! /usr/bin/env lua
 
 print [[---
@@ -954,6 +954,12 @@ fh:write("\n...\n\n")
 fh:write("codeblock opt:\n")
 yaml = Stitch.toyaml(ccb.opt, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
+fh:write("\n...\n\n")
+fh:write("state.meta\n")
+yaml = Stitch.toyaml(Stitch.meta)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
 fh:close()
 ```
 ]]
