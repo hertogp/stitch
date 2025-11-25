@@ -1,7 +1,6 @@
 --[[ stitch2, a better stitch ]]
 
--- Pandoc load's its filters, stitch requires them.  So prevent initializing
--- twice if a codeblock wants to filter data through stitch.
+-- Pandoc load's filters, stitch requires them.  So prevent initializing twice
 if package.loaded.stitch then return package.loaded.stitch end
 
 --[[----- locals -----------]]
@@ -689,7 +688,7 @@ end
 --[[----- kb:<others> ------]]
 
 --- Returns filtered `data`,`info` or nil,`error` on failure.
--- TODO: should be kb:filter(data, name)
+--
 -- Searches to require `name`, which may be `mod.func`.  If `func` is
 -- not defined after a search it is assumed to be `Pandoc`.
 --
@@ -712,15 +711,15 @@ function kb:filter(data, name)
 
   if 'Pandoc' == pd.utils.type(data) then
     data.meta = tmerge(data.meta, state.meta)
-    -- NOTE: ccb overrides (or adds?) shift in headers (doc.meta.stitch.hdr)
+    -- NOTE: this overrides (or adds?) shift in headers (doc.meta.stitch.hdr)
     local hdr = self.opt.hdr or 0
     data.meta = tmerge(data.meta, { stitch = { hdr = hdr } }, true)
   end
 
   state:push()
-  for _, f in ipairs(filters) do
-    if f[fun] then
-      local ok, tmp = pcall(f[fun], data)
+  for _, filter in ipairs(filters) do
+    if filter[fun] then
+      local ok, tmp = pcall(filter[fun], data)
       data = ok and tmp or data
       count = ok and count + 1 or count
     end
@@ -747,7 +746,7 @@ function kb:new(cb)
   oid = #oid == 0 and sf('anon%02d', #state.seen + 1) or oid
   state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
   local ccb = parse_elm(cb)
-  local cfg = self:config(oid, ccb)
+  local cfg = self:config(oid, ccb) -- link to config section
   local flawed = cfg == nil
 
   -- check option values
@@ -775,14 +774,13 @@ function kb:new(cb)
   new.sha = tosha(new)
 
   -- expand #var's used in option values
-  -- TODO: may use #cfg -> art='#dir/#cfg/#oid-#sha.#ft' e.g. ?
-  -- * makes it easy to seggregate by tool/section
   local kvmap = tmerge(opt, { sha = new.sha, oid = new.oid })
   local expandables = { 'cbx', 'art', 'out', 'err', 'cmd' }
   for _, expandable in ipairs(expandables) do
     opt[expandable] = pd.path.normalize(opt[expandable]:gsub('%#(%w+)', kvmap))
     kvmap[expandable] = opt[expandable] -- tricky: needed for cmd to expand fully
   end
+
   -- check all are expanded
   for k, v in pairs(expandables) do
     if 'string' == type(v) and v:match('%#' .. k) then
@@ -797,39 +795,53 @@ function kb:new(cb)
   return new
 end
 
--- Returns section config name for given `ccb`, nil when no config was found
---
--- nb: option stitch=<not-a-section> yields 'defaults' as config name
+--- Returns section config name for given `ccb`, nil when no config was found
+--- @param oid string
+--- @param ccb table
+--- @return string? config
 function kb:config(oid, ccb)
-  local how -- how 1..4 codeblock was linked to a config (or not)
+  -- ccb is not a kb-instance yet, just freshly parsed cb (parse_elm(cb))
   local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
   if cfg and nil == rawget(state.ctx, cfg) then
-    how = sf('by stitch=%s, but no such config section so using defaults', cfg)
-    cfg = 'defaults' -- TODO: explicit ref does not exist, treat it as error in cb?
-    -- return nil -- TODO: which causes flawed to be set and cb skipped ??
+    log(oid, 'debug', 'config stitch=%s (non-existent) using defaults instead', cfg)
+    return 'defaults'
   elseif cfg then
-    how = sf('by stitch=%s', cfg)
+    log(oid, 'debug', 'config stitch=%s', cfg)
+    return cfg
   end
-  cfg = cfg or rawget(state.ctx, oid) and oid -- 2. #id has config section
-  how = how or cfg and sf('by id=#%s', cfg)
-  if not cfg and 'no' ~= ccb.attr.attributes.cls then
-    -- 3. a ccb's class matches with a section when not disable at cb level
+
+  -- 2. cb id has section in ctx.stitch
+  cfg = rawget(state.ctx, oid)
+  if cfg then
+    log(oid, 'debug', 'config %s found by cb id', oid)
+    return oid
+  end
+
+  -- 3. a ccb class matches with a section & ccb.cls allows matching
+  if 'no' ~= ccb.attr.attributes.cls then
     for _, class in ipairs(ccb.attr.classes) do
       local section = rawget(state.ctx, class) -- don't fallback to defaults
       cfg = section and 'no' ~= section.cls and class or nil
-      how = how or cfg and sf('by class "%s" (cls not "no")', class)
       if cfg then break end
     end
+
+    if cfg then
+      log(oid, 'debug', 'config %s found by link to section', cfg)
+      return cfg
+    end
   end
-  cfg = cfg or pd.List.find(ccb.attr.classes, 'stitch') -- 4. .stitch class
-  how = how or cfg and sf('by class .%s (uses defaults)', cfg)
-  cfg = cfg or 'defaults' -- last ditch effort defaults->hardcoded
-  cfg = cfg or nil -- ensure nil as failure value (i.e. false := nil)
-  log(oid, 'debug', 'stitch config %s', how or 'not found')
-  return cfg
+
+  cfg = pd.List.find(ccb.attr.classes, 'stitch') -- 4. .stitch class
+  if cfg then
+    log(oid, 'debug', 'config by .stitch class, so using defaults')
+    return 'defaults'
+  end
+
+  log(oid, 'warn', 'config not found')
+  return nil
 end
 
---- Returns an new clone of this codeblock instance with stitch stuff removed.
+--- Returns a codeblock clone with, a possibly, new `id` and stitch stuff removed.
 --- @param id string?
 --- @return table
 function kb:clone(id)
@@ -851,7 +863,6 @@ function kb:total_recall()
 end
 
 --- Removes old files, returns the number of files removed
---- If codeblock is flawed, purge is skipped
 --- @return number count
 function kb:purge()
   local oid = self.oid
@@ -895,7 +906,7 @@ end
 --- Returns true if `ccb` can be processed by stitch, false otherwise
 function kb:is_eligible() return self.cfg ~= nil end
 
---- Return true setup succeeded, false otherwise
+--- Returns true if setup succeeded, false otherwise
 --- Creates the necessary directories as well as the cbx-file
 function kb:setup()
   local oid = self.oid
@@ -930,7 +941,7 @@ function kb:setup()
   return true
 end
 
---[[----- STITCH -----------]]
+--[[---- STITCH -----------]]
 
 local function CodeBlock(cb)
   local ccb = kb:new(cb) -- also registers oid as logger
@@ -939,9 +950,7 @@ local function CodeBlock(cb)
   if not ccb:is_eligible() then
     log(oid, 'warn', '(%s) skipped, codeblock not eligible', oid)
     return nil
-  end
-
-  if ccb.flawed then
+  elseif ccb.flawed then
     log(oid, 'error', '(%s) skipped, codeblock contains errors', oid)
     return nil
   end
@@ -979,12 +988,11 @@ end
 
 --[[ shenanigans ]]
 
-package.loaded.stitch = { { Pandoc = Pandoc } }
-
+package.loaded.stitch = { { Pandoc = Pandoc } } -- list of filters
 if pd then
   if _ENV.PANDOC_VERSION >= { 3, 5 } then
-    -- single filters will become the norm
-    package.loaded.stitch = { Pandoc = Pandoc }
+    package.loaded.stitch = { Pandoc = Pandoc } -- single filter
   end
 end
+
 return package.loaded.stitch
