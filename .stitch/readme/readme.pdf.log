@@ -1,21 +1,4 @@
 stitch[0] info    stitch| new document ('')
-stitch[0] debug   stitch| "gnuplot"
-stitch[0] debug   stitch| - gnuplot.run = system (= ok)
-stitch[0] debug   stitch| - gnuplot.dir = .stitch/new/gnuplot (= ok)
-stitch[0] debug   stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err (= ok)
-stitch[0] debug   stitch| - gnuplot.inc = {{what: art, how: fig}, {what: cbx, how: fcb}} (= ok)
-stitch[0] debug   stitch| "defaults"
-stitch[0] debug   stitch| - defaults.dir = .stitch/readme/defaults (= ok)
-stitch[0] debug   stitch| - defaults.inc = {{what: out}, {what: cbx, how: fcb}} (= ok)
-stitch[0] debug   stitch| - defaults.cls = yes (= ok)
-stitch[0] debug   stitch| "stitch"
-stitch[0] debug   stitch| - stitch.log = debug (= ok)
-stitch[0] debug   stitch| "chunk"
-stitch[0] debug   stitch| - chunk.run = chunk (= ok)
-stitch[0] debug   stitch| - chunk.inc = {{what: out}} (= ok)
-stitch[0] debug   stitch| - chunk.dir = .stitch/readme/chunk (= ok)
-stitch[0] debug   stitch| - chunk.cmd =  (= ok)
-stitch[0] debug   stitch| - chunk.exe = maybe (= ok)
 stitch[0] debug   stitch| "boxes"
 stitch[0] debug   stitch| - boxes.dir = .stitch/readme/boxes (= ok)
 stitch[0] debug   stitch| - boxes.cls = yes (= ok)
@@ -26,25 +9,42 @@ stitch[0] debug   stitch| - download.exe = yes (= ok)
 stitch[0] debug   stitch| - download.dir = .stitch/readme/download (= ok)
 stitch[0] debug   stitch| - download.inc = {{what: cbx, how: fcb}} (= ok)
 stitch[0] debug   stitch| - download.out = #dir/#arg (= ok)
-stitch[0] debug   stitch| "diagon"
-stitch[0] debug   stitch| - diagon.cmd = diagon #arg <#cbx 1>#out (= ok)
-stitch[0] debug   stitch| - diagon.dir = .stitch/readme/diagon (= ok)
 stitch[0] debug   stitch| "cetz"
 stitch[0] debug   stitch| - cetz.cmd = typst #arg #cbx #art (= ok)
 stitch[0] debug   stitch| - cetz.dir = .stitch/new/cetz (= ok)
 stitch[0] debug   stitch| - cetz.inc = {{what: art}, {what: cbx, how: fcb}} (= ok)
 stitch[0] debug   stitch| - cetz.arg = compile (= ok)
+stitch[0] debug   stitch| "defaults"
+stitch[0] debug   stitch| - defaults.dir = .stitch/readme/defaults (= ok)
+stitch[0] debug   stitch| - defaults.inc = {{what: out}, {what: cbx, how: fcb}} (= ok)
+stitch[0] debug   stitch| - defaults.cls = yes (= ok)
+stitch[0] debug   stitch| "stitch"
+stitch[0] debug   stitch| - stitch.log = debug (= ok)
+stitch[0] debug   stitch| "diagon"
+stitch[0] debug   stitch| - diagon.cmd = diagon #arg <#cbx 1>#out (= ok)
+stitch[0] debug   stitch| - diagon.dir = .stitch/readme/diagon (= ok)
+stitch[0] debug   stitch| "gnuplot"
+stitch[0] debug   stitch| - gnuplot.run = system (= ok)
+stitch[0] debug   stitch| - gnuplot.dir = .stitch/new/gnuplot (= ok)
+stitch[0] debug   stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err (= ok)
+stitch[0] debug   stitch| - gnuplot.inc = {{what: art, how: fig}, {what: cbx, how: fcb}} (= ok)
+stitch[0] debug   stitch| "chunk"
+stitch[0] debug   stitch| - chunk.run = chunk (= ok)
+stitch[0] debug   stitch| - chunk.inc = {{what: out}} (= ok)
+stitch[0] debug   stitch| - chunk.dir = .stitch/readme/chunk (= ok)
+stitch[0] debug   stitch| - chunk.cmd =  (= ok)
+stitch[0] debug   stitch| - chunk.exe = maybe (= ok)
 stitch[0] debug   stitch| "youplot"
 stitch[0] debug   stitch| - youplot.cmd = #cbx 1>#out (= ok)
 stitch[0] debug   stitch| - youplot.dir = .stitch/readme/youplot (= ok)
-stitch[0] debug   stitch| gnuplot log level set to info
-stitch[0] debug   stitch| defaults log level set to info
-stitch[0] debug   stitch| stitch log level set to debug
-stitch[0] debug   stitch| chunk log level set to info
 stitch[0] debug   stitch| boxes log level set to info
 stitch[0] debug   stitch| download log level set to info
-stitch[0] debug   stitch| diagon log level set to info
 stitch[0] debug   stitch| cetz log level set to info
+stitch[0] debug   stitch| defaults log level set to info
+stitch[0] debug   stitch| stitch log level set to debug
+stitch[0] debug   stitch| diagon log level set to info
+stitch[0] debug   stitch| gnuplot log level set to info
+stitch[0] debug   stitch| chunk log level set to info
 stitch[0] debug   stitch| youplot log level set to info
 stitch[0] info    stitch| doc ('') options done
 stitch[0] debug  preface| config stitch=boxes
@@ -210,8 +210,7 @@ stitch[0] debug   gotcha| using directory .stitch/readme/defaults for out-files
 stitch[0] debug   gotcha| using directory .stitch/readme/defaults for err-files
 stitch[0] debug   gotcha| writing out 526 chars to .stitch/readme/defaults/gotcha-7b37127e4393e50cff9cc81c5a60d544dd0244f6.cbx
 stitch[0] warn    gotcha| codeblock run skipped (exe = no)
-stitch[0] debug   gotcha| purge removed old file .stitch/readme/defaults/gotcha-c72520e5265b13f27691fa5fe1e0c5093ab93d3f.cbx
-stitch[0] debug   gotcha| purge removed 1 old files
+stitch[0] debug   gotcha| purge removed 0 old files
 stitch[0] debug   gotcha| include processing inc[1] = {read: csv, what: cbx}
 stitch[0] debug   stitch| read file .stitch/readme/defaults/gotcha-7b37127e4393e50cff9cc81c5a60d544dd0244f6.cbx, format csv
 stitch[0] debug   stitch| data converted to csv
@@ -226,8 +225,7 @@ stitch[0] debug      csv| using directory .stitch/readme/defaults for out-files
 stitch[0] debug      csv| using directory .stitch/readme/defaults for err-files
 stitch[0] debug      csv| writing out 64 chars to .stitch/readme/defaults/csv-7384d1ec5cdc0499410324847371d6c89d3a0421.cbx
 stitch[0] warn       csv| codeblock run skipped (exe = no)
-stitch[0] debug      csv| purge removed old file .stitch/readme/defaults/csv-57bfa78e819b9e37103c6cfdc92e5be437116584.cbx
-stitch[0] debug      csv| purge removed 1 old files
+stitch[0] debug      csv| purge removed 0 old files
 stitch[0] debug      csv| include processing inc[1] = {what: cbx, how: fcb}
 stitch[0] debug   stitch| read file .stitch/readme/defaults/csv-7384d1ec5cdc0499410324847371d6c89d3a0421.cbx, format <n/a>
 stitch[0] debug      csv| include inc[1] = {what: cbx, how: fcb} succeeded
@@ -248,12 +246,8 @@ stitch[0] debug   nested| using directory .stitch/readme/defaults for art-files
 stitch[0] debug   nested| using directory .stitch/readme/defaults for out-files
 stitch[0] debug   nested| using directory .stitch/readme/defaults for err-files
 stitch[0] debug   nested| writing out 2237 chars to .stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.cbx
-stitch[0] debug   nested| codeblock cmd is .stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.cbx  .stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.png 1>.stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.out 2>.stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.err
-stitch[0] info    nested| codeblock system command succeeded
-stitch[0] debug   nested| purge removed old file .stitch/readme/defaults/nested-66029a7f56ec84d9b73e2a2c69906e6f68a0a8f0.cbx
-stitch[0] debug   nested| purge removed old file .stitch/readme/defaults/nested-66029a7f56ec84d9b73e2a2c69906e6f68a0a8f0.out
-stitch[0] debug   nested| purge removed old file .stitch/readme/defaults/nested-66029a7f56ec84d9b73e2a2c69906e6f68a0a8f0.err
-stitch[0] debug   nested| purge removed 3 old files
+stitch[0] info    nested| codeblock run skipped, results already exist
+stitch[0] debug   nested| purge removed 0 old files
 stitch[0] debug   nested| include processing inc[1] = {what: cbx, how: fcb}
 stitch[0] debug   stitch| read file .stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.cbx, format <n/a>
 stitch[0] debug   nested| include inc[1] = {what: cbx, how: fcb} succeeded
@@ -261,28 +255,6 @@ stitch[0] debug   nested| include processing inc[2] = {read: markdown, what: out
 stitch[0] debug   stitch| read file .stitch/readme/defaults/nested-84aaab0861c7c16b9b6f15e4c0170d479f70dcb1.out, format markdown
 stitch[0] debug   stitch| data converted to markdown
 stitch[1] info    stitch| new document ('')
-stitch[1] debug   stitch| "gnuplot"
-stitch[1] debug   stitch| - gnuplot.run = system (= ok)
-stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
-stitch[1] debug   stitch| - gnuplot.bad = no (= ok)
-stitch[1] debug   stitch| - gnuplot.dir = .stitch/new/gnuplot (= ok)
-stitch[1] debug   stitch| - gnuplot.inc = {{what: art, how: fig}, {what: cbx, how: fcb}} (= ok)
-stitch[1] debug   stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err (= ok)
-stitch[1] debug   stitch| "defaults"
-stitch[1] debug   stitch| - defaults.dir = .stitch/readme/nested (= ok)
-stitch[1] debug   stitch| "stitch"
-stitch[1] debug   stitch| - stitch.log = debug (= ok)
-stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
-stitch[1] debug   stitch| - stitch.bad = no (= ok)
-stitch[1] debug   stitch| - stitch.hdr = 1 (= ok)
-stitch[1] debug   stitch| "chunk"
-stitch[1] debug   stitch| - chunk.run = chunk (= ok)
-stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
-stitch[1] debug   stitch| - chunk.bad = no (= ok)
-stitch[1] debug   stitch| - chunk.cmd =  (= ok)
-stitch[1] debug   stitch| - chunk.dir = .stitch/readme/chunk (= ok)
-stitch[1] debug   stitch| - chunk.inc = {{what: out}} (= ok)
-stitch[1] debug   stitch| - chunk.exe = maybe (= ok)
 stitch[1] debug   stitch| "boxes"
 stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
 stitch[1] debug   stitch| - boxes.bad = no (= ok)
@@ -297,11 +269,6 @@ stitch[1] debug   stitch| - download.out = #dir/#arg (= ok)
 stitch[1] debug   stitch| - download.dir = .stitch/readme/download (= ok)
 stitch[1] debug   stitch| - download.inc = {{what: cbx, how: fcb}} (= ok)
 stitch[1] debug   stitch| - download.exe = yes (= ok)
-stitch[1] debug   stitch| "diagon"
-stitch[1] debug   stitch| - diagon.dir = .stitch/readme/diagon (= ok)
-stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
-stitch[1] debug   stitch| - diagon.bad = no (= ok)
-stitch[1] debug   stitch| - diagon.cmd = diagon #arg <#cbx 1>#out (= ok)
 stitch[1] debug   stitch| "cetz"
 stitch[1] debug   stitch| - cetz.arg = compile (= ok)
 stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
@@ -309,19 +276,46 @@ stitch[1] debug   stitch| - cetz.bad = no (= ok)
 stitch[1] debug   stitch| - cetz.dir = .stitch/new/cetz (= ok)
 stitch[1] debug   stitch| - cetz.cmd = typst #arg #cbx #art (= ok)
 stitch[1] debug   stitch| - cetz.inc = {{what: art}, {what: cbx, how: fcb}} (= ok)
+stitch[1] debug   stitch| "defaults"
+stitch[1] debug   stitch| - defaults.dir = .stitch/readme/nested (= ok)
+stitch[1] debug   stitch| "stitch"
+stitch[1] debug   stitch| - stitch.log = debug (= ok)
+stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
+stitch[1] debug   stitch| - stitch.bad = no (= ok)
+stitch[1] debug   stitch| - stitch.hdr = 1 (= ok)
+stitch[1] debug   stitch| "diagon"
+stitch[1] debug   stitch| - diagon.dir = .stitch/readme/diagon (= ok)
+stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
+stitch[1] debug   stitch| - diagon.bad = no (= ok)
+stitch[1] debug   stitch| - diagon.cmd = diagon #arg <#cbx 1>#out (= ok)
+stitch[1] debug   stitch| "gnuplot"
+stitch[1] debug   stitch| - gnuplot.run = system (= ok)
+stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
+stitch[1] debug   stitch| - gnuplot.bad = no (= ok)
+stitch[1] debug   stitch| - gnuplot.dir = .stitch/new/gnuplot (= ok)
+stitch[1] debug   stitch| - gnuplot.inc = {{what: art, how: fig}, {what: cbx, how: fcb}} (= ok)
+stitch[1] debug   stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err (= ok)
+stitch[1] debug   stitch| "chunk"
+stitch[1] debug   stitch| - chunk.run = chunk (= ok)
+stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
+stitch[1] debug   stitch| - chunk.bad = no (= ok)
+stitch[1] debug   stitch| - chunk.cmd =  (= ok)
+stitch[1] debug   stitch| - chunk.dir = .stitch/readme/chunk (= ok)
+stitch[1] debug   stitch| - chunk.inc = {{what: out}} (= ok)
+stitch[1] debug   stitch| - chunk.exe = maybe (= ok)
 stitch[1] debug   stitch| "youplot"
 stitch[1] debug   stitch| - youplot.dir = .stitch/readme/youplot (= ok)
 stitch[1] debug   stitch| "bad" is not a stitch option, kept as-is
 stitch[1] debug   stitch| - youplot.bad = no (= ok)
 stitch[1] debug   stitch| - youplot.cmd = #cbx 1>#out (= ok)
-stitch[1] debug   stitch| gnuplot log level set to info
-stitch[1] debug   stitch| defaults log level set to info
-stitch[1] debug   stitch| stitch log level set to debug
-stitch[1] debug   stitch| chunk log level set to info
 stitch[1] debug   stitch| boxes log level set to info
 stitch[1] debug   stitch| download log level set to info
-stitch[1] debug   stitch| diagon log level set to info
 stitch[1] debug   stitch| cetz log level set to info
+stitch[1] debug   stitch| defaults log level set to info
+stitch[1] debug   stitch| stitch log level set to debug
+stitch[1] debug   stitch| diagon log level set to info
+stitch[1] debug   stitch| gnuplot log level set to info
+stitch[1] debug   stitch| chunk log level set to info
 stitch[1] debug   stitch| youplot log level set to info
 stitch[1] info    stitch| doc ('') options done
 stitch[1] note    stitch| header nested-report: level shifted from 1 to 2
@@ -333,8 +327,7 @@ stitch[1] debug   nd-csv| using directory .stitch/readme/nested for out-files
 stitch[1] debug   nd-csv| using directory .stitch/readme/nested for err-files
 stitch[1] debug   nd-csv| writing out 21 chars to .stitch/readme/nested/nd-csv-cc7f1070f3716abe536df4f5f185631891431feb.cbx
 stitch[1] warn    nd-csv| codeblock run skipped (exe = no)
-stitch[1] debug   nd-csv| purge removed old file .stitch/readme/nested/nd-csv-3f545340997ff2888ea255f92ff4d0908ccc960a.cbx
-stitch[1] debug   nd-csv| purge removed 1 old files
+stitch[1] debug   nd-csv| purge removed 0 old files
 stitch[1] debug   nd-csv| include processing inc[1] = {read: csv, what: cbx}
 stitch[1] debug   stitch| read file .stitch/readme/nested/nd-csv-cc7f1070f3716abe536df4f5f185631891431feb.cbx, format csv
 stitch[1] debug   stitch| data converted to csv
