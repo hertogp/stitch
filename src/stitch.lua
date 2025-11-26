@@ -1,4 +1,10 @@
 --[[ stitch2, a better stitch ]]
+--
+-- TODO:
+-- * add stats: codeblocks/headers/errors/ seen/totals
+--   * n/N <topic>, m errors, x ignored
+-- * move parse functions into parse obj -> easier to export for busted
+-- * add ._internals table to exported filter so they can be tested
 
 -- Pandoc load's filters, stitch requires them.  So prevent initializing twice
 if package.loaded.stitch then return package.loaded.stitch end
@@ -234,7 +240,7 @@ end
 --[[----- parsers ----------]]
 
 --- table of parser functions per selected pandoc and (all) lua types
-local parse_elm_by = {} -- (forward declaration)
+-- local parse_elm_by = {} -- (forward declaration)
 
 --- Converts pandoc AST element `elm` to a regular Lua table
 --
@@ -243,11 +249,112 @@ local parse_elm_by = {} -- (forward declaration)
 -- function fields and add a map at index `[0]` with the objects' lua and
 -- pandoc type, as well as `'%p'` formatted string for the object.  Still
 -- ignores metatables though.
---- @param elm table
---- @param detail boolean?
---- @param seen table?
---- @return table
-local function parse_elm(elm, detail, seen)
+-- @param elm table
+-- @param detail boolean?
+-- @param seen table?
+-- @return table
+-- local function parse_elm(elm, detail, seen)
+--   seen = seen or {}
+--   detail = detail and true or false
+--
+--   local t = detail and { [0] = { pandoc = pd.utils.type(elm), lua = type(elm), pointer = sf('%p', elm) } } or {}
+--   for k, v in pairs(elm) do
+--     if seen[v] then return v end --{ [k] = sf('<cyclic: %p> %s', v, v) } end
+--     if 'table' == type(v) or 'userdata' == type(v) then seen[v] = v end
+--     local parse = parse_elm_by[pd.utils.type(v)] or parse_elm_by[type(v)]
+--     t[k] = parse and parse(v, detail, seen)
+--   end
+--   return t
+-- end
+
+-- parse_elm_by = {
+--   -- by pandoc type
+--   ['Inlines'] = function(v, d, s) return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'plain'):sub(1, -2) end,
+--   -- by lua types
+--   ['nil'] = function() return nil end,
+--   thread = function() return nil end,
+--   table = function(v, d, s) return parse_elm(v, d, s) end,
+--   userdata = function(v, d, s) return parse_elm(v, d, s) end,
+--   ['function'] = function(v, d) return d and v or nil end,
+--   string = function(v) return v end,
+--   -- insist on 'yes'/'no' for consistency
+--   boolean = function(v) return v and 'yes' or 'no' end,
+--   number = function(v) return v end,
+-- }
+
+-- functions to validate/parse stitch option values (nil signals error)
+-- local parse_opt_by = {
+--   -- check value type
+--   arg = function(v) return 'string' == type(v) and v or nil end,
+--   art = function(v) return 'string' == type(v) and v or nil end,
+--   cbx = function(v) return 'string' == type(v) and v or nil end,
+--   cmd = function(v) return 'string' == type(v) and v or nil end,
+--   dir = function(v) return 'string' == type(v) and v or nil end,
+--   err = function(v) return 'string' == type(v) and v or nil end,
+--   fmt = function(v) return 'string' == type(v) and v or nil end,
+--   oid = function(v) return 'string' == type(v) and v or nil end,
+--   out = function(v) return 'string' == type(v) and v or nil end,
+--   hdr = function(v) return tonumber(v) end,
+--   -- check actual values
+--   cls = function(v) return 'string' == type(v) and ('no yes'):match(v) and v or nil end,
+--   exe = function(v) return 'string' == type(v) and ('yes maybe no'):match(v) and v or nil end,
+--   log = function(v) return 'string' == type(v) and ('debug error warn note info silent'):match(v) and v or nil end,
+--   old = function(v) return 'string' == type(v) and ('purge keep'):match(v) and v or nil end,
+--   run = function(v) return 'string' == type(v) and ('system chunk noop'):match(v) and v or nil end,
+--   -- parse inc option value
+--   inc = function(v)
+--     -- `inc` in cb.attr is always a string, in `doc.meta` it can be string or a table
+--     local t = {}
+--     if 'string' == type(v) then
+--       for p in v:gsub('[%s,]+', ' '):gmatch('%S+') do
+--         t[#t + 1] = p
+--       end
+--     elseif 'table' == type(v) then
+--       t = v
+--     end
+--     local pat = '([^!@:]+)'
+--     local spec = {}
+--     for k, part in pairs(t) do
+--       if 'string' == type(part) then
+--         spec[#spec + 1] = {
+--           what = part:match('^' .. pat),
+--           read = part:match('!' .. pat),
+--           filter = part:match('@' .. pat),
+--           how = part:match(':' .. pat),
+--         }
+--       elseif 'table' == type(part) and tonumber(k) then
+--         spec[#spec + 1] = {
+--           what = part.what,
+--           read = part.read,
+--           filter = part.filter,
+--           how = part.how,
+--         }
+--       else
+--         log('stitch', 'error', sf('ignoring inc[%s]=%s, illegal value', k, tostr(part)))
+--       end
+--     end
+--     return spec
+--   end,
+-- }
+-- setmetatable(parse_opt_by, {
+--   __index = function(_, k)
+--     log('stitch', 'debug', sf('%q is not a stitch option, kept as-is', k))
+--     return function(v) return v end
+--   end,
+-- })
+
+--- Returns a parsed, validated value for given `opt` and `val` or nil.
+--- nb: non-stitch options are kept as-is, they're not used anyway.
+-- @param opt string
+-- @param val string|table
+-- @return string|number|table?
+-- local function parse_opt(opt, val) return parse_opt_by[opt](val) end
+
+--[[----- parse ------------]]
+
+local parse = {} -- forward declaration
+
+function parse:ast(elm, detail, seen)
   seen = seen or {}
   detail = detail and true or false
 
@@ -255,20 +362,20 @@ local function parse_elm(elm, detail, seen)
   for k, v in pairs(elm) do
     if seen[v] then return v end --{ [k] = sf('<cyclic: %p> %s', v, v) } end
     if 'table' == type(v) or 'userdata' == type(v) then seen[v] = v end
-    local parse = parse_elm_by[pd.utils.type(v)] or parse_elm_by[type(v)]
-    t[k] = parse and parse(v, detail, seen)
+    local parser = self.elm[pd.utils.type(v)] or self.elm[type(v)]
+    t[k] = parser and parser(v, detail, seen)
   end
   return t
 end
 
-parse_elm_by = {
+parse.elm = {
   -- by pandoc type
-  ['Inlines'] = function(v, d, s) return (d and parse_elm(v, d, s)) or pd.write(pd.Pandoc({ v }), 'plain'):sub(1, -2) end,
+  ['Inlines'] = function(v, d, s) return (d and parse:ast(v, d, s)) or pd.write(pd.Pandoc({ v }), 'plain'):sub(1, -2) end,
   -- by lua types
   ['nil'] = function() return nil end,
   thread = function() return nil end,
-  table = function(v, d, s) return parse_elm(v, d, s) end,
-  userdata = function(v, d, s) return parse_elm(v, d, s) end,
+  table = function(v, d, s) return parse:ast(v, d, s) end,
+  userdata = function(v, d, s) return parse:ast(v, d, s) end,
   ['function'] = function(v, d) return d and v or nil end,
   string = function(v) return v end,
   -- insist on 'yes'/'no' for consistency
@@ -276,8 +383,7 @@ parse_elm_by = {
   number = function(v) return v end,
 }
 
--- functions to validate/parse stitch option values (nil signals error)
-local parse_opt_by = {
+parse.opt = setmetatable({
   -- check value type
   arg = function(v) return 'string' == type(v) and v or nil end,
   art = function(v) return 'string' == type(v) and v or nil end,
@@ -329,20 +435,14 @@ local parse_opt_by = {
     end
     return spec
   end,
-}
-setmetatable(parse_opt_by, {
+}, {
   __index = function(_, k)
     log('stitch', 'debug', sf('%q is not a stitch option, kept as-is', k))
     return function(v) return v end
   end,
 })
 
---- Returns a parsed, validated value for given `opt` and `val` or nil.
---- nb: non-stitch options are kept as-is, they're not used anyway.
---- @param opt string
---- @param val string|table
---- @return string|number|table?
-local function parse_opt(opt, val) return parse_opt_by[opt](val) end
+function parse:option(opt, val) return self.opt[opt](val) end
 
 --[[----- State ------------]]
 
@@ -385,7 +485,7 @@ end
 
 --- Sets `state.ctx` and `state.meta` from given Pandoc document `doc`
 function state:context(doc)
-  local meta = parse_elm(doc.meta)
+  local meta = parse:ast(doc.meta)
   -- no `doc.meta.stitch` means empty context ctx
   local loglevel = sf('%s', ((meta.stitch or {}).stitch or {}).log or 'info')
   local lid = state:logger('stitch', loglevel)
@@ -410,7 +510,8 @@ function state:context(doc)
   for name, section in pairs(ctx) do
     log(lid, 'debug', '%q', name)
     for option, value in pairs(section) do
-      local val = parse_opt(option, value)
+      -- local val = parse_opt(option, value)
+      local val = parse:option(option, value)
       if nil == val then
         flawed = true
       else
@@ -445,26 +546,24 @@ function state:context(doc)
 
   log(lid, 'info', 'doc (%s) options done', ctx.meta.title or "''")
   self.ctx = ctx
-  self.meta = tcopy(doc.meta) -- TODO: need doc.meta, using meta results in inc-errors
+  self.meta = meta
 end
 
 --[[----- kodeblock --------]]
 
 --- Class to represent current codeblock instances (`ccb`'s)
 ---
---- Class fields:
---- - `run` function table for running the codeblock via `ccb:run()`
---- - `inc` function table for handling include directives via `ccb:inc()`
----
---- Instance fields:
---- `oid` ccb's object identifier
---- `opt` ccb's attributes
---- `cls` ccb's classes
---- `txt` ccb's text (content)
---- `ast` parsed ast for `cb`
---- `org` the original `cb`
---- `cfg` ccb's configuration name (nil = not eligible)
---- `flawed` flags codeblock has errors (if any)
+--- - `ccb:run()` to actually setup and run a codeblock
+--- - `ccb:inc()` to build list of elements to include
+--- - ccb instance fields:
+---   * `oid` ccb's object identifier
+---   * `opt` ccb's attributes
+---   * `cls` ccb's classes
+---   * `txt` ccb's text (content)
+---   * `ast` parsed ast for `cb`
+---   * `org` the original `cb`
+---   * `cfg` ccb's config `ctx.stitch.section` name (nil = not eligible)
+---   * `flawed` flags codeblock has errors (if any)
 local kb = {
 
   -- function jump-table for the `run`-option attribute of codeblock
@@ -720,7 +819,8 @@ function kb:filter(data, name)
     data.meta = tmerge(data.meta, state.meta)
     -- NOTE: this overrides (or adds?) shift in headers (doc.meta.stitch.hdr)
     local hdr = self.opt.hdr or 0
-    data.meta = tmerge(data.meta, { stitch = { hdr = hdr } }, true)
+    -- data.meta = tmerge(data.meta, { stitch = { hdr = hdr } }, true)
+    data.meta = pd.MetaMap(tmerge(data.meta, { stitch = { hdr = hdr } }, true))
   end
 
   state:push()
@@ -752,14 +852,15 @@ function kb:new(cb)
   local oid = sf('%s', cb.attr.identifier)
   oid = #oid == 0 and sf('anon%02d', #state.seen + 1) or oid
   state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
-  local ccb = parse_elm(cb)
+  local ccb = parse:ast(cb)
   local cfg = self:config(oid, ccb) -- link to config section
   local flawed = cfg == nil
 
   -- check option values
   local opt = setmetatable({}, { __index = state.ctx[cfg] })
   for option, value in pairs(ccb.attr.attributes) do
-    local val = parse_opt(option, value)
+    -- local val = parse_opt(option, value)
+    local val = parse:option(option, value)
     if nil == val then
       flawed = true
       log(oid, 'error', '(#%s) %s=%s (illegal value)', oid, option, tostr(value))
@@ -982,7 +1083,8 @@ end
 
 local function Pandoc(doc)
   local lid = state:logger('stitch', 'info')
-  log(lid, 'info', "new document ('%s')", tostr(parse_elm_by['Inlines'](doc.meta.title)))
+  -- log(lid, 'info', "new document ('%s')", tostr(parse_elm_by['Inlines'](doc.meta.title)))
+  log(lid, 'info', "new document ('%s')", tostr(parse.elm['Inlines'](doc.meta.title)))
 
   state:context(doc)
   local hdr = 0 ~= tonumber(state.ctx.stitch.hdr)
@@ -994,6 +1096,11 @@ local function Pandoc(doc)
 end
 
 --[[ shenanigans ]]
+-- if package.loaded.busted -> we're busted ..
+-- return {
+--   Pandoc = Pandoc,
+--   _internals = { kb=kb, state=state, helpers = { tostr=tostr, ..}, parsers = { parse_opt = .., parse_elm = ..}}
+--   }
 
 package.loaded.stitch = { { Pandoc = Pandoc } } -- list of filters
 if pd then

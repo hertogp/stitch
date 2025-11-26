@@ -2,6 +2,7 @@
 -- global, but lua_ls doesn't pickup on it. So, howto remove warning about
 -- pandoc being 'undefined global' ?  The following is a bit heavy-handed
 ---@diagnostic disable: undefined-global
+
 local S = require('src/stitch') -- { Stitch }
 local I = S[1]._ -- the Implementation
 local pd = require 'pandoc'
