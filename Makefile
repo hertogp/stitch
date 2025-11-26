@@ -17,6 +17,9 @@ TOCDEPTH = --toc-depth=4
 
 default: show
 
+test:
+	busted
+
 readme: readme.pdf
 	@echo "creating README.md, logging to $(GFMLOGS)"
 	$(PANDOC) $(FILTER) $(FROM)+$(EXTS) _readme.md -t gfm -o README.md 2>&1 | tee $(GFMLOGS)
@@ -69,3 +72,4 @@ show:
 	@echo "make show      (this output)"
 	@echo "make all       (make all individual targets)"
 	@echo "make clean     (removes directory $(EX_DIR)/$(ST_DIR)) and its contents"
+	@echo "make test      (runs busted)"
