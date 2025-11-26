@@ -316,6 +316,13 @@ local parse_opt_by = {
           filter = part:match('@' .. pat),
           how = part:match(':' .. pat),
         }
+      elseif 'table' == type(part) and tonumber(k) then
+        spec[#spec + 1] = {
+          what = part.what,
+          read = part.read,
+          filter = part.filter,
+          how = part.how,
+        }
       else
         log('stitch', 'error', sf('ignoring inc[%s]=%s, illegal value', k, tostr(part)))
       end
