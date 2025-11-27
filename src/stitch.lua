@@ -910,9 +910,9 @@ function kb:setup()
   for _, path in ipairs({ 'cbx', 'art', 'out', 'err' }) do
     local dir = pd.path.normalize(pd.path.directory(self.opt[path]))
     if exists(dir) then
-      log(oid, 'debug', 'using directory %s for %s-files', dir, path)
+      log(oid, 'debug', 'using directory %s for %s-file', dir, path)
     else
-      log(oid, 'debug', 'creating directory %s for %s-files', dir, path)
+      log(oid, 'debug', 'creating directory %s for %s-file', dir, path)
       if not os.execute(sf('mkdir -p %s', dir)) then
         log(oid, 'error', 'permission denied when creating ', dir)
         self.bad = true

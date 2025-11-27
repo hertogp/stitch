@@ -1,4 +1,4 @@
-``` boxes
+```
                                 \\\///
                                / _  _ \
                              (| (.)(.) |)
@@ -30,16 +30,17 @@ line, stitch will help you do the same from within a codeblock and
 include its result upon converting the document using
 [pandoc](https://pandoc.org/).
 
-The main features of this lua-filter include:
+Main [features](#features) include:
 
-- run a codeblock as a system command to produce `data`
-- or use the codeblock itself (its text) as `data`
-- optionally have pandoc read the `data` to convert it to a pandoc `doc`
-- optionally run the `data` or `doc` through another lua program
+- run a codeblock as a system command, a lua chunk or read it as-is
+- optionally convert `data` by reading it with pandoc using some format
+- optionally run `data` (or `doc`) through another lua program or filter
 - include 0 or more results (as image, figure, codeblock or doc
   fragment)
-
-See [features](#features) for a more complete list.
+- granular control on where to store files, upto codeblock levels
+- optionally skip running a codeblock if it hasn’t changed
+- shift headers up or down while converting a, possibly included,
+  document
 
 ## Security
 
@@ -47,325 +48,16 @@ See [features](#features) for a more complete list.
 *insecure* and any CISO’s nightmare. Before running an externally
 supplied document through the `stitch.lua` filter, be sure you have
 vetted each and every codeblock that is marked for stitching since it
-probably runs a pletora of system commands on your machine, potentially
+probably runs a plethora of system commands on your machine, potentially
 causing chaos and/or harm.
 
-# Examples
-
-A few examples, mostly taken from the repo’s of the command line tools
-used.
-
-Each work of ‘art’ is followed by the codeblock that generated it. Most
-examples use a configuration section `stitch='tool_name'` in order to
-minimize the clutter in a codeblock’s attributes and keep its files
-organized.
-
-See the other
-[examples](https://github.com/hertogp/stitch/tree/main/examples) in
-[stitch’s repository](https://github.com/hertogp/stitch), which also
-contain some information on installing the command line tools used.
-
-## [Diagon](https://github.com/ArthurSonzogni/Diagon)
-
-If you were there for the dawn of the Internet, you might appreciate the
-simplicity of ascii output.
-
-```
-┌─────────┐                                           
-│CodeBlock│                                           
-└────┬────┘                                           
-  ___▽___       ____     ┌──────────────┐             
- ╱       ╲     ╱    ╲    │cbx, art, out,│             
-╱ stitch? ╲___╱ exe? ╲___│err created   │             
-╲         ╱yes╲      ╱yes└───────┬──────┘             
- ╲_______╱     ╲____╱            │                    
-     │no         │no             │                    
-     │           └───┬───────────┘                    
-     │             __▽___                             
-     │            ╱      ╲    ┌────────────────┐      
-     │           ╱ purge? ╲___│remove old files│      
-     │           ╲        ╱yes└────────┬───────┘      
-     │            ╲______╱             │              
-     │               │no               │              
-     │               └────┬────────────┘              
-     │           ┌────────▽───────┐                   
-     │           │parse inc-option│                   
-     │           └────────┬───────┘                   
-     │              ______▽______     ┌──────────────┐
-     │             ╱             ╲    │include in the│
-     │            ╱ inc: part(s)? ╲___│order parsed  │
-     │            ╲               ╱yes└───────┬──────┘
-     │             ╲_____________╱            │       
-     │                    │no                 │       
-     └──────────┬─────────┴───────────────────┘       
-           ┌────▽───┐                                 
-           │CONTINUE│                                 
-           └────────┘                                 
-
-```
-
-````
-``` {#cb01 stitch="diagon" arg="Flowchart"}
-"CodeBlock"
-
-if ("stitch?") {
-  if ("exe?") {
-    "cbx, art, out, err created"
-  }
-  if ("purge?") {
-    "remove old files"
-  }
-  "parse inc-option"
-  if("inc: part(s)?") {
-    "include in the order parsed"
-  }
-}
-
-"CONTINUE"
-```
-````
-
-## [youplot](https://github.com/red-data-tools/YouPlot)
-
-Or a bit more dynamic: today’s local temperature in Honolulu (well, the
-last time the codeblock was changed before compiling this readme
-anyway). The codeblock pulls in a csv file from `api.open-meteo.com`,
-cuts the output down to what is needed and modifies the first field
-keeping only the hours of the day. That output is then processed by
-[youplot](https://github.com/red-data-tools/YouPlot)
-
-```
-                  Temperature (˚C) Today
-         ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.2    
-   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.3     
-   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.1     
-   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.4      
-   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.5       
-   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.2       
-   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.1       
-   07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.0       
-   08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.8        
-   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.6        
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.5        
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.3        
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.9         
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.9         
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.9        
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.2      
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.4     
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.1    
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.6   
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.7   
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.5   
-         └                                        ┘ 
-```
-
-````
-``` {#cb02 stitch="youplot"}
-curl -sL 'https://api.open-meteo.com/v1/forecast?'\
-'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
-| head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
-|  uplot bar -d, -t "Temperature (˚C) Today" -o
-```
-````
-
-21.3069
-
-## [Cetz](https://typst.app/universe/package/cetz)
-
-Or go more graphical with
-[Cetz](https://typst.app/universe/package/cetz), one of many packages in
-the [typst](https://typst.app/universe/search/?kind=packages) universe,
-for plotting, charts & tree layout.
-
-<figure id="cb03-1-art" data-stitch="cetz"
-data-caption="Karl&#39;s picture">
-<img
-src=".stitch/readme/cetz/cb03-b96aa58c9edfa801e2fb84b0dbfc6567d2288ab8.png"
-id="cb03-1-art-img" />
-<figcaption>Karl's picture</figcaption>
-</figure>
-
-````
-``` {#cb03 stitch="cetz" caption="Karl's picture"}
-#import "@preview/cetz:0.4.2"
-#set page(width: auto, height: auto, margin: .5cm)
-#show math.equation: block.with(fill: white, inset: 1pt)
-#cetz.canvas(length: 3cm, {
-  import cetz.draw: *
-  set-style(
-    mark: (fill: black, scale: 2),
-    stroke: (thickness: 0.4pt, cap: "round"),
-    angle: (
-      radius: 0.3,
-      label-radius: .22,
-      fill: green.lighten(80%),
-      stroke: (paint: green.darken(50%))
-    ), content: (padding: 1pt)
-  )
-  grid((-1.5, -1.5), (1.4, 1.4), step: 0.5, stroke: gray + 0.2pt)
-  circle((0,0), radius: 1)
-  line((-1.5, 0), (1.5, 0), mark: (end: "stealth"))
-  content((), $ x $, anchor: "west")
-  line((0, -1.5), (0, 1.5), mark: (end: "stealth"))
-  content((), $ y $, anchor: "south")
-  for (x, ct) in ((-1, $ -1 $), (-0.5, $ -1/2 $), (1, $ 1 $)) {
-    line((x, 3pt), (x, -3pt))
-    content((), anchor: "north", ct)
-  }
-  for (y, ct) in ((-1, $ -1 $), (-0.5, $ -1/2 $), (0.5, $ 1/2 $), (1, $ 1 $)) {
-    line((3pt, y), (-3pt, y))
-    content((), anchor: "east", ct)
-  }
-  // Draw the green angle
-  cetz.angle.angle((0,0), (1,0), (1, calc.tan(30deg)),
-    label: text(green, [#sym.alpha]))
-  line((0,0), (1, calc.tan(30deg)))
-  set-style(stroke: (thickness: 1.2pt))
-  line((30deg, 1), ((), "|-", (0,0)), stroke: (paint: red), name: "sin")
-  content(("sin.start", 50%, "sin.end"), text(red)[$ sin alpha $])
-  line("sin.end", (0,0), stroke: (paint: blue), name: "cos")
-  content(("cos.start", 50%, "cos.end"), text(blue)[$ cos alpha $], anchor: "north")
-  line((1, 0), (1, calc.tan(30deg)), name: "tan", stroke: (paint: orange))
-  content("tan.end", $ text(#orange, tan alpha) = text(#red, sin alpha) / text(#blue, cos alpha) $, anchor: "west")
-})
-```
-````
-
-## [Fletcher](https://typst.app/universe/package/fletcher)
-
-Another package from the [typst](https://typst.app/) universe, for
-drawing diagrams and arrows. Revisiting the flowchart shown earlier with
-[diagon](#diagon).
-
-<figure id="cb04-1-art" data-stitch="cetz" data-caption="Stitch">
-<img
-src=".stitch/readme/cetz/cb04-f424f10774774a67eeec850e1c141da332fd675e.svg"
-id="cb04-1-art-img" />
-<figcaption>Stitch</figcaption>
-</figure>
-
-````
-``` {#cb04 stitch="cetz" caption="Stitch" fmt="svg"}
-#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
-#import fletcher.shapes: pill, parallelogram, diamond
-#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
-#set text(10pt)
-#diagram(
-  node-stroke: .1em,
-  node-fill: gradient.radial(blue.lighten(80%), blue, center: (30%, 20%), radius: 80%),
-  spacing: 4em,
-  mark-scale: 150%,
-  node((-1,-1), "codeblock", name: <cb>, shape: pill),
-  node((-1,0), "stitch?", name: <stitch>, shape: diamond),
-  edge(<cb>, <stitch>, "-|>"),
-  node((0,0), "exe?", name: <exe>, shape: diamond),
-  edge(<stitch>, <exe>, "-|>", `yes`),
-  node((1,0), "create: cbx art out err", name: <create>, shape: parallelogram, extrude: (-2.5, 0)),
-  edge(<exe>, <create>, "->", `yes`),
-  node((0,1), "purge?", name: <purge>, shape:diamond),
-  edge(<exe>, <purge>, "-|>", `no`),
-  edge(<create.south>, (1, 0.5), (0, 0.5),  "-|>"),
-  node((1,1), "rm old files", name: <rm>, shape: parallelogram, extrude: (-2.5,0)),
-  edge(<purge>, <rm>, "-|>", `yes`),
-  node((0,2), "parse `inc`-opt", name: <parse>, shape: parallelogram),
-  edge(<purge>, <parse>, "-|>", `no`),
-  edge(<rm.south>, (1, 1.5), (0,1.5), "-|>"),
-  node((0,3), "`inc:`-parts?", name: <parts>, shape: diamond),
-  edge(<parse>, <parts>, "-|>"),
-  node((1,3), "include in order parsed", name: <include>, shape: parallelogram),
-  edge(<parts>, <include>, "-|>", `yes`),
-  node((-1,4), "continue", name: <continue>, shape: pill),
-  edge(<stitch>, <continue>, "-|>", `no`),
-  edge(<parts>, (0, 3.45), (-1, 3.45), "-|>", `no`),
-  edge(<include>, (1, 4), <continue>, "-|>"),
-)
-```
-````
-
-## [Lilaq](https://lilaq.org/)
-
-Yet another [typst](https://typst.app/) package, this time for advanced
-data visualization. Unfortunately, typst and its packages currently have
-no way of downloading data, so the following codeblock is used for
-side-effects only
-
-````
-``` {#cb05 stitch="download" arg="../cetz/temperatures.json"}
-curl -sL 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&'\
-'hourly=temperature_2m&timezone=Europe%2FLondon&forecast_days=1&format=json'\
-| jq .
-```
-````
-
-This downloads today’s temperature to
-`.stitch/readme/cetz/temperatures.json`, which is then used in the
-following codeblock to create a graph.
-
-<figure id="cb06-1-art" data-stitch="cetz"
-data-caption="Temperature (C) today by Lilaq">
-<img
-src=".stitch/readme/cetz/cb06-641f22e973bc0b7967a14ddcf5095d406985fbbb.svg"
-id="cb06-1-art-img" />
-<figcaption>Temperature (C) today by Lilaq</figcaption>
-</figure>
-
-````
-``` {#cb06 stitch="cetz" caption="Temperature (C) today by Lilaq" fmt="svg" exe="yes"}
-#import "@preview/lilaq:0.5.0" as lq
-#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
-#let dta = json("temperatures.json")
-#let hour(str) = { return int(str.slice(11, count: 2))}
-#let hours = dta.hourly.time.map(hour)
-#lq.diagram(
-  title: [GPS (#dta.latitude, #dta.longitude)\ source: api.open-meteo.com],
-  xlabel: [hour\ (#dta.timezone)],
-  ylabel: [temperature (#dta.hourly_units.temperature_2m)],
-  lq.plot(hours, dta.hourly.temperature_2m),
-)
-```
-````
-
-## [Gnuplot](https://gnuplot.sourceforge.net)
-
-Another example using the trusty `gnuplot`.
-
-<figure id="cb07-1-art" data-stitch="gnuplot">
-<img
-src=".stitch/readme/gnuplot/cb07-7a626b90b995665908ee3c9de3fcc40df48e67fb.png"
-id="cb07-1-art-img" />
-</figure>
-
-````
-``` {#cb07 stitch="gnuplot" log="debug"}
-set terminal png
-set dummy u,v
-set key bmargin center horizontal Right noreverse enhanced autotitles nobox
-set parametric
-set view 50, 30, 1, 1
-set isosamples 50, 20
-set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
-set ticslevel 0
-set title "Interlocking Tori"
-set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
-set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
-splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
-1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
-```
-````
-
-# Documentation
+## Requirements
 
 This lua-filter requires pandoc version \>= 2.19 (or \>= 3.0 if you want
-to use `pandoc.Figure` to link to an image). Some of the [`lua`](#lua)
-chunks in this readme require version \>= 3.1.1 in order to convert it.
-Anyway, some stuff in here is probably not Windows friendly, but any
-\*nix should be fine.
+to use `pandoc.Figure` to link to an image). Some of the `lua` chunks in
+this readme require version \>= 3.1.1 in order to convert it. Anyway,
+some stuff in here is probably not Windows friendly, but any \*nix
+should be fine.
 
 ## Installation
 
@@ -381,21 +73,21 @@ Installation is straightforward:
 
 The filter will process a codeblock if it has a:
 
-- `stitch=name` attribute, linking it to a `meta.stitch`-section
-- class that matches a `meta.stitch`-section which has [`cls`](#cls) set
-  to yes
-- `.stitch` class (which uses `meta.stitch.defaults` or hardcoded
+- `stitch=name` attribute, explicitly linking it to a
+  `doc.meta.stitch`-section
+- class that matches a `doc.meta.stitch`-section (implicit link)
+- `.stitch` class (which uses `doc.meta.stitch.defaults` or hardcoded
   defaults)
 
-Processing a codeblock follows these steps:
+Processing a codeblock roughly follows these steps:
 
 1.  resolve all options and expand them (once)
-2.  save `cb.text` to [`cbx`](#cbx)-file & mark it as executable
-    (always)
-3.  check if anything has changed [`cid`](#cid) (1+ of the other
+2.  save codeblock’s `text` to [`cbx`](#cbx)-file & mark it as
+    executable (always)
+3.  check if anything has changed [`oid`](#oid) (1+ of the other
     artifacts exist)
-4.  conditionally run [`cmd`](#cmd) or [`lua`](#lua) load
-    [`cbx`](#cbx)-file & run, producing artifacts
+4.  conditionally run [`cmd`](#cmd) or \[`lua`\] load [`cbx`](#cbx)-file
+    & run, producing artifacts
     1.  an [`art`](#art)-file (usually an image file, depends on
         [`cmd`](#cmd)),
     2.  an [`out`](#out)-file (if [`cmd`](#cmd) redirects `stdout` here)
@@ -404,125 +96,112 @@ Processing a codeblock follows these steps:
 6.  parse the [`inc`](#inc)-option and include artifacts in order (if
     any)
 
-In the face of errors, stitch just complains and carries on, if
+In the face of errors, the filter just complains and carries on, if
 possible, usually skipping the offending codeblock or artifact. If
 things don’t pan out, check the logs and perhaps set the codeblock’s
 [`log`](#log)-option to `debug`.
 
-## Features
-
-Stitch provides a few features for converting codeblocks:
-
-- conditional codeblock execution ([`exe`](#exe))
-  - run the codeblock as a system command
-  - have it processed by an external tool
-  - load it as a chunk and run it with Stitch in its global environment
-- organize storage locations for codeblock artifacts ([`dir`](#dir))
-- detect old files and (possibly) remove them ([`old`](#old))
-- include 0 or more of the artifacts ([`inc`](#inc))
-- include the same artifact multiple times in, usually, different ways
-- use a codeblock for side-effects only (0 includes)
-- log levels, global, per tool or codeblock, to show all gory details
-  ([`log`](#log))
-- transfer a codeblock’s attributes to its included results, if possible
-- a unique id per codeblock and for each of its includes ([`cid`](#cid))
-- include after re-read an artifact using a [pandoc
-  –read=format](https://pandoc.org/MANUAL.html#general-options)
-- run the [`cbx`](#cbx) or other artifact through an external filter
-  - any lua program/filter that accepts string data or a pandoc doc
-  - stitch itself for codeblocks in an externally acquired markdown doc
-
-Some terminology used:
-
-artifact  
-refers to the [`cbx`](#cbx)-file or one of 3 files produced by
-processing a codeblock
-
-cbx-file  
-the [`cbx`](#cbx)-file where a codeblock’s contents is stored and marked
-executable
-
-art-file  
-the [`art`](#art)-file where file-based output is to be written to
-
-out-file  
-the [`out`](#out)-file where the output on stdout is captured
-
-err-file  
-the [`err`](#err)-file where the output on stderr is captured
-
-tool  
-an external program used to process the \[cbx\]-file
-
-this usually has its own `stitch section` in the doc’s meta data
-
-stitch section  
-a `name`’d table of options under `stitch:` in the doc’s meta data
-
-defaults  
-a `defaults` section under `stitch` to fall back on when resolving
-options
-
-hardcoded  
-the option values hardcoded in stitch and used if option resolution
-fails
-
-option resolution  
-where stitch looks for options and their values.
-
-order is: codeblock attr -\> stitch\[name\] -\> stitch\[defaults\] -\>
-hardcoded
-
 ## Configuration
 
-Stitch options are resolved in *most to least* specific order:
+Configuration involves setting some options, either in the documents
+meta block and/or in a codeblock’s attributes. Options are resolved in
+the following (*most to least specific*) order:
 
 1.  codeblock attributes
 2.  a codeblock’s `name` section, in stitch’s meta data
 3.  the `defaults` section, again in stitch’s meta data
-4.  hardcoded stitch defaults
-
-The list of options and default values are:
+4.  hardcoded option values
 
 | Opt | Value                            | Description                        |
 |:----|:---------------------------------|:-----------------------------------|
 | arg | `''`                             | extra argument(s) for the cli      |
-| art | `'#dir/#cid-#sha.#fmt'`          | template for cmd output file       |
-| cbx | `'#dir/#cid-#sha.cbx'`           | template for cb’s `cbx`-file       |
-| cls | `'no'`                           | select codeblock by class          |
-| cmd | `'#cbx #arg #art 1>#out 2>#err'` | template for the command line      |
+| cls | `'no'`                           | allow codeblock selection by class |
 | dir | `'.stitch'`                      | stitch’s working directory         |
-| err | `'#dir/#cid-#sha.err'`           | template for stderr file redirect  |
 | exe | `'maybe'`                        | execute codeblock, or not          |
 | fmt | `'png'`                          | intended `art`-file extension      |
 | hdr | `'0'`                            | simple shift of headers            |
-| inc | `'cbx:fcb out art:img err'`      | what to include in which order     |
 | log | `'info'`                         | log verbosity                      |
-| lua | `''`                             | run codeblock as a chunk           |
+| run | `'system'`                       | run type for a codeblock           |
 | old | `'purge'`                        | what to do with old files          |
-| out | `'#dir/#cid-#sha.out'`           | template for stdout file redirect  |
-| —   | ——————————–                      | ——————————–                        |
-| cid | `set by stitch`                  | the codeblock’s `#id` or generated |
-| sha | `set by stitch`                  | sha1 hash of options & cb.text     |
+| —   |                                  |                                    |
+| art | `'#dir/#oid-#sha.#fmt'`          | template for cmd output file       |
+| cbx | `'#dir/#oid-#sha.cbx'`           | template for cb’s `cbx`-file       |
+| err | `'#dir/#oid-#sha.err'`           | template for stderr file redirect  |
+| out | `'#dir/#oid-#sha.out'`           | template for stdout file redirect  |
+| —   |                                  |                                    |
+| cmd | `'#cbx #arg #art 1>#out 2>#err'` | template for the command line      |
+| —   |                                  |                                    |
+| inc | `'art:img err'`                  | what to include in which order     |
 
-Table Stitch options
+Available options and their hardcoded values
+
+Note: `sha` and `oid` are provided by stitch, the latter is either the
+codeblock’s `identifier` attribute or `anon<nr>` generated by the
+filter.
 
 The defaults are basically setup to:
 
-- run the \[`cbx`’\]-file as a command on the system
-- provide additional [`arg`](#arg)’s (if any)
-- provide and an output filename [`art`](#art) as last argument
+- run the \[`cbx`’\]-file as a system command
+- provide no additional [`arg`](#arg)’s
+- provide an output filename [`art`](#art) as last argument
 - capture stdout and stderr to [`out`](#out), resp. [`err`](#err)-files
 - include some artifacts in the current doc:
-  - `cbx:fcb`, the original codeblock with its attributes
-  - `out`, whatever was captured on stdout in a codeblock
   - `art:img` a link to an image file given by [`art`](#art)
-  - `err`, whatever was captures on stderr in another codeblock
+  - `err`, whatever was captured on stderr in another codeblock
 
 It is then up to the codeblock’s code to actually produce any of the
-artifacts to be included. Tweaking a codeblock is then usually limited
-to specifying an [`arg`](#arg) attribute and possibly changing its
-[`inc`](#inc) attribute.
+artifacts to be included. Tweaking a codeblock is then usually done by
+specifying an [`arg`](#arg) attribute if needed and possibly changing
+its [`dir`](#dir) and or [`inc`](#inc) attribute.
+
+Most options are pretty and straightforward with [`inc`](#inc) being
+somewhat more elaborate.
+
+Here is an example, before describing the various options:
+
+```` figlet
+``` {#figlet1 .figlet arg="'s t i t c h'"}
+#! /usr/bin/env bash
+figlet -f script ${1}
+```
+````
+
+``` figlet
+                               _     
+            o                 | |    
+ ,    _|_        _|_    __    | |    
+/ \_   |    |     |    /      |/ \   
+ \/    |_/  |_/   |_/  \___/  |   |_/
+                                     
+                                     
+```
+
+The `.figlet` class links to a configuration section with the same name
+under `doc.meta.stitch`:
+
+    stitch:
+      figlet:
+        cmd: "#cbx #arg 1>#out"
+        inc: "cbx:fcb out"
+        dir: ".stitch/readme/figlet"
+
+The `figlet`-section above basically sets the command line to use, the
+directory where to store intermediate files and what to include in the
+pandoc document being created. In this case both the codeblock itself
+(with its attributes), followed by whatever was captured on `stdout` by
+redirection. The `#cbx` and `#out` are expanded using the default
+templates which amount to something like:
+
+- `.stitch/readme/figlet/figlet1-<..sha-hash..>.cbx`, and
+- `.stitch/readme/figlet/figlet1-<..sha-hash..>.out`
+
+while `#arg` is expanded as per codeblock’s `arg='..'` attribute. The
+codeblock’s text is saved in the `cbx-file`, marked executable and then
+run as a system command and redirects figlet’s output to the out-file
+which is then later on included via the `inc`-option.
+
+The codeblock text could also be run as a lua chunk (`run=chunk`) or
+serve as plain input data for an external tool or another pandoc filter.
 
 ### `arg`
 
@@ -531,27 +210,16 @@ line.
 
 It is a string and may contain spaces and it is simply interpolated in
 the [`cmd`](#cmd) expansion which will be executed via an
-`os.execute(cmd)`. So `arg=""` won’t show up on the command line.
+`os.execute(cmd)`. The hardcoded default is `arg=""`, which won’t show
+up on the command line.
 
 The example below shows how a bash script sees its arguments when `arg`
 is a multi word string in the codeblock’s attributes. There is no output
 on stderr so the redirect does not create a file and the output file
 argument is ignored by the script.
 
-``` stitched
---------------
-script name  :  .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.cbx
-nr of args   :  3
-all args     :  two words .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.png
-1st arg      :  two
-2nd arg      :  words
-last arg     :  .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.png
-alt last arg :  .stitch/readme/defaults/arg-fd4202c48ca79bdea593036983fbdc2d4038d558.png
---------------
-```
-
-```` stitched
-``` {#arg .stitch arg="two words"}
+````
+``` {#arg .stitch arg="two words" inc="cbx:fcb out"}
 #!/usr/bin/env bash
 echo "--------------"
 echo "script name  :  ${0}"
@@ -565,33 +233,49 @@ echo "--------------"
 ```
 ````
 
-### `cid`
+```
+--------------
+script name  :  .stitch/readme/defaults/arg-8b59c724b69ca007855bfa62a5a917a9725a2c53.cbx
+nr of args   :  2
+all args     :  two words
+1st arg      :  two
+2nd arg      :  words
+last arg     :  words
+alt last arg :  words
+--------------
+```
 
-*cid* is a unique, codeblock identifier, used in file templates.
+### `art`
 
-It is set to either:
+Specifies the intended filename for a codeblock’s result.
 
-- cb.attr.identifier, or
-- cb\<nth\>, where it’s the nth codeblock seen by stitch
+This is usually some type of graphic, but need not be. The type of file
+and the output format of the document, determines how it can be included
+by [`inc`](#inc).
 
-Each time an artifact is included as per the codeblock’s [`inc`](#inc),
-an `id` is generated and assigned to the element to be inserted (if
-possible). That id consists of the codeblock’s identifier
-([`cid`](#cid)), a counter of the nth artifact being included and the
-kind of artifact.
+If a codeblock stores non-graphical data in the `art`-file, linking to
+it as an image or figure during a conversion to PDF, usually trips up
+the PDF-engine.
 
-An example of such an element id is: `csv-3-err` where
+### `cbx`
 
-- the codeblock identifier is `csv`,
-- it’s the third [`inc`](#inc)-directive that causes the include, and
-  where
-- `err` is the artificat to be included
+Specifies the filename where the current codeblock’s body is saved.
+
+Default value:
+
+When stitch touches a codeblock, it always saves its body (content) to
+the filename given by `cbx` and marks it as executable. Later on, it
+might be:
+
+- run as a system command and use its output, e.g. \[youplot\]
+- fed to an external tool and use her output, e.g. \[diagon\]
+- loaded as a chunk and called to produce output, e.g. \[lua\]
 
 ### `cls`
 
 *cls* specifies whether or not a codeblock can be selected by class.
 
-Valid values:
+Valid values: `{yes, no}`
 
 Normally, codeblocks are marked by:
 
@@ -642,6 +326,27 @@ This feature can also be used when writing a document to further reduce
 the noise in the attributes of codeblocks and allows for consistent
 processing of said codeblocks.
 
+### `cmd`
+
+Specifies the command line to (optionally) run via `os.execute(cmd)`.
+
+The (hardcoded) default for `cmd` is to:
+
+- run the codeblock as a system command,
+- provide the expanded forms of [`arg`](#arg) and [`art`](#art) as
+  arguments, and
+- redirect stdout & stderr to [`out`](#out) and [`err`](#err)
+  respectively.
+
+Ofcourse, it is up to the codeblock code to actually use its argument
+and/or the intended output filename.
+
+If the [`cbx`](#cbx)-file itself is to be processed by another tool,
+simply change the cmd string to something like
+`gnuplot #cbx 1>#art 2>#err` which redirects gnuplot’s graphical output
+to the file given by [`art`](#art) (the `#..` are all expanded before
+running the command).
+
 ### `dir`
 
 *dir* is used in the expansion of the artifact filepaths.
@@ -666,15 +371,21 @@ For dumping all artifacts in the same directory, just not in `.stitch`,
 set dir as desired in the `defaults`-section of stitch in the doc’s meta
 data.
 
+### `err`
+
+*err* is a filename template used to capture any output on `stderr`.
+
+It is primarily used in the `cmd` template during the expansion to the
+full command to run on the command line. Depending on how the `cmd`
+template is set, this may or may not be actually used.
+
 ### `exe`
 
 *exe* specifies whether a codeblock should actually run.
 
-Valid values:
+Valid values: `{yes, no, maybe}`
 
-If *exe* is either `yes`, `true` or true, the codeblock is always run.
-Values like `no`, `false` or false means it won’t be run.
-
+If *exe* is `yes` the codeblock is always run. A `no` means just that.
 When the value is `maybe` (the default), the codeblock is only executed
 when something changed and new or different results are expected. To
 detect changes, stitch uses a fingerprint of the codeblock.
@@ -812,175 +523,44 @@ reading, re-reading and possibly filtering.
 *log* specifies logging level for stitch(-section) or an individual
 codeblock.
 
-Valid values:
+Valid values: `{debug, info, note, warn, error, silent}`
 
 Use `meta.stitch.defaults.log=silent` and a `cb.attribute.log=debug` to
 turn off all logging except for one codeblock where logging happens on
 the debug level.
 
-### `lua`
+### `oid`
 
-`lua=chunk` loads the codeblock as a chunk and runs it.
+*oid* is a unique, codeblock identifier, used in file templates.
 
-The chunk is compiled with a copy of `Stitch` supplied in its
-environment, which enables introspection.
+It is set to either:
 
-```` lua
-``` {#opt-lua .lua stitch="chunk" inc="cbx:fcb out:fcb" lua="chunk"}
-local out = io.open(Stitch.opts.out, 'w')
-out:write("\n\ncodeblock #", Stitch.opts.cid, " options:\n")
-out:write("{\n", table.concat(Stitch.tbl_yaml(Stitch.opts, 2), "\n"), "\n}\n")
+- cb.attr.identifier, or
+- cb\<nth\>, where it’s the nth codeblock seen by stitch
 
-out:write("\nFrom doc.meta:\n")
-local yaml = table.concat(Stitch.tbl_yaml(Stitch.ctx, 2), "\n")
-local mta = Stitch.tbl_yaml(Stitch.ctx.defaults, 4)
-table.insert(mta, 1, "\n  defaults:")
-mta = table.concat(mta, "\n")
-out:write("stitch:\n", yaml, mta, "\n\n")
+Each time an artifact is included as per the codeblock’s [`inc`](#inc),
+an `id` is generated and assigned to the element to be inserted (if
+possible). That id consists of the codeblock’s identifier
+([`oid`](#oid)), a counter of the nth artifact being included and the
+kind of artifact.
 
-out:write("\nHardcoded option defaults:\n")
-out:write(table.concat(Stitch.tbl_yaml(Stitch.hardcoded, 2), "\n"))
-out:write("\n")
+An example of such an element id is: `csv-3-err` where
 
-out:close()
-```
-````
-
-``` lua
-
-
-codeblock #opt-lua options:
-{
-  err: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.err'
-  cid: 'opt-lua'
-  lua: 'chunk'
-  cmd: ''
-  art: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.png'
-  sha: 'c61abaacae56d570ce942ff5308e0ed3882b276b'
-  inc: 'cbx:fcb out:fcb'
-  stitch: 'chunk'
-  cbx: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.cbx'
-  out: '.stitch/readme/chunk/opt-lua-c61abaacae56d570ce942ff5308e0ed3882b276b.out'
-}
-
-From doc.meta:
-stitch:
-  youplot:
-    cmd: '#cbx 1>#out'
-    dir: '.stitch/readme/youplot'
-  download:
-    exe: 'yes'
-    dir: '.stitch/readme/download'
-    inc: 'cbx:fcb'
-    out: '#dir/#arg'
-  stitch:
-    hdr: '0'
-    log: 'debug'
-  chunk:
-    dir: '.stitch/readme/chunk'
-    run: 'chunk'
-    exe: 'maybe'
-    cmd: ''
-    inc: 'out'
-  diagon:
-    cmd: 'diagon #arg <#cbx 1>#out'
-    dir: '.stitch/readme/diagon'
-  cetz:
-    arg: 'compile'
-    dir: '.stitch/readme/cetz'
-    cmd: 'typst #arg #cbx #art'
-    inc: 'art cbx:fcb'
-  gnuplot:
-    dir: '.stitch/readme/gnuplot'
-    cmd: 'gnuplot #cbx 1>#art 2>#err'
-    inc: 'art:fig cbx:fcb'
-  boxes:
-    cls: 'true'
-    cmd: '#cbx #arg 1>#out'
-    inc: 'out'
-  defaults:
-    inc: 'out cbx:fcb'
-    dir: '.stitch/readme/defaults'
-
-
-Hardcoded option defaults:
-  fmt: 'png'
-  err: '#dir/#cid-#sha.err'
-  cls: 'no'
-  cid: 'x'
-  exe: 'maybe'
-  lua: ''
-  cmd: '#cbx #arg #art 1>#out 2>#err'
-  art: '#dir/#cid-#sha.#fmt'
-  dir: '.stitch'
-  inc: 'cbx:fcb out:fcb art:img err:fcb'
-  log: 'info'
-  arg: ''
-  old: 'purge'
-  cbx: '#dir/#cid-#sha.cbx'
-  out: '#dir/#cid-#sha.out'
-```
+- the codeblock identifier is `csv`,
+- it’s the third [`inc`](#inc)-directive that causes the include, and
+  where
+- `err` is the artificat to be included
 
 ### `old`
 
 *old* specifies whether or not old files can be removed.
 
-Valid values:
+Valid values: `{keep, purge}`
 
 Old incarnations of an artifact file are detected when their filenames
 match the new filename except for the last `-#sha.<ext>` part. If a
 filename template doesn’t end in `-#sha.<ext>` then Stitch cannot detect
 old files and manual clean up will be necessary.
-
-### `art`
-
-Specifies the intended filename for a codeblock’s result.
-
-This is usually some type of graphic, but need not be. The type of file
-and the output format of the document, determines how it can be included
-by [`inc`](#inc). When creating PDF’s, linking to the `art`-file as an
-image usually kills the conversion.
-
-### `cbx`
-
-Specifies the filename where the current codeblock’s body is saved.
-
-When stitch touches a codeblock, it always saves its body (content) to
-the filename given by `cbx` and marks it as executable. Later on, it
-might be:
-
-- run as a system command and use its output, e.g. \[youplot\]
-- fed to an external tool and use her output, e.g. \[diagon\]
-- loaded as a chunk and called to produce output, e.g. \[lua\]
-
-### `cmd`
-
-Specifies the command line to (optionally) run via `os.execute(cmd)`.
-
-The (hardcoded) default for `cmd` is to:
-
-- run the codeblock as a system command,
-- provide the expanded forms of [`arg`](#arg) and [`art`](#art) as
-  arguments, and
-- redirect stdout & stderr to [`out`](#out) and [`err`](#err)
-  respectively.
-
-Ofcourse, it is up to the codeblock code to actually use its argument
-and/or the intended output filename.
-
-If the [`cbx`](#cbx)-file itself is to be processed by another tool,
-simply change the cmd string to something like
-`gnuplot #cbx 1>#art 2>#err` which redirects gnuplot’s graphical output
-to the file given by [`art`](#art) (the `#..` are all expanded before
-running the command).
-
-### `err`
-
-*err* is a filename template used to capture any output on `stderr`.
-
-It is primarily used in the `cmd` template during the expansion to the
-full command to run on the command line. Depending on how the `cmd`
-template is set, this may or may not be actually used.
 
 ### `out`
 
@@ -989,6 +569,394 @@ template is set, this may or may not be actually used.
 It is primarily used in the `cmd` template during the expansion to the
 full command to run on the command line. Depending on how the `cmd`
 template is set, this may or may not be actually used.
+
+# Examples
+
+A few examples, mostly taken from the repo’s of the command line tools
+used.
+
+Each work of ‘art’ is followed by the codeblock that generated it. Most
+examples use a configuration section `stitch='tool_name'` in order to
+minimize the clutter in a codeblock’s attributes and keep its files
+organized.
+
+See the other
+[examples](https://github.com/hertogp/stitch/tree/main/examples) in
+[stitch’s repository](https://github.com/hertogp/stitch), which also
+contain some information on installing the command line tools used.
+
+## [Diagon](https://github.com/ArthurSonzogni/Diagon)
+
+If you were there for the dawn of the Internet, you might appreciate the
+simplicity of ascii output.
+
+````
+``` {#cb01 stitch="diagon" arg="Flowchart"}
+"CodeBlock"
+
+if ("stitch?") {
+  if ("exe?") {
+    "cbx, art, out, err created"
+  }
+  if ("purge?") {
+    "remove old files"
+  }
+  "parse inc-option"
+  if("inc: part(s)?") {
+    "include in the order parsed"
+  }
+}
+
+"CONTINUE"
+```
+````
+
+```
+┌─────────┐                                           
+│CodeBlock│                                           
+└────┬────┘                                           
+  ___▽___       ____     ┌──────────────┐             
+ ╱       ╲     ╱    ╲    │cbx, art, out,│             
+╱ stitch? ╲___╱ exe? ╲___│err created   │             
+╲         ╱yes╲      ╱yes└───────┬──────┘             
+ ╲_______╱     ╲____╱            │                    
+     │no         │no             │                    
+     │           └───┬───────────┘                    
+     │             __▽___                             
+     │            ╱      ╲    ┌────────────────┐      
+     │           ╱ purge? ╲___│remove old files│      
+     │           ╲        ╱yes└────────┬───────┘      
+     │            ╲______╱             │              
+     │               │no               │              
+     │               └────┬────────────┘              
+     │           ┌────────▽───────┐                   
+     │           │parse inc-option│                   
+     │           └────────┬───────┘                   
+     │              ______▽______     ┌──────────────┐
+     │             ╱             ╲    │include in the│
+     │            ╱ inc: part(s)? ╲___│order parsed  │
+     │            ╲               ╱yes└───────┬──────┘
+     │             ╲_____________╱            │       
+     │                    │no                 │       
+     └──────────┬─────────┴───────────────────┘       
+           ┌────▽───┐                                 
+           │CONTINUE│                                 
+           └────────┘                                 
+
+```
+
+## [youplot](https://github.com/red-data-tools/YouPlot)
+
+Or a bit more dynamic: today’s local temperature (well, the last time
+the codeblock was changed before compiling this readme anyway). The
+codeblock pulls in a csv file from `api.open-meteo.com`, cuts the output
+down to what is needed and modifies the first field keeping only the
+hours of the day. That output is then processed by
+[youplot](https://github.com/red-data-tools/YouPlot)
+
+````
+``` {#youplot}
+curl -sL 'https://api.open-meteo.com/v1/forecast?'\
+'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
+| head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
+|  uplot bar -d, -t "Temperature (˚C) Today" -o
+```
+````
+
+```
+                  Temperature (˚C) Today
+         ┌                                        ┐ 
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.4    
+   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.8     
+   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.6      
+   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.8       
+   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.4       
+   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.1        
+   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.0        
+   07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.9        
+   08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.3         
+   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.6         
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.2          
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.8          
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.0           
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 21.4            
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 21.0            
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 20.7             
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 20.6             
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 20.4             
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 21.9           
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.2        
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.8      
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.9    
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.7   
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.1   
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.0    
+         └                                        ┘ 
+```
+
+## [Cetz](https://typst.app/universe/package/cetz)
+
+Or go more graphical with
+[Cetz](https://typst.app/universe/package/cetz), one of many packages in
+the [typst](https://typst.app/universe/search/?kind=packages) universe,
+for plotting, charts & tree layout.
+
+<figure id="cb03-1-art"
+data-sha="91294077a8daf97ca87f30583c0ee1090cd39f14" data-stitch="cetz"
+data-oid="cb03">
+<img
+src=".stitch/new/cetz/cb03-91294077a8daf97ca87f30583c0ee1090cd39f14.png"
+id="cb03-1-art" data-sha="91294077a8daf97ca87f30583c0ee1090cd39f14"
+data-stitch="cetz" data-oid="cb03" alt="Karl&#39;s picture" />
+<figcaption aria-hidden="true">Karl's picture</figcaption>
+</figure>
+
+````
+``` {#cb03 stitch="cetz" caption="Karl's picture"}
+#import "@preview/cetz:0.4.2"
+#set page(width: auto, height: auto, margin: .5cm)
+#show math.equation: block.with(fill: white, inset: 1pt)
+#cetz.canvas(length: 3cm, {
+  import cetz.draw: *
+  set-style(
+    mark: (fill: black, scale: 2),
+    stroke: (thickness: 0.4pt, cap: "round"),
+    angle: (
+      radius: 0.3,
+      label-radius: .22,
+      fill: green.lighten(80%),
+      stroke: (paint: green.darken(50%))
+    ), content: (padding: 1pt)
+  )
+  grid((-1.5, -1.5), (1.4, 1.4), step: 0.5, stroke: gray + 0.2pt)
+  circle((0,0), radius: 1)
+  line((-1.5, 0), (1.5, 0), mark: (end: "stealth"))
+  content((), $ x $, anchor: "west")
+  line((0, -1.5), (0, 1.5), mark: (end: "stealth"))
+  content((), $ y $, anchor: "south")
+  for (x, ct) in ((-1, $ -1 $), (-0.5, $ -1/2 $), (1, $ 1 $)) {
+    line((x, 3pt), (x, -3pt))
+    content((), anchor: "north", ct)
+  }
+  for (y, ct) in ((-1, $ -1 $), (-0.5, $ -1/2 $), (0.5, $ 1/2 $), (1, $ 1 $)) {
+    line((3pt, y), (-3pt, y))
+    content((), anchor: "east", ct)
+  }
+  // Draw the green angle
+  cetz.angle.angle((0,0), (1,0), (1, calc.tan(30deg)),
+    label: text(green, [#sym.alpha]))
+  line((0,0), (1, calc.tan(30deg)))
+  set-style(stroke: (thickness: 1.2pt))
+  line((30deg, 1), ((), "|-", (0,0)), stroke: (paint: red), name: "sin")
+  content(("sin.start", 50%, "sin.end"), text(red)[$ sin alpha $])
+  line("sin.end", (0,0), stroke: (paint: blue), name: "cos")
+  content(("cos.start", 50%, "cos.end"), text(blue)[$ cos alpha $], anchor: "north")
+  line((1, 0), (1, calc.tan(30deg)), name: "tan", stroke: (paint: orange))
+  content("tan.end", $ text(#orange, tan alpha) = text(#red, sin alpha) / text(#blue, cos alpha) $, anchor: "west")
+})
+```
+````
+
+## [Fletcher](https://typst.app/universe/package/fletcher)
+
+Another package from the [typst](https://typst.app/) universe, for
+drawing diagrams and arrows. Revisiting the flowchart shown earlier with
+[diagon](#diagon).
+
+<figure id="cb04-1-art"
+data-sha="fe6cfe9fbc2b4804645836dd7c1980f10b87b7af" data-stitch="cetz"
+data-oid="cb04">
+<img
+src=".stitch/new/cetz/cb04-fe6cfe9fbc2b4804645836dd7c1980f10b87b7af.svg"
+id="cb04-1-art" data-sha="fe6cfe9fbc2b4804645836dd7c1980f10b87b7af"
+data-stitch="cetz" data-oid="cb04" alt="Stitch" />
+<figcaption aria-hidden="true">Stitch</figcaption>
+</figure>
+
+````
+``` {#cb04 stitch="cetz" caption="Stitch" fmt="svg"}
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import fletcher.shapes: pill, parallelogram, diamond
+#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#set text(10pt)
+#diagram(
+  node-stroke: .1em,
+  node-fill: gradient.radial(blue.lighten(80%), blue, center: (30%, 20%), radius: 80%),
+  spacing: 4em,
+  mark-scale: 150%,
+  node((-1,-1), "codeblock", name: <cb>, shape: pill),
+  node((-1,0), "stitch?", name: <stitch>, shape: diamond),
+  edge(<cb>, <stitch>, "-|>"),
+  node((0,0), "exe?", name: <exe>, shape: diamond),
+  edge(<stitch>, <exe>, "-|>", `yes`),
+  node((1,0), "create: cbx art out err", name: <create>, shape: parallelogram, extrude: (-2.5, 0)),
+  edge(<exe>, <create>, "->", `yes`),
+  node((0,1), "purge?", name: <purge>, shape:diamond),
+  edge(<exe>, <purge>, "-|>", `no`),
+  edge(<create.south>, (1, 0.5), (0, 0.5),  "-|>"),
+  node((1,1), "rm old files", name: <rm>, shape: parallelogram, extrude: (-2.5,0)),
+  edge(<purge>, <rm>, "-|>", `yes`),
+  node((0,2), "parse `inc`-opt", name: <parse>, shape: parallelogram),
+  edge(<purge>, <parse>, "-|>", `no`),
+  edge(<rm.south>, (1, 1.5), (0,1.5), "-|>"),
+  node((0,3), "`inc:`-parts?", name: <parts>, shape: diamond),
+  edge(<parse>, <parts>, "-|>"),
+  node((1,3), "include in order parsed", name: <include>, shape: parallelogram),
+  edge(<parts>, <include>, "-|>", `yes`),
+  node((-1,4), "continue", name: <continue>, shape: pill),
+  edge(<stitch>, <continue>, "-|>", `no`),
+  edge(<parts>, (0, 3.45), (-1, 3.45), "-|>", `no`),
+  edge(<include>, (1, 4), <continue>, "-|>"),
+)
+```
+````
+
+## [Lilaq](https://lilaq.org/)
+
+Yet another [typst](https://typst.app/) package, this time for advanced
+data visualization. Unfortunately, typst and its packages currently have
+no way of downloading data, so the following codeblock is used for
+side-effects only
+
+````
+``` {#cb05 stitch="download" arg="../cetz/temperatures.json"}
+curl -sL 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&'\
+'hourly=temperature_2m&timezone=Europe%2FLondon&forecast_days=1&format=json'\
+| jq .
+```
+````
+
+This downloads today’s temperature to
+`.stitch/readme/cetz/temperatures.json`, which is then used in the
+following codeblock to create a graph.
+
+<figure id="cb06-1-art"
+data-sha="6f6e58db3c97cb05307bffddda67d136742101c3" data-stitch="cetz"
+data-oid="cb06">
+<img
+src=".stitch/new/cetz/cb06-6f6e58db3c97cb05307bffddda67d136742101c3.svg"
+id="cb06-1-art" data-sha="6f6e58db3c97cb05307bffddda67d136742101c3"
+data-stitch="cetz" data-oid="cb06"
+alt="Temperature (C) today by Lilaq" />
+<figcaption aria-hidden="true">Temperature (C) today by
+Lilaq</figcaption>
+</figure>
+
+````
+``` {#cb06 stitch="cetz" caption="Temperature (C) today by Lilaq" fmt="svg" exe="yes"}
+#import "@preview/lilaq:0.5.0" as lq
+#set page(width: auto, height: auto, margin: (x: 8pt, y: 8pt))
+#let dta = json("temperatures.json")
+#let hour(str) = { return int(str.slice(11, count: 2))}
+#let hours = dta.hourly.time.map(hour)
+#lq.diagram(
+  title: [GPS (#dta.latitude, #dta.longitude)\ source: api.open-meteo.com],
+  xlabel: [hour\ (#dta.timezone)],
+  ylabel: [temperature (#dta.hourly_units.temperature_2m)],
+  lq.plot(hours, dta.hourly.temperature_2m),
+)
+```
+````
+
+## [Gnuplot](https://gnuplot.sourceforge.net)
+
+Another example using the trusty `gnuplot`.
+
+<figure id="gnuplot-1-art" class="gnuplot"
+data-sha="336ac3e2c1a6826f074c228d9e372a8b0c41a010" data-oid="gnuplot">
+<img
+src=".stitch/new/gnuplot/gnuplot-336ac3e2c1a6826f074c228d9e372a8b0c41a010.png"
+id="gnuplot-1-art" class="gnuplot"
+data-sha="336ac3e2c1a6826f074c228d9e372a8b0c41a010"
+data-oid="gnuplot" />
+<figcaption aria-hidden="true"></figcaption>
+</figure>
+
+```` gnuplot
+``` {#gnuplot .gnuplot log="debug"}
+set terminal png
+set dummy u,v
+set key bmargin center horizontal Right noreverse enhanced autotitles nobox
+set parametric
+set view 50, 30, 1, 1
+set isosamples 50, 20
+set hidden3d back offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
+set ticslevel 0
+set title "Interlocking Tori"
+set urange [ -3.14159 : 3.14159 ] noreverse nowriteback
+set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
+splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
+1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
+```
+````
+
+# Documentation
+
+## Features
+
+Stitch provides a few features for converting codeblocks:
+
+- conditional codeblock execution ([`exe`](#exe))
+  - run the codeblock as a system command
+  - have it processed by an external tool
+  - load it as a chunk and run it with Stitch in its global environment
+- organize storage locations for codeblock artifacts ([`dir`](#dir))
+- detect old files and (possibly) remove them ([`old`](#old))
+- include 0 or more of the artifacts ([`inc`](#inc))
+- include the same artifact multiple times in, usually, different ways
+- use a codeblock for side-effects only (0 includes)
+- log levels, global, per tool or codeblock, to show all gory details
+  ([`log`](#log))
+- transfer a codeblock’s attributes to its included results, if possible
+- a unique id per codeblock and for each of its includes ([`oid`](#oid))
+- include after re-read an artifact using a [pandoc
+  –read=format](https://pandoc.org/MANUAL.html#general-options)
+- run the [`cbx`](#cbx) or other artifact through an external filter
+  - any lua program/filter that accepts string data or a pandoc doc
+  - stitch itself for codeblocks in an externally acquired markdown doc
+
+Some terminology used:
+
+artifact  
+refers to the [`cbx`](#cbx)-file or one of 3 files produced by
+processing a codeblock
+
+cbx-file  
+the [`cbx`](#cbx)-file where a codeblock’s contents is stored and marked
+executable
+
+art-file  
+the [`art`](#art)-file where file-based output is to be written to
+
+out-file  
+the [`out`](#out)-file where the output on stdout is captured
+
+err-file  
+the [`err`](#err)-file where the output on stderr is captured
+
+tool  
+an external program used to process the \[cbx\]-file
+
+this usually has its own `stitch section` in the doc’s meta data
+
+stitch section  
+a `name`’d table of options under `stitch:` in the doc’s meta data
+
+defaults  
+a `defaults` section under `stitch` to fall back on when resolving
+options
+
+hardcoded  
+the option values hardcoded in stitch and used if option resolution
+fails
+
+option resolution  
+where stitch looks for options and their values.
+
+order is: codeblock attr -\> stitch\[name\] -\> stitch\[defaults\] -\>
+hardcoded
+
+## Configuration
 
 ## Logging
 
@@ -1008,7 +976,7 @@ where:
 
 - `<N>` is the recursion level (max depth is hardcoded to 6)
 - `<level>` is one of `error`, `warn`, `info`, `debug`
-- `<owner>` is usually the codeblock [`cid`](#cid) or `stitch` itself
+- `<owner>` is usually the codeblock [`oid`](#oid) or `stitch` itself
 - `<action>` denotes what stitch is doing at that moment
 - `<msg>` is whatever seemed insightful at the time
 
@@ -1045,12 +1013,14 @@ If `stitch` isn’t behaving as expected:
 | \#  | gotcha        | description                                                            |
 |-----|---------------|------------------------------------------------------------------------|
 | 1   | no quotes     | most values are strings and without quotes only the first word remains |
-| 2   | no section    | rememer: stitch falls back to hardcoded options if none are speficied  |
+| 2   | no section    | remember: stitch falls back to hardcoded options if none are specified |
 | 3   | no result     | a 0-byte artifact file may result in an empty element                  |
 | 4   | wrong art     | if output is absent check the right \`what\` is in \`inc\`             |
 | 5   | cb is skipped | probably because it it not recognized as such: check your markdown     |
 | 6   | pdf fails     | image files that are invalid may break your pdf-engine                 |
 | 7   | opt:val       | use opt=val to prevent an existential crisis                           |
+
+gotcha's
 
 ## Stitch introspection
 
@@ -1077,7 +1047,7 @@ following codeblock would reveal that when reading some csv-file using
   - same, but put it inside a new fenced codeblock for which the doc is
     first serialized using its `native` output format.
 
-```` stitched
+````
 ``` {#csv .stitch inc="cbx:fcb cbx!csv cbx!csv:fcb" exe="no"}
 opt,value,description
 arg, "", cli-argument
@@ -1090,9 +1060,9 @@ exe, maybe, execute?
 | arg |       | cli-argument |
 | exe | maybe | execute?     |
 
-``` stitched
+```
 [ Table
-    ( "csv-3-cbx" , [ "stitched" ] , [] )
+    ( "csv-3-cbx" , [] , [] )
     (Caption Nothing [])
     [ ( AlignDefault , ColWidthDefault )
     , ( AlignDefault , ColWidthDefault )
@@ -1170,14 +1140,14 @@ exe, maybe, execute?
 ]
 ```
 
-## Nested doc
+# Nested doc
 
 As a final example, here’s how to run a codeblock’s output through a
 filter after re-reading it as markdown. In this case, the filter is
 stitch itself.
 
 ````` lua
-```` {#nested .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls="yes" hdr="2"}
+```` {#nested .lua .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls="yes" hdr="1"}
 #! /usr/bin/env lua
 
 print [[---
@@ -1205,7 +1175,7 @@ tue,2
 
 ```{#nd-temps .stitch inc="out"}
 curl -sL 'https://api.open-meteo.com/v1/forecast?'\
-'latitude=52.52&longitude=13.41&hourly=temperature_2m&format=csv' \
+'latitude=21.3069&longitude=-157.8583&hourly=temperature_2m&format=csv' \
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
@@ -1236,7 +1206,7 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 local ccb = Stitch.ccb
 local ctx = Stitch.ctx
 local fh = io.open(ccb.opt.out, 'w')
-Stitch.log(ccb.opt.oid, 'warn', 'logging from a chunk!')
+Stitch.log(ccb.oid, 'warn', 'logging from a chunk!')
 
 fh:write('\nIn doc.meta\n---\nstitch:\n')
 local yaml = Stitch.toyaml(ctx, 2)
@@ -1258,13 +1228,19 @@ fh:write("\n...\n\n")
 fh:write("codeblock opt:\n")
 yaml = Stitch.toyaml(ccb.opt, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
+fh:write("\n...\n\n")
+fh:write("state.meta\n")
+yaml = Stitch.toyaml(Stitch.meta)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
 fh:close()
 ```
 ]]
 ````
 `````
 
-# Nested report
+## Nested report
 
 This could be some report created by a command line tool, producing a
 markdown report on some topic. Here, it’s just the text as printed by
@@ -1275,21 +1251,42 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 | mon | 1     |
 | tue | 2     |
 
-## The weather today
+### The weather today
 
-``` stitched
+```
+                  Temperature (˚C) Today
+         ┌                                        ┐ 
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.3   
+   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.0   
+   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.3    
+   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.1      
+   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.5       
+   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.8        
+   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.6        
+   07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.4         
+   08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.2         
+   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.0         
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.7         
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.7         
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.6          
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.5          
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.4          
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.3          
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.2          
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.9         
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.3        
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.7      
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.1    
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.8    
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.3   
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.0   
+         └                                        ┘ 
 ```
 
-## Gnuplot again
+### Gnuplot again
 
-<figure id="nd-gnu-1-art" class="gnuplot">
-<img
-src=".stitch/readme/gnuplot/nd-gnu-6e4da0511b9ce27f598e28f3e62b83baa5609f28.png"
-id="nd-gnu-1-art-img" />
-</figure>
-
-```` gnuplot
-``` {#nd-gnu .gnuplot}
+``` gnuplot
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
@@ -1304,16 +1301,14 @@ set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
 splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
 ```
-````
 
-## poor man’s yaml
+### poor man’s yaml
 
-```` lua
-``` {#nd-yaml .lua .chunk log="debug"}
+``` lua
 local ccb = Stitch.ccb
 local ctx = Stitch.ctx
 local fh = io.open(ccb.opt.out, 'w')
-Stitch.log(ccb.opt.oid, 'warn', 'logging from a chunk!')
+Stitch.log(ccb.oid, 'warn', 'logging from a chunk!')
 
 fh:write('\nIn doc.meta\n---\nstitch:\n')
 local yaml = Stitch.toyaml(ctx, 2)
@@ -1335,13 +1330,11 @@ fh:write("\n...\n\n")
 fh:write("codeblock opt:\n")
 yaml = Stitch.toyaml(ccb.opt, 2)
 fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
+fh:write("\n...\n\n")
+fh:write("state.meta\n")
+yaml = Stitch.toyaml(Stitch.meta)
+fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+
 fh:close()
-```
-````
-
-``` lua
-```
-
-``` lua
-.stitch/readme/nested/nd-yaml-0e4bfbd2630d90bef55f508ed49f2cc18215a897.cbx: 1: local: not in a function
 ```

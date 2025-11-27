@@ -7,6 +7,7 @@ FROM     = --from markdown
 EXTS     = inline_code_attributes+lists_without_preceding_blankline
 UNICODE  = -V mainfont="DejaVu Serif" -V mainfontfallback="NotoColorEmoji:mode=harf"
 ENGINE   = --pdf-engine=xelatex
+A4       = -V papersize:a4
 
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
@@ -26,8 +27,7 @@ readme: readme.pdf
 
 readme.pdf:
 	@echo "creating examples/README.pdf, logging to $(PDFLOGS)"
-	$(PANDOC) $(FILTER) $(ENGINE) $(FROM)+$(EXTS) _readme.md -t pdf -o $(EX_DIR)/README.pdf 2>&1 | tee $(PDFLOGS)
-
+	$(PANDOC) $(FILTER) $(ENGINE) $(A4) $(FROM)+$(EXTS) _readme.md -t pdf -o $(EX_DIR)/README.pdf 2>&1 | tee $(PDFLOGS)
 
 ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) $(FROM)+${EXTS} $@.md -o $@.html
