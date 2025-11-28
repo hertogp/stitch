@@ -34,7 +34,7 @@ stitch:
     inc: "cbx:fcb"
     exe: "yes"
   gnuplot:
-    dir: ".stitch/new/gnuplot"
+    dir: ".stitch/readme/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
     inc: "art:fig cbx:fcb"
     run: system

@@ -251,7 +251,7 @@ parse.elm = {
   userdata = function(v, d, s) return parse:ast(v, d, s) end,
   ['function'] = function(v, d) return d and v or nil end,
   string = function(v) return v end,
-  -- insist on 'yes'/'no' for consistency
+  -- pandoc turns yes/no into true/false, so insist on 'yes'/'no' for consistency
   boolean = function(v) return v and 'yes' or 'no' end,
   number = function(v) return v end,
 }
@@ -290,6 +290,7 @@ parse.opt = setmetatable({
   log = function(v) return 'string' == type(v) and ('|debug|error|warn|note|info|silent|'):match(w(v)) and v or nil end,
   old = function(v) return 'string' == type(v) and ('|purge|keep|'):match(w(v)) and v or nil end,
   run = function(v) return 'string' == type(v) and ('|system|chunk|noop|'):match(w(v)) and v or nil end,
+  bad = function(v) return 'string' == type(v) and ('|no|yes|'):match(w(v)) and v or nil end,
   -- parse inc option value
   inc = function(v)
     -- `inc` is 1) 'cbx:fcb, ..', 2) {'cbx:out', ..} of 3) {{cbx='out', ..}, ..}
@@ -380,7 +381,7 @@ function state:context(doc)
   local lid = state:logger('stitch', loglevel)
   if not doc.meta.stitch then log(lid, 'warn', 'doc.meta has no stitch config') end
 
-  local ctx = meta.stitch or {} -- toplevel `doc.meta.stitch`
+  local ctx = tcopy(meta.stitch or {}) -- tcopy so we don't destroy meta.stitch itself
   ctx.stitch = ctx.stitch or {} -- ensure stitch's own section in ctx
   for k, v in pairs(ctx) do
     if 'table' ~= type(v) then
@@ -395,20 +396,18 @@ function state:context(doc)
   end
 
   -- check option values, if invalid the codeblock will be skipped later on
-  local bad = false
   for name, section in pairs(ctx) do
     log(lid, 'debug', '%q', name)
     for option, value in pairs(section) do
-      -- local val = parse_opt(option, value)
       local val = parse:option(option, value)
       if nil == val then
-        bad = true
+        section.bad = true
+        log(lid, 'debug', '- %s.%s = %s (invalid value)', name, option, tostr(value))
       else
         section[option] = val
+        log(lid, 'debug', '- %s.%s = %s', name, option, tostr(val))
       end
-      log(lid, 'debug', '- %s.%s = %s (= %s)', name, option, tostr(section[option]), bad and 'invalid!' or 'ok')
     end
-    section.bad = bad
   end
 
   -- setup log levels for all sections
@@ -471,7 +470,7 @@ local kb = {
       ccb:setup() -- required for cbx creation, also sets bad on errors
 
       if ccb.bad or ccb.opt.bad then
-        log(oid, 'warn', 'codeblock run skipped due to errors')
+        log(oid, 'warn', 'codeblock run skipped, is flagged as bad')
         return nil
       elseif 'no' == ccb.opt.exe then
         log(oid, 'warn', 'codeblock run skipped (exe = no)')
@@ -705,11 +704,10 @@ function kb:filter(data, name)
   local filters = mod.fun and { mod } or mod
 
   if 'Pandoc' == pd.utils.type(data) then
-    data.meta = tmerge(data.meta, state.meta)
     -- NOTE: this overrides (or adds?) shift in headers (doc.meta.stitch.hdr)
     local hdr = self.opt.hdr or 0
-    -- data.meta = tmerge(data.meta, { stitch = { hdr = hdr } }, true)
-    data.meta = pd.MetaMap(tmerge(data.meta, { stitch = { hdr = hdr } }, true))
+    data.meta = tmerge(data.meta, state.meta) -- donate this doc's doc.meta
+    data.meta = pd.MetaMap(tmerge(data.meta, { stitch = { hdr = hdr } }, true)) -- enforce cb's hdr
   end
 
   state:push()
@@ -748,7 +746,6 @@ function kb:new(cb)
   -- check option values
   local opt = setmetatable({}, { __index = state.ctx[cfg] })
   for option, value in pairs(ccb.attr.attributes) do
-    -- local val = parse_opt(option, value)
     local val = parse:option(option, value)
     if nil == val then
       bad = true
@@ -794,11 +791,11 @@ end
 
 --- Returns section config name for given `ccb`, nil when no config was found
 --- @param oid string
---- @param ccb table
+--- @param cb table
 --- @return string? config
-function kb:config(oid, ccb)
-  -- ccb is not a kb-instance yet, just freshly parsed cb (parse_elm(cb))
-  local cfg = ccb.attr.attributes.stitch -- 1. stitch=name
+function kb:config(oid, cb)
+  -- cb is not a kb-instance yet, just freshly parsed cb (parse_elm(cb))
+  local cfg = cb.attr.attributes.stitch -- 1. stitch=name
   if cfg and nil == rawget(state.ctx, cfg) then
     log(oid, 'debug', 'config stitch=%s (non-existent) using defaults instead', cfg)
     return 'defaults'
@@ -814,27 +811,28 @@ function kb:config(oid, ccb)
     return oid
   end
 
-  -- 3. a ccb class matches with a section & ccb.cls allows matching
-  if 'no' ~= ccb.attr.attributes.cls then
-    for _, class in ipairs(ccb.attr.classes) do
+  -- 3. a cb class matches with a section & cb.cls allows matching
+  if 'no' ~= cb.attr.attributes.cls then
+    for _, class in ipairs(cb.attr.classes) do
       local section = rawget(state.ctx, class) -- don't fallback to defaults
-      cfg = section and 'no' ~= section.cls and class or nil
-      if cfg then break end
+      if section and 'no' ~= section.cls then
+        log(oid, 'debug', 'config %s found by link to named section', class)
+        return class
+      elseif section then
+        log(oid, 'debug', 'config section "%s" is no match (cls=%s)', class, section.cls)
+        log(oid, 'debug', 'section has mt %s', tostr(getmetatable(section).__index))
+      end
     end
-
-    if cfg then
-      log(oid, 'debug', 'config %s found by link to section', cfg)
-      return cfg
-    end
+  else
+    log(oid, 'debug', 'config check skips class match, codeblock attribute cls=no')
   end
 
-  cfg = pd.List.find(ccb.attr.classes, 'stitch') -- 4. .stitch class
-  if cfg then
+  if pd.List.find(cb.attr.classes, 'stitch') then -- 4. .stitch class
     log(oid, 'debug', 'config by .stitch class, so using defaults')
     return 'defaults'
   end
 
-  log(oid, 'warn', 'config not found')
+  log(oid, 'warn', 'config no link found classes %s, attributes %s', tostr(cb.attr.classes), tostr(cb.attr.attributes))
   return nil
 end
 
