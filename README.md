@@ -21,7 +21,6 @@
 
   
   
-  
 
 # Turn codeblocks into works of art
 
@@ -41,6 +40,12 @@ Main [features](#features) include:
 - optionally skip running a codeblock if it hasn’t changed
 - shift headers up or down while converting a, possibly included,
   document
+
+Other luafilters can be found elsewhere as well:
+
+- [pandoc repo](https://github.com/pandoc/lua-filters)
+- [pandoc-ext](https://github.com/pandoc-ext/info)
+- [pandoc wiki](https://github.com/jgm/pandoc/wiki/Pandoc-Filters)
 
 ## Security
 
@@ -299,7 +304,7 @@ echo "--------------"
 
 ```
 --------------
-script name  :  .stitch/readme/defaults/arg-8b59c724b69ca007855bfa62a5a917a9725a2c53.cbx
+script name  :  .stitch/readme/defaults/arg-1ed763f8b12058faa6cacc88e5623bf7310ad07e.cbx
 nr of args   :  2
 all args     :  two words
 1st arg      :  two
@@ -689,6 +694,58 @@ See the other
 [stitch’s repository](https://github.com/hertogp/stitch), which also
 contain some information on installing the command line tools used.
 
+For reference in the following examples, here is this document’s meta:
+
+``` chunk
+_readme.md doc.meta:
+
+monofont: "DejaVu Sans Mono"
+stitch:
+  cetz:
+    cmd: "typst #arg #cbx #art"
+    dir: ".stitch/new/cetz"
+    inc: "art cbx:fcb"
+    arg: "compile"
+  download:
+    dir: ".stitch/readme/download"
+    exe: "yes"
+    inc: "cbx:fcb"
+    out: "#dir/#arg"
+  diagon:
+    cmd: "diagon #arg <#cbx 1>#out"
+    dir: ".stitch/readme/diagon"
+  boxes:
+    cmd: "#cbx #arg 1>#out"
+    dir: ".stitch/readme/boxes"
+    inc: "out"
+    cls: "yes"
+  chunk:
+    cmd: ""
+    exe: "maybe"
+    run: "chunk"
+    inc: "out"
+    dir: ".stitch/readme/chunk"
+  stitch:
+    log: "debug"
+  youplot:
+    cmd: "#cbx 1>#out"
+    dir: ".stitch/readme/youplot"
+  defaults:
+    cmd: "#cbx #arg 1>#out"
+    dir: ".stitch/readme/defaults"
+    inc: "cbx:fcb out"
+    cls: "yes"
+  figlet:
+    cmd: "#cbx #arg 1>#out"
+    inc: "cbx:fcb out"
+    dir: ".stitch/readme/figlet"
+  gnuplot:
+    cmd: "gnuplot #cbx 1>#art 2>#err"
+    run: "system"
+    inc: "art:fig cbx:fcb"
+    dir: ".stitch/readme/gnuplot"
+```
+
 ## [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
 From the dawn of the Internet, diagon brings you the simplicity of
@@ -768,31 +825,31 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 ```
                   Temperature (˚C) Today
          ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.4    
-   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.8     
-   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.6      
-   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.8       
-   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.4        
-   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.1        
-   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.0        
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.2   
+   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.8   
+   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.2    
+   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.5     
+   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.5      
+   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.8       
+   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.1       
    07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.9        
    08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.3         
-   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.6          
-   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.2          
-   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.8           
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 22.0            
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 21.4            
-   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 21.0             
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 20.7             
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 20.6             
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■ 20.4             
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■ 21.8            
-   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.0        
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.8      
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.9     
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.0    
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.5   
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.2   
+   09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.0         
+   10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
+   11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.7         
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.6          
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.5          
+   14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.5          
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.2          
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.9          
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.5           
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.3          
+   19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.3        
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.6      
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.5     
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.0    
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.0    
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.9     
          └                                        ┘ 
 ```
 
@@ -803,13 +860,13 @@ Or go more graphical with
 the [typst](https://typst.app/universe/search/?kind=packages) universe,
 for plotting, charts & tree layout.
 
-<figure id="cb03-1-art" data-stitch="cetz" data-oid="cb03"
-data-sha="91294077a8daf97ca87f30583c0ee1090cd39f14">
+<figure id="cb03-1-art"
+data-sha="edde106a7aaf84a037fc26be3074e8526ddf3a04" data-oid="cb03"
+data-stitch="cetz">
 <img
-src=".stitch/new/cetz/cb03-91294077a8daf97ca87f30583c0ee1090cd39f14.png"
-id="cb03-1-art" data-stitch="cetz" data-oid="cb03"
-data-sha="91294077a8daf97ca87f30583c0ee1090cd39f14"
-alt="Karl&#39;s picture" />
+src=".stitch/new/cetz/cb03-edde106a7aaf84a037fc26be3074e8526ddf3a04.png"
+id="cb03-1-art" data-sha="edde106a7aaf84a037fc26be3074e8526ddf3a04"
+data-oid="cb03" data-stitch="cetz" alt="Karl&#39;s picture" />
 <figcaption aria-hidden="true">Karl's picture</figcaption>
 </figure>
 
@@ -865,13 +922,13 @@ Another package from the [typst](https://typst.app/) universe, for
 drawing diagrams and arrows. Revisiting the flowchart shown earlier with
 [diagon](#diagon).
 
-<figure id="cb04-1-art" data-stitch="cetz"
-data-sha="fe6cfe9fbc2b4804645836dd7c1980f10b87b7af" data-oid="cb04">
+<figure id="cb04-1-art"
+data-sha="5523760d08b3adaaee738d33d2abda6fdd95d446" data-oid="cb04"
+data-stitch="cetz">
 <img
-src=".stitch/new/cetz/cb04-fe6cfe9fbc2b4804645836dd7c1980f10b87b7af.svg"
-id="cb04-1-art" data-stitch="cetz"
-data-sha="fe6cfe9fbc2b4804645836dd7c1980f10b87b7af" data-oid="cb04"
-alt="Stitch" />
+src=".stitch/new/cetz/cb04-5523760d08b3adaaee738d33d2abda6fdd95d446.svg"
+id="cb04-1-art" data-sha="5523760d08b3adaaee738d33d2abda6fdd95d446"
+data-oid="cb04" data-stitch="cetz" alt="Stitch" />
 <figcaption aria-hidden="true">Stitch</figcaption>
 </figure>
 
@@ -933,11 +990,11 @@ This downloads today’s temperature to
 following codeblock to create a graph.
 
 <figure id="cb06-1-art" data-stitch="cetz"
-data-sha="6f6e58db3c97cb05307bffddda67d136742101c3" data-oid="cb06">
+data-sha="bbca29209857bc2daea0dc298df66b728eeab5ff" data-oid="cb06">
 <img
-src=".stitch/new/cetz/cb06-6f6e58db3c97cb05307bffddda67d136742101c3.svg"
+src=".stitch/new/cetz/cb06-bbca29209857bc2daea0dc298df66b728eeab5ff.svg"
 id="cb06-1-art" data-stitch="cetz"
-data-sha="6f6e58db3c97cb05307bffddda67d136742101c3" data-oid="cb06"
+data-sha="bbca29209857bc2daea0dc298df66b728eeab5ff" data-oid="cb06"
 alt="Temperature (C) today by Lilaq" />
 <figcaption aria-hidden="true">Temperature (C) today by
 Lilaq</figcaption>
@@ -963,13 +1020,12 @@ Lilaq</figcaption>
 
 Another example using the trusty `gnuplot`.
 
-<figure id="gnuplot-1-art" class="gnuplot"
-data-sha="336ac3e2c1a6826f074c228d9e372a8b0c41a010" data-oid="gnuplot">
+<figure id="gnuplot-1-art" class="gnuplot" data-oid="gnuplot"
+data-sha="84fd4105272f63e2d09494851c69c8e5631968cd">
 <img
-src=".stitch/new/gnuplot/gnuplot-336ac3e2c1a6826f074c228d9e372a8b0c41a010.png"
-id="gnuplot-1-art" class="gnuplot"
-data-sha="336ac3e2c1a6826f074c228d9e372a8b0c41a010"
-data-oid="gnuplot" />
+src=".stitch/readme/gnuplot/gnuplot-84fd4105272f63e2d09494851c69c8e5631968cd.png"
+id="gnuplot-1-art" class="gnuplot" data-oid="gnuplot"
+data-sha="84fd4105272f63e2d09494851c69c8e5631968cd" />
 <figcaption aria-hidden="true"></figcaption>
 </figure>
 
@@ -1217,37 +1273,47 @@ lua. Any (nested) codeblocks can also be processed by stitch.
 ```
                   Temperature (˚C) Today
          ┌                                        ┐ 
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.3   
-   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.0   
-   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.3    
-   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.1      
-   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.5       
-   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.8        
-   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.6        
-   07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.4         
-   08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.2         
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.2   
+   01:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.8   
+   02:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.2    
+   03:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.5     
+   04:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.5      
+   05:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.8       
+   06:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.1       
+   07:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.9        
+   08:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.3         
    09:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 24.0         
    10:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.8         
    11:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.7         
-   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.7         
-   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.6          
+   12:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.6          
+   13:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.5          
    14:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.5          
-   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.4          
-   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.3          
-   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.2          
-   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.9         
+   15:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.2          
+   16:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.9          
+   17:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■ 22.5           
+   18:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■ 23.3          
    19:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 25.3        
-   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.7      
-   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.1    
-   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.8    
-   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.3   
-   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 29.0   
+   20:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 26.6      
+   21:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.5     
+   22:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.0    
+   23:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 28.0    
+   00:00 ┤■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 27.9     
          └                                        ┘ 
 ```
 
 ### Gnuplot again
 
-``` gnuplot
+<figure id="nd-gnu-1-art" class="gnuplot"
+data-sha="84fd4105272f63e2d09494851c69c8e5631968cd" data-oid="nd-gnu">
+<img
+src=".stitch/readme/gnuplot/nd-gnu-84fd4105272f63e2d09494851c69c8e5631968cd.png"
+id="nd-gnu-1-art" class="gnuplot"
+data-sha="84fd4105272f63e2d09494851c69c8e5631968cd" data-oid="nd-gnu" />
+<figcaption aria-hidden="true"></figcaption>
+</figure>
+
+```` gnuplot
+``` {#nd-gnu .gnuplot}
 set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
@@ -1262,40 +1328,177 @@ set vrange [ -3.14159 : 3.14159 ] noreverse nowriteback
 splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 1+cos(u)+.5*cos(u)*cos(v),.5*sin(v),sin(u)+.5*sin(u)*cos(v) with lines
 ```
+````
 
 ### the `Stitch` context provided to the filter
 
 ``` lua
-local ccb = Stitch.ccb
-local ctx = Stitch.ctx
-local fh = io.open(ccb.opt.out, 'w')
-Stitch.log(ccb.oid, 'warn', 'logging from a chunk!')
 
-fh:write('\nIn doc.meta\n---\nstitch:\n')
-local yaml = Stitch.toyaml(ctx, 2)
-fh:write(table.concat(yaml, "\n"))
--- defaults was "promoted" to metatable of ctx
-yaml = Stitch.toyaml(ctx.defaults, 4)
-if #yaml > 0 then
-  fh:write("\n  defaults:\n")
-  fh:write(table.concat(yaml, "\n"))
-end
--- hardcoded
-yaml = Stitch.toyaml(getmetatable(ctx.hard_coded).__index, 4)
-if #yaml > 0 then
-  fh:write("\n  hardcoded:\n")
-  fh:write(table.concat(yaml, "\n"))
-end
+In doc.meta
+---
+stitch:
+  diagon:
+    cmd: diagon #arg <#cbx 1>#out
+    dir: .stitch/readme/diagon
+  cetz:
+    inc:
+      [1]:
+        what: art
+      [2]:
+        what: cbx
+        how: fcb
+    arg: compile
+    cmd: typst #arg #cbx #art
+    dir: .stitch/new/cetz
+  boxes:
+    inc:
+      [1]:
+        what: out
+    cls: yes
+    cmd: #cbx #arg 1>#out
+    dir: .stitch/readme/boxes
+  gnuplot:
+    inc:
+      [1]:
+        what: art
+        how: fig
+      [2]:
+        what: cbx
+        how: fcb
+    run: system
+    cmd: gnuplot #cbx 1>#art 2>#err
+    dir: .stitch/readme/gnuplot
+  download:
+    exe: yes
+    out: #dir/#arg
+    inc:
+      [1]:
+        what: cbx
+        how: fcb
+    dir: .stitch/readme/download
+  stitch:
+    log: debug
+    hdr: 1
+  figlet:
+    inc:
+      [1]:
+        what: cbx
+        how: fcb
+      [2]:
+        what: out
+    cmd: #cbx #arg 1>#out
+    dir: .stitch/readme/figlet
+  youplot:
+    cmd: #cbx 1>#out
+    dir: .stitch/readme/youplot
+  chunk:
+    exe: maybe
+    inc:
+      [1]:
+        what: out
+    run: chunk
+    cmd: 
+    dir: .stitch/readme/chunk
+  defaults:
+    inc:
+      [1]:
+        what: cbx
+        how: fcb
+      [2]:
+        what: out
+    cmd: #cbx #arg 1>#out
+    cls: yes
+    dir: .stitch/readme/nested
+  hardcoded:
+    art: #dir/#oid-#sha.#fmt
+    fmt: png
+    out: #dir/#oid-#sha.out
+    old: purge
+    arg: 
+    cmd: #cbx #arg #art 1>#out 2>#err
+    dir: .stitch
+    exe: maybe
+    cbx: #dir/#oid-#sha.cbx
+    hdr: 0
+    log: info
+    inc:
+      [1]:
+        what: cbx
+        how: fcb
+      [2]:
+        what: out
+      [3]:
+        what: art
+        how: img
+      [4]:
+        what: err
+    run: system
+    cls: no
+    err: #dir/#oid-#sha.err
+...
 
-fh:write("\n...\n\n")
-fh:write("codeblock opt:\n")
-yaml = Stitch.toyaml(ccb.opt, 2)
-fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+codeblock opt:
+{
+  sha: 2f038112f364995920cad613df5ba2278a6d5085
+  cbx: .stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.cbx
+  log: debug
+  oid: nd-yaml
+  art: .stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.png
+  out: .stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.out
+  cmd: .
+  err: .stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.err
+}
 
-fh:write("\n...\n\n")
-fh:write("state.meta\n")
-yaml = Stitch.toyaml(Stitch.meta)
-fh:write("{\n", table.concat(yaml, "\n"), "\n}\n")
+...
 
-fh:close()
+state.meta
+{
+author: nested
+monofont: DejaVu Sans Mono
+stitch:
+  diagon:
+    cmd: diagon #arg <#cbx 1>#out
+    dir: .stitch/readme/diagon
+  cetz:
+    inc: art cbx:fcb
+    arg: compile
+    cmd: typst #arg #cbx #art
+    dir: .stitch/new/cetz
+  chunk:
+    exe: maybe
+    inc: out
+    run: chunk
+    cmd: 
+    dir: .stitch/readme/chunk
+  boxes:
+    inc: out
+    cmd: #cbx #arg 1>#out
+    cls: yes
+    dir: .stitch/readme/boxes
+  gnuplot:
+    inc: art:fig cbx:fcb
+    run: system
+    cmd: gnuplot #cbx 1>#art 2>#err
+    dir: .stitch/readme/gnuplot
+  hdr: 1
+  defaults:
+    inc: cbx:fcb out
+    cmd: #cbx #arg 1>#out
+    cls: yes
+    dir: .stitch/readme/nested
+  figlet:
+    inc: cbx:fcb out
+    cmd: #cbx #arg 1>#out
+    dir: .stitch/readme/figlet
+  stitch:
+    log: debug
+  youplot:
+    cmd: #cbx 1>#out
+    dir: .stitch/readme/youplot
+  download:
+    exe: yes
+    out: #dir/#arg
+    inc: cbx:fcb
+    dir: .stitch/readme/download
+}
 ```

@@ -92,7 +92,7 @@ local function toyaml(t, n, seen, acc)
       acc[#acc + 1] = sf('%s%s:', indent, kk)
       acc = toyaml(v, n + 2, seen, acc)
     else
-      acc[#acc + 1] = sf('%s%s: %s', indent, kk, v)
+      acc[#acc + 1] = sf('%s%s: "%s"', indent, kk, v)
     end
   end
   return acc
@@ -117,7 +117,7 @@ local function tostr(t, seen, first, acc)
       local fmt = vv:match('^%<.-%>$') and '%s%s%s%s' or '%s%s%s{%s}'
       acc = sf(fmt, acc, comma, kk, vv)
     else
-      acc = sf('%s%s%s%s', acc, comma, kk, v)
+      acc = sf('%s%s%s"%s"', acc, comma, kk, v)
     end
   end
   acc = first and sf('{%s}', acc) or acc

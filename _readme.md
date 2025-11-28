@@ -53,7 +53,6 @@ stitch:
 
 \
 \
-\
 
 # Turn codeblocks into works of art
 
@@ -70,6 +69,11 @@ Main [features](#features) include:
 - granular control on where to store files, upto codeblock levels
 - optionally skip running a codeblock if it hasn't changed
 - shift headers up or down while converting a, possibly included, document
+
+Other luafilters can be found elsewhere as well:
+- [pandoc repo](https://github.com/pandoc/lua-filters)
+- [pandoc-ext](https://github.com/pandoc-ext/info)
+- [pandoc wiki](https://github.com/jgm/pandoc/wiki/Pandoc-Filters)
 
 \newpage
 
@@ -653,6 +657,16 @@ the clutter in a codeblock's attributes and keep its files organized.
 See the other [examples](https://github.com/hertogp/stitch/tree/main/examples)
 in [stitch's repository](https://github.com/hertogp/stitch), which also contain
 some information on installing the command line tools used.
+
+For reference in the following examples, here is this document's meta:
+
+```{#doc.meta .chunk exe=yes}
+local meta = Stitch.meta
+local fh = io.open(Stitch.ccb.opt.out, 'w')
+fh:write('_readme.md doc.meta:\n\n')
+fh:write(table.concat(Stitch.toyaml(meta), '\n'))
+fh:close()
+```
 
 \newpage
 
