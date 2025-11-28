@@ -9,12 +9,8 @@ stitch:
     dir: ".stitch/readme/defaults"
     cls: yes
   figlet:
-    cmd: "#cbx #arg 1>#out"
-    inc: "cbx:fcb out"
     dir: ".stitch/readme/figlet"
   boxes:
-    cmd: "#cbx #arg 1>#out"
-    cls: yes
     inc: out
     dir: .stitch/readme/boxes
   diagon:
@@ -27,7 +23,7 @@ stitch:
     dir: ".stitch/new/cetz"
     arg: compile
     cmd: "typst #arg #cbx #art" # ignore stderr
-    inc: "art cbx:fcb"
+    inc: "cbx:fcb art"
   download:
     dir: ".stitch/readme/download"
     out: "#dir/#arg"
@@ -36,7 +32,7 @@ stitch:
   gnuplot:
     dir: ".stitch/readme/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
-    inc: "art:fig cbx:fcb"
+    inc: "cbx:fcb art:fig"
     run: system
   chunk:
     dir: ".stitch/readme/chunk"
@@ -70,7 +66,7 @@ Main [features](#features) include:
 - optionally skip running a codeblock if it hasn't changed
 - shift headers up or down while converting a, possibly included, document
 
-Other luafilters can be found elsewhere as well:
+Other lua filters can be found elsewhere as well:
 - [pandoc repo](https://github.com/pandoc/lua-filters)
 - [pandoc-ext](https://github.com/pandoc-ext/info)
 - [pandoc wiki](https://github.com/jgm/pandoc/wiki/Pandoc-Filters)
@@ -103,17 +99,18 @@ Installation is straightforward:
 
 `% pandoc --lua-filter stitch.lua doc.md ..`
 
-The filter will process a codeblock if it has a:
-  * `stitch=name` attribute, explicitly linking it to a `doc.meta.stitch`-section
-  * class that matches a `doc.meta.stitch`-section (implicit link)
-  * `.stitch` class (which uses `doc.meta.stitch.defaults` or hardcoded defaults)
+The filter will process a codeblock if it has:
+  * an `stitch=name` attribute, explicitly linking it to a `doc.meta.stitch`-section
+  * an indentifier name that also exists as a section in `doc.meta.stitch`
+  * a class that matches a `doc.meta.stitch`-section (implicit link)
+  * `.stitch` class (which uses `doc.meta.stitch.defaults` or hard-coded defaults)
 
 Processing a codeblock roughly follows these steps:
 
   1. resolve all options and expand them (once)
   2. save codeblock's `text` to [`cbx`]-file & mark it as executable (always)
-  3. check if anything has changed [`oid`] (1+ of the other artifacts exist)
-  4. conditionally run [`cmd`] or [`lua`] load [`cbx`]-file & run, producing artifacts
+  3. check if anything has changed, see [`oid`] (1+ of the other artifacts exist)
+  4. conditionally run [`cmd`] or loadfile the [`cbx`]-file & run, producing artifacts
      a. an [`art`]-file (usually an image file, depends on [`cmd`]),
      b. an [`out`]-file (if [`cmd`] redirects `stdout` here)
      c. an [`err`]-file (if [`cmd`] redirects `stderr` here)
@@ -137,21 +134,23 @@ Stitch provides a few features for converting codeblocks:
   * include 0 or more of the artifacts ([`inc`])
   * include the same artifact multiple times in, usually, different ways
   * use a codeblock for side-effects only (0 includes)
-  * log levels, global, per tool or codeblock, to show all gory details ([`log`])
+  * log levels, global, per tool or codeblock, to show some details ([`log`])
   * transfer a codeblock's attributes to its included results, if possible
   * a unique id per codeblock and for each of its includes ([`oid`])
-  * include after re-read an artifact using a [pandoc --read=format](https://pandoc.org/MANUAL.html#general-options)
+  * include an artifact after converting it using a [pandoc --read=format](https://pandoc.org/MANUAL.html#general-options)
   * run the [`cbx`] or other artifact through an external filter
     - any lua program/filter that accepts string data or a pandoc doc
-    - stitch itself for codeblocks in an externally acquired markdown doc
+    - possible stitch itself to handle codeblocks in an acquired markdown doc
 
-Some terminology used:
+## Terminology
+
+Some terminology used throughout the documentation:
 
 artifact
   ~ refers one of the [`cbx`], [`art`], [`out`] and/or [`err`]-files
 
 cbx-file
-  ~ the [`cbx`]-file where a codeblock's contents is stored and marked executable
+  ~ the [`cbx`]-file where a codeblock's content is stored and marked executable
 
 art-file
   ~ the [`art`]-file where file-based output is to be written to
@@ -172,12 +171,17 @@ stitch section
 defaults
   ~ a `defaults` section under `stitch` to fall back on when resolving options
 
-hardcoded
-  ~ the option values hardcoded in stitch and used if option resolution fails
+hard-coded
+  ~ the hard-coded option values when nothing is set explicitly
 
 option resolution
   ~ where stitch looks for options and their values.
-  ~ order is: codeblock attr -> stitch[name] -> stitch[defaults] -> hardcoded
+  ~ order is: codeblock attr -> stitch[name] -> stitch[defaults] -> hard-coded
+
+expansion
+  ~ options may refer to other options via `#<name>` which gets expanded
+  ~ expansion happens only once, any left over `#<name>`'s are an error
+  ~ stitch provides values for `#sha` and `#oid` for any given codeblock
 
 \newpage
 ## Configuration
@@ -212,13 +216,13 @@ cmd | `'#cbx #arg #art 1>#out 2>#err'` | template for the command line
 --- |                                  |
 inc | `'art:img err'`                  | what to include in which order
 
-: Available options and their hardcoded values
+: Available options and their hard-coded values
 
 Note: `sha` and `oid` are provided by stitch, the latter is either the
 codeblock's `identifier` attribute or `anon<nr>` generated by the filter.
 
 The defaults are basically setup to:
-- run the [`cbx`']-file as a system command
+- run the [`cbx`]-file as a system command
 - provide no additional [`arg`]'s
 - provide an output filename [`art`] as last argument
 - capture stdout and stderr to [`out`], resp. [`err`]-files
@@ -276,7 +280,7 @@ plain input data for an external tool or another pandoc filter.
 
 It is a string and may contain spaces and it is simply interpolated in the
 [`cmd`] expansion which will be executed via an `os.execute(cmd)`.  The
-hardcoded default is `arg=""`, which won't show up on the command line.
+hard-coded default is `arg=""`, which won't show up on the command line.
 
 The example below shows how a bash script sees its arguments when `arg` is
 a multi word string in the codeblock's attributes.  There is no output on
@@ -310,9 +314,9 @@ fh:write("  art: '", hc.art, "'")
 fh:close()
 ```
 
-The `#dir` and `#fmt` expand to their values as set in he codeblock's
+The `#dir` and `#fmt` expand to their values as set in the codeblock's
 attributes, or in a configuration section, the defaults or lastly via their
-hardcoded values.  The `sha` and `oid` are provided by stitch and are not
+hard-coded values.  The `sha` and `oid` are provided by stitch and are not
 derived from options.
 
 The `art`-file is for tools that save their output to a filename, which can be
@@ -320,7 +324,7 @@ some graphics file, but need not be.  The type of file and the output format of
 the document, determines how it can be included by [`inc`].
 
 It is used in the default value for the [`cmd`] template.  If not needed,
-simply ignore the option and configure a more applicatie `cmd`-template for the
+simply ignore the option and configure a more appropiate `cmd`-template for the
 given codeblock in question.
 
 
@@ -344,7 +348,6 @@ on, it might be:
 - loaded as a chunk and called to produce output, e.g. [Nested doc]
 
 Normally used in the [`cmd`] default template as the system command to run.
-
 That is not a requirement though.  Perhaps unusual, but one can do:
 
 ```{#silly .stitch cmd="figlet -f slant 'No cbx used' > #out"}
@@ -355,7 +358,7 @@ That is not a requirement though.  Perhaps unusual, but one can do:
 
 *cls* specifies whether or not a codeblock can be selected by class.
 
-Valid values: `{yes, no}`, Default value: `yes`
+Valid values: `{yes, no}`, Default value: `no`
 
 Codeblocks are marked for processing by:
 - setting an attribute like `stitch=name`, or
@@ -368,13 +371,14 @@ documents to be converted need not be stitch aware.  The `doc.meta`
 section with a stitch config could be provided by a default.yaml on
 pandoc's command line.
 
-Another use case is when a stitch aware markdown document with a stitch-config
-in its own `doc.meta` is pulling in another markdown document that is not
+Another use case is when a stitch aware markdown document (with a stitch-config
+in its own `doc.meta`) is pulling in another markdown document that is not
 stitch aware but has codeblocks that you would like to process using the stitch
-filter.
+filter.  In that scenario the [`inc`]-option is setup to convert the data to a
+pandoc AST and then filter it using stitch.
 
 That automatic linking can be prevented by setting `cls=no` in either the
-relevant stitch-sectin in `doc.meta` or in a codeblock's attributes.
+relevant stitch-section in `doc.meta` or in a codeblock's attributes.
 
 For example, suppose your main document's meta data looks something like:
 
@@ -425,7 +429,7 @@ Default value:
 ```
 
 This effectively sets the working directory for stitch relative to the
-directory where pandoc was started.  Override the hardcoded `.stitch` default
+directory where pandoc was started.  Override the hard-coded `.stitch` default
 in one or more of:
 - the codeblock attributes,
 - a named stitch section in the doc's meta data, or in
@@ -469,9 +473,7 @@ Valid values: `{yes, no, maybe}`, Default value: `maybe`.
 If *exe* is `yes` the codeblock is always run.  A `no` means just that.
 When the value is `maybe` (the default), the codeblock is only executed when
 something changed and new or different results are expected.  To detect
-changes, stitch uses a fingerprint of the codeblock and relevant options.
-
-A codeblock's fingerprint is calculated using:
+changes, stitch fingerprints a codeblock using:
 - almost all option values (sorted by their names), and
 - the codeblock's contents
 
@@ -504,7 +506,37 @@ level without touching the `art` template.
 
 ### `hdr`
 
-TODO: explain
+*hdr* is used to shift headers in a document up or down.
+
+Default value: `hdr: '0'`
+
+If the section named `stitch` under `doc.meta.stitch` has a `hdr` value
+other than `0`, stitch will also add a handler for `pandoc.Header`'s and
+shift their level by given `hdr`-value.
+
+Although not particularly useful when converting a document directly, the
+actual purpose is to use the `hdr`-option in a codeblock's attributes that
+is pulling in another markdown document.  This provides a mechanism to slide
+the headers of the included document up or down (when filtering the document
+with stitch).
+
+Whenever stitch runs data through an additional filter and data is a pandoc
+document, the current documents meta data is added to the AST, and:
+- `stitch.stitch.hdr` is set to the codeblock's `hdr`-value
+- `stitch.stitch.log` is set to the codeblock's `log`-option
+- `stitch.defaults.log` is also set to the codeblock's `log`-option
+
+Note: the `hdr`-value is taken from the codeblock's attribute section only and
+not resolved, whereas the `log`-option will be resolved to a value.  So to
+silence logging during recursion (or crank it up instead), be sure to set the
+codeblock's `log`-option to its desired value.  As an example:
+
+    ```{#nested inc="art!markdown@stitch" log=debug hdr=1}
+    <code to generate another markdown document in art-file>
+    ```
+
+See [Nested doc] for an example.
+
 
 ### `inc`
 
@@ -565,18 +597,15 @@ supposed to export a `Pandoc` function.  Such a module requires the data to
 be an actual Pandoc document produced by `!read`.
 
 Before calling, stitch inspects the `data` and if it has type `Pandoc`, its
-meta data is augmented with a `stitched` section that contains:
-- `opts`, a lua table with all the options of the current codeblock
-- `ctx`, a lua table with all the `stitch` related meta data of the current doc
+meta data is augmented with the main document's meta data without overwriting.
+Also, `doc.meta.stitch.stitch.hdr` is set to (forcibly) to the codeblock's
+[`hdr`]-option value (if present).
 
-However, it could be any module that simply accepts the data as acquired by
-reading the `what`-file.
+Note however, that data need not be a pandoc AST and `mod` could be any lua
+module that simply accepts the data as acquired by reading the `what`-file.
 
-If no module was found an error is logged and processing continues.
-
-TODO: add documentation of cb's attr `hdr` that will shift header levels
-of a pandoc doc to be included.
-
+If no module was found an error is logged and the `inc`-directive is skipped
+and processing continues.
 
 *:how*
 
@@ -658,7 +687,9 @@ See the other [examples](https://github.com/hertogp/stitch/tree/main/examples)
 in [stitch's repository](https://github.com/hertogp/stitch), which also contain
 some information on installing the command line tools used.
 
-For reference in the following examples, here is this document's meta:
+## doc.meta
+
+For reference in the following examples, here is this document's doc.meta:
 
 ```{#doc.meta .chunk exe=yes}
 local meta = Stitch.meta
@@ -673,7 +704,6 @@ fh:close()
 ## [Diagon](https://github.com/ArthurSonzogni/Diagon)
 
 From the dawn of the Internet, diagon brings you the simplicity of ascii.
-
 ```{#diagon arg=Flowchart}
 "CodeBlock"
 if ("stitch?") {
@@ -690,7 +720,7 @@ if ("stitch?") {
 }
 "CONTINUE"
 ```
-\newpage
+\
 
 ## [youplot](https://github.com/red-data-tools/YouPlot)
 
@@ -708,6 +738,7 @@ curl -sL 'https://api.open-meteo.com/v1/forecast?'\
 | head -n 29 | tail -n +5 | sed 's/^[^T]*T//' \
 |  uplot bar -d, -t "Temperature (˚C) Today" -o
 ```
+
 \newpage
 
 ## [Cetz](https://typst.app/universe/package/cetz)
@@ -887,8 +918,10 @@ exe, maybe, execute?
 
 As a final example, here's how to run a codeblock's output through a filter
 after re-reading it as markdown.  In this case, the filter is stitch itself.
+The codeblock has `hdr=1`, which means the all header levels of the markdown
+being included will be incremented by one.
 
-````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="debug" cls=yes hdr=1}
+````{.lua #nested .stitch inc="cbx:fcb out!markdown@stitch" log="silent" cls=yes hdr=1}
 #! /usr/bin/env lua
 
 print [[---
@@ -906,7 +939,7 @@ This could be some report created by a command line tool, producing
 a markdown report on some topic.  Here, it's just the text as printed
 by lua.  Any (nested) codeblocks can also be processed by stitch.
 
-```{#nd-csv .stitch inc="cbx!csv" log=debug exe=no}
+```{#nd-csv .stitch inc="cbx!csv" exe=no}
 day,count
 mon,1
 tue,2
@@ -943,7 +976,7 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 
 ## the `Stitch` context provided to the filter
 
-```{.lua #nd-yaml .chunk log=debug}
+```{.lua #nd-yaml .chunk}
 local ccb = Stitch.ccb
 local ctx = Stitch.ctx
 local fh = io.open(ccb.opt.out, 'w')

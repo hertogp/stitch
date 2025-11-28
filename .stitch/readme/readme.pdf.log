@@ -1,475 +1,208 @@
-stitch[0] info    stitch| new document ('')
-stitch[0] debug   stitch| "stitch"
-stitch[0] debug   stitch| - stitch.log = debug
-stitch[0] debug   stitch| "chunk"
-stitch[0] debug   stitch| - chunk.run = chunk
-stitch[0] debug   stitch| - chunk.inc = {{what: "out"}}
-stitch[0] debug   stitch| - chunk.dir = .stitch/readme/chunk
-stitch[0] debug   stitch| - chunk.cmd = 
-stitch[0] debug   stitch| - chunk.exe = maybe
-stitch[0] debug   stitch| "figlet"
-stitch[0] debug   stitch| - figlet.dir = .stitch/readme/figlet
-stitch[0] debug   stitch| - figlet.cmd = #cbx #arg 1>#out
-stitch[0] debug   stitch| - figlet.inc = {{what: "cbx", how: "fcb"}, {what: "out"}}
-stitch[0] debug   stitch| "boxes"
-stitch[0] debug   stitch| - boxes.dir = .stitch/readme/boxes
-stitch[0] debug   stitch| - boxes.cmd = #cbx #arg 1>#out
-stitch[0] debug   stitch| - boxes.cls = yes
-stitch[0] debug   stitch| - boxes.inc = {{what: "out"}}
-stitch[0] debug   stitch| "defaults"
-stitch[0] debug   stitch| - defaults.dir = .stitch/readme/defaults
-stitch[0] debug   stitch| - defaults.cmd = #cbx #arg 1>#out
-stitch[0] debug   stitch| - defaults.cls = yes
-stitch[0] debug   stitch| - defaults.inc = {{what: "cbx", how: "fcb"}, {what: "out"}}
-stitch[0] debug   stitch| "gnuplot"
-stitch[0] debug   stitch| - gnuplot.dir = .stitch/readme/gnuplot
-stitch[0] debug   stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err
-stitch[0] debug   stitch| - gnuplot.inc = {{what: "art", how: "fig"}, {what: "cbx", how: "fcb"}}
-stitch[0] debug   stitch| - gnuplot.run = system
-stitch[0] debug   stitch| "youplot"
-stitch[0] debug   stitch| - youplot.dir = .stitch/readme/youplot
-stitch[0] debug   stitch| - youplot.cmd = #cbx 1>#out
-stitch[0] debug   stitch| "diagon"
-stitch[0] debug   stitch| - diagon.dir = .stitch/readme/diagon
-stitch[0] debug   stitch| - diagon.cmd = diagon #arg <#cbx 1>#out
-stitch[0] debug   stitch| "download"
-stitch[0] debug   stitch| - download.dir = .stitch/readme/download
-stitch[0] debug   stitch| - download.out = #dir/#arg
-stitch[0] debug   stitch| - download.inc = {{what: "cbx", how: "fcb"}}
-stitch[0] debug   stitch| - download.exe = yes
-stitch[0] debug   stitch| "cetz"
-stitch[0] debug   stitch| - cetz.arg = compile
-stitch[0] debug   stitch| - cetz.cmd = typst #arg #cbx #art
-stitch[0] debug   stitch| - cetz.inc = {{what: "art"}, {what: "cbx", how: "fcb"}}
-stitch[0] debug   stitch| - cetz.dir = .stitch/new/cetz
-stitch[0] debug   stitch| stitch log level set to debug
-stitch[0] debug   stitch| chunk log level set to info
-stitch[0] debug   stitch| figlet log level set to info
-stitch[0] debug   stitch| boxes log level set to info
-stitch[0] debug   stitch| defaults log level set to info
-stitch[0] debug   stitch| gnuplot log level set to info
-stitch[0] debug   stitch| youplot log level set to info
-stitch[0] debug   stitch| diagon log level set to info
-stitch[0] debug   stitch| download log level set to info
-stitch[0] debug   stitch| cetz log level set to info
-stitch[0] info    stitch| doc ('') options done
-stitch[0] debug  preface| config stitch=boxes
-stitch[0] debug   stitch| "stitch" is not a stitch option, kept as-is
-stitch[0] info   preface| processing codeblock using config "boxes"
-stitch[0] debug  preface| using directory .stitch/readme/boxes for cbx-file
-stitch[0] debug  preface| using directory .stitch/readme/boxes for art-file
-stitch[0] debug  preface| using directory .stitch/readme/boxes for out-file
-stitch[0] debug  preface| using directory .stitch/readme/boxes for err-file
-stitch[0] debug  preface| writing out 92 chars to .stitch/readme/boxes/preface-acc10363c295522bd3dcbad973bc91ad92e4baf0.cbx
-stitch[0] info   preface| codeblock run skipped, results already exist
-stitch[0] debug  preface| purge removed 0 old files
-stitch[0] debug  preface| include processing inc[1] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/boxes/preface-acc10363c295522bd3dcbad973bc91ad92e4baf0.out, format <n/a>
-stitch[0] debug  preface| include any for {what: "out"}
-stitch[0] debug  preface| include inc[1] = {what: "out"} succeeded
-stitch[0] debug  figlet1| config figlet found by link to named section
-stitch[0] info   figlet1| processing codeblock using config "figlet"
-stitch[0] debug  figlet1| using directory .stitch/readme/figlet for cbx-file
-stitch[0] debug  figlet1| using directory .stitch/readme/figlet for art-file
-stitch[0] debug  figlet1| using directory .stitch/readme/figlet for out-file
-stitch[0] debug  figlet1| using directory .stitch/readme/figlet for err-file
-stitch[0] debug  figlet1| writing out 42 chars to .stitch/readme/figlet/figlet1-9e1f03994e2d3c511a03be237815801b2f3629a9.cbx
-stitch[0] info   figlet1| codeblock run skipped, results already exist
-stitch[0] debug  figlet1| purge removed 0 old files
-stitch[0] debug  figlet1| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/figlet/figlet1-9e1f03994e2d3c511a03be237815801b2f3629a9.cbx, format <n/a>
-stitch[0] debug  figlet1| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug  figlet1| include processing inc[2] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/figlet/figlet1-9e1f03994e2d3c511a03be237815801b2f3629a9.out, format <n/a>
-stitch[0] debug  figlet1| include any for {what: "out"}
-stitch[0] debug  figlet1| include inc[2] = {what: "out"} succeeded
-stitch[0] warn    anon03| config no link found classes {}, attributes {}
-stitch[0] warn    anon03| (anon03) skipped, codeblock not eligible
-stitch[0] debug      arg| config stitch found by link to named section
-stitch[0] info       arg| processing codeblock using config "stitch"
-stitch[0] debug      arg| using directory .stitch/readme/defaults for cbx-file
-stitch[0] debug      arg| using directory .stitch/readme/defaults for art-file
-stitch[0] debug      arg| using directory .stitch/readme/defaults for out-file
-stitch[0] debug      arg| using directory .stitch/readme/defaults for err-file
-stitch[0] debug      arg| writing out 266 chars to .stitch/readme/defaults/arg-475b25aa7e2e70303df64a8dbdb5f15e1149f42c.cbx
-stitch[0] info       arg| codeblock run skipped, results already exist
-stitch[0] debug      arg| purge removed 0 old files
-stitch[0] debug      arg| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/arg-475b25aa7e2e70303df64a8dbdb5f15e1149f42c.cbx, format <n/a>
-stitch[0] debug      arg| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug      arg| include processing inc[2] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/arg-475b25aa7e2e70303df64a8dbdb5f15e1149f42c.out, format <n/a>
-stitch[0] debug      arg| include any for {what: "out"}
-stitch[0] debug      arg| include inc[2] = {what: "out"} succeeded
-stitch[0] debug      art| config chunk found by link to named section
-stitch[0] info       art| processing codeblock using config "chunk"
-stitch[0] debug      art| using directory .stitch/readme/chunk for cbx-file
-stitch[0] debug      art| using directory .stitch/readme/chunk for art-file
-stitch[0] debug      art| using directory .stitch/readme/chunk for out-file
-stitch[0] debug      art| using directory .stitch/readme/chunk for err-file
-stitch[0] debug      art| writing out 143 chars to .stitch/readme/chunk/art-7f79840fc460ca530237a2816fcbe9cda09dfd72.cbx
-stitch[0] info       art| codeblock run skipped, results already exist
-stitch[0] debug      art| purge removed 0 old files
-stitch[0] debug      art| include processing inc[1] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/chunk/art-7f79840fc460ca530237a2816fcbe9cda09dfd72.out, format <n/a>
-stitch[0] debug      art| include any for {what: "out"}
-stitch[0] debug      art| include inc[1] = {what: "out"} succeeded
-stitch[0] debug      cbx| config chunk found by link to named section
-stitch[0] info       cbx| processing codeblock using config "chunk"
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for cbx-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for art-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for out-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for err-file
-stitch[0] debug      cbx| writing out 157 chars to .stitch/readme/chunk/cbx-743bb39bd8a9b1f9b734db575951f2268ee073a9.cbx
-stitch[0] debug      cbx| codeblock cmd is .
-stitch[0] info       cbx| codeblock chunk succeeded
-stitch[0] debug      cbx| purge removed old file .stitch/readme/chunk/cbx-a255e3b0484febc736d20987310d0207ef992a29.cbx
-stitch[0] debug      cbx| purge removed old file .stitch/readme/chunk/cbx-a255e3b0484febc736d20987310d0207ef992a29.out
-stitch[0] debug      cbx| purge removed 2 old files
-stitch[0] debug      cbx| include processing inc[1] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/chunk/cbx-743bb39bd8a9b1f9b734db575951f2268ee073a9.out, format <n/a>
-stitch[0] debug      cbx| include any for {what: "out"}
-stitch[0] debug      cbx| include inc[1] = {what: "out"} succeeded
-stitch[0] debug    silly| config stitch found by link to named section
-stitch[0] info     silly| processing codeblock using config "stitch"
-stitch[0] debug    silly| using directory .stitch/readme/defaults for cbx-file
-stitch[0] debug    silly| using directory .stitch/readme/defaults for art-file
-stitch[0] debug    silly| using directory .stitch/readme/defaults for out-file
-stitch[0] debug    silly| using directory .stitch/readme/defaults for err-file
-stitch[0] debug    silly| writing out 0 chars to .stitch/readme/defaults/silly-c2821e0d7517bc10be8a0becea5701c925acf3dd.cbx
-stitch[0] info     silly| codeblock run skipped, results already exist
-stitch[0] debug    silly| purge removed 0 old files
-stitch[0] debug    silly| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/silly-c2821e0d7517bc10be8a0becea5701c925acf3dd.cbx, format <n/a>
-stitch[0] debug    silly| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug    silly| include processing inc[2] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/silly-c2821e0d7517bc10be8a0becea5701c925acf3dd.out, format <n/a>
-stitch[0] debug    silly| include any for {what: "out"}
-stitch[0] debug    silly| include inc[2] = {what: "out"} succeeded
-stitch[0] warn    anon08| config no link found classes {}, attributes {}
-stitch[0] warn    anon08| (anon08) skipped, codeblock not eligible
-stitch[0] debug      cbx| config chunk found by link to named section
-stitch[0] info       cbx| processing codeblock using config "chunk"
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for cbx-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for art-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for out-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for err-file
-stitch[0] debug      cbx| writing out 157 chars to .stitch/readme/chunk/cbx-8a59a8ed68cfe76120d056f83c86f44558e06101.cbx
-stitch[0] debug      cbx| codeblock cmd is .
-stitch[0] info       cbx| codeblock chunk succeeded
-stitch[0] debug      cbx| purge removed old file .stitch/readme/chunk/cbx-743bb39bd8a9b1f9b734db575951f2268ee073a9.cbx
-stitch[0] debug      cbx| purge removed old file .stitch/readme/chunk/cbx-743bb39bd8a9b1f9b734db575951f2268ee073a9.out
-stitch[0] debug      cbx| purge removed 2 old files
-stitch[0] debug      cbx| include processing inc[1] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/chunk/cbx-8a59a8ed68cfe76120d056f83c86f44558e06101.out, format <n/a>
-stitch[0] debug      cbx| include any for {what: "out"}
-stitch[0] debug      cbx| include inc[1] = {what: "out"} succeeded
-stitch[0] warn    anon10| config no link found classes {}, attributes {}
-stitch[0] warn    anon10| (anon10) skipped, codeblock not eligible
-stitch[0] debug      cbx| config chunk found by link to named section
-stitch[0] info       cbx| processing codeblock using config "chunk"
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for cbx-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for art-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for out-file
-stitch[0] debug      cbx| using directory .stitch/readme/chunk for err-file
-stitch[0] debug      cbx| writing out 157 chars to .stitch/readme/chunk/cbx-a255e3b0484febc736d20987310d0207ef992a29.cbx
-stitch[0] debug      cbx| codeblock cmd is .
-stitch[0] info       cbx| codeblock chunk succeeded
-stitch[0] debug      cbx| purge removed old file .stitch/readme/chunk/cbx-8a59a8ed68cfe76120d056f83c86f44558e06101.cbx
-stitch[0] debug      cbx| purge removed old file .stitch/readme/chunk/cbx-8a59a8ed68cfe76120d056f83c86f44558e06101.out
-stitch[0] debug      cbx| purge removed 2 old files
-stitch[0] debug      cbx| include processing inc[1] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/chunk/cbx-a255e3b0484febc736d20987310d0207ef992a29.out, format <n/a>
-stitch[0] debug      cbx| include any for {what: "out"}
-stitch[0] debug      cbx| include inc[1] = {what: "out"} succeeded
-stitch[0] warn    anon12| config no link found classes {}, attributes {}
-stitch[0] warn    anon12| (anon12) skipped, codeblock not eligible
-stitch[0] debug doc.meta| config chunk found by link to named section
-stitch[0] info  doc.meta| processing codeblock using config "chunk"
-stitch[0] debug doc.meta| using directory .stitch/readme/chunk for cbx-file
-stitch[0] debug doc.meta| using directory .stitch/readme/chunk for art-file
-stitch[0] debug doc.meta| using directory .stitch/readme/chunk for out-file
-stitch[0] debug doc.meta| using directory .stitch/readme/chunk for err-file
-stitch[0] debug doc.meta| writing out 166 chars to .stitch/readme/chunk/doc.meta-34123c9f0d1b9c7020f3fcbf6d8fc42fa55d2792.cbx
-stitch[0] debug doc.meta| codeblock cmd is .
-stitch[0] info  doc.meta| codeblock chunk succeeded
-stitch[0] debug doc.meta| purge removed 0 old files
-stitch[0] debug doc.meta| include processing inc[1] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/chunk/doc.meta-34123c9f0d1b9c7020f3fcbf6d8fc42fa55d2792.out, format <n/a>
-stitch[0] debug doc.meta| include any for {what: "out"}
-stitch[0] debug doc.meta| include inc[1] = {what: "out"} succeeded
-stitch[0] debug   diagon| config diagon found by cb id
-stitch[0] info    diagon| processing codeblock using config "diagon"
-stitch[0] debug   diagon| using directory .stitch/readme/diagon for cbx-file
-stitch[0] debug   diagon| using directory .stitch/readme/diagon for art-file
-stitch[0] debug   diagon| using directory .stitch/readme/diagon for out-file
-stitch[0] debug   diagon| using directory .stitch/readme/diagon for err-file
-stitch[0] debug   diagon| writing out 222 chars to .stitch/readme/diagon/diagon-576aa4bdb43b0403190689be059505062b3e9402.cbx
-stitch[0] info    diagon| codeblock run skipped, results already exist
-stitch[0] debug   diagon| purge removed 0 old files
-stitch[0] debug   diagon| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/diagon/diagon-576aa4bdb43b0403190689be059505062b3e9402.cbx, format <n/a>
-stitch[0] debug   diagon| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug   diagon| include processing inc[2] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/diagon/diagon-576aa4bdb43b0403190689be059505062b3e9402.out, format <n/a>
-stitch[0] debug   diagon| include any for {what: "out"}
-stitch[0] debug   diagon| include inc[2] = {what: "out"} succeeded
-stitch[0] debug  youplot| config youplot found by cb id
-stitch[0] info   youplot| processing codeblock using config "youplot"
-stitch[0] debug  youplot| using directory .stitch/readme/youplot for cbx-file
-stitch[0] debug  youplot| using directory .stitch/readme/youplot for art-file
-stitch[0] debug  youplot| using directory .stitch/readme/youplot for out-file
-stitch[0] debug  youplot| using directory .stitch/readme/youplot for err-file
-stitch[0] debug  youplot| writing out 222 chars to .stitch/readme/youplot/youplot-c9274fd5c60e413a5e0744c8ed25e6e1dc99f1f2.cbx
-stitch[0] info   youplot| codeblock run skipped, results already exist
-stitch[0] debug  youplot| purge removed 0 old files
-stitch[0] debug  youplot| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/youplot/youplot-c9274fd5c60e413a5e0744c8ed25e6e1dc99f1f2.cbx, format <n/a>
-stitch[0] debug  youplot| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug  youplot| include processing inc[2] = {what: "out"}
-stitch[0] debug   stitch| read file .stitch/readme/youplot/youplot-c9274fd5c60e413a5e0744c8ed25e6e1dc99f1f2.out, format <n/a>
-stitch[0] debug  youplot| include any for {what: "out"}
-stitch[0] debug  youplot| include inc[2] = {what: "out"} succeeded
-stitch[0] debug     cb03| config stitch=cetz
-stitch[0] debug   stitch| "caption" is not a stitch option, kept as-is
-stitch[0] debug   stitch| "stitch" is not a stitch option, kept as-is
-stitch[0] info      cb03| processing codeblock using config "cetz"
-stitch[0] debug     cb03| using directory .stitch/new/cetz for cbx-file
-stitch[0] debug     cb03| using directory .stitch/new/cetz for art-file
-stitch[0] debug     cb03| using directory .stitch/new/cetz for out-file
-stitch[0] debug     cb03| using directory .stitch/new/cetz for err-file
-stitch[0] debug     cb03| writing out 1678 chars to .stitch/new/cetz/cb03-52a22d908a6f1c044fca824a600bf559a329ec46.cbx
-stitch[0] info      cb03| codeblock run skipped, results already exist
-stitch[0] debug     cb03| purge removed 0 old files
-stitch[0] debug     cb03| include processing inc[1] = {what: "art"}
-stitch[0] debug   stitch| read file .stitch/new/cetz/cb03-52a22d908a6f1c044fca824a600bf559a329ec46.png, format <n/a>
-stitch[0] debug     cb03| include any for {what: "art"}
-stitch[0] debug     cb03| include inc[1] = {what: "art"} succeeded
-stitch[0] debug     cb03| include processing inc[2] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/new/cetz/cb03-52a22d908a6f1c044fca824a600bf559a329ec46.cbx, format <n/a>
-stitch[0] debug     cb03| include inc[2] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug     cb04| config stitch=cetz
-stitch[0] debug   stitch| "caption" is not a stitch option, kept as-is
-stitch[0] debug   stitch| "stitch" is not a stitch option, kept as-is
-stitch[0] info      cb04| processing codeblock using config "cetz"
-stitch[0] debug     cb04| using directory .stitch/new/cetz for cbx-file
-stitch[0] debug     cb04| using directory .stitch/new/cetz for art-file
-stitch[0] debug     cb04| using directory .stitch/new/cetz for out-file
-stitch[0] debug     cb04| using directory .stitch/new/cetz for err-file
-stitch[0] debug     cb04| writing out 1572 chars to .stitch/new/cetz/cb04-f93d3a184f81c077f3c423ead8031561ead70895.cbx
-stitch[0] info      cb04| codeblock run skipped, results already exist
-stitch[0] debug     cb04| purge removed 0 old files
-stitch[0] debug     cb04| include processing inc[1] = {what: "art"}
-stitch[0] debug   stitch| read file .stitch/new/cetz/cb04-f93d3a184f81c077f3c423ead8031561ead70895.svg, format <n/a>
-stitch[0] debug     cb04| include any for {what: "art"}
-stitch[0] debug     cb04| include inc[1] = {what: "art"} succeeded
-stitch[0] debug     cb04| include processing inc[2] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/new/cetz/cb04-f93d3a184f81c077f3c423ead8031561ead70895.cbx, format <n/a>
-stitch[0] debug     cb04| include inc[2] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug     cb05| config stitch=download
-stitch[0] debug   stitch| "stitch" is not a stitch option, kept as-is
-stitch[0] info      cb05| processing codeblock using config "download"
-stitch[0] debug     cb05| using directory .stitch/readme/download for cbx-file
-stitch[0] debug     cb05| using directory .stitch/readme/download for art-file
-stitch[0] debug     cb05| using directory .stitch/readme/download/../cetz for out-file
-stitch[0] debug     cb05| using directory .stitch/readme/download for err-file
-stitch[0] debug     cb05| writing out 167 chars to .stitch/readme/download/cb05-2d844a0f70f2a275a6c6849d794dcce79a9119a4.cbx
-stitch[0] debug     cb05| codeblock cmd is .stitch/readme/download/cb05-2d844a0f70f2a275a6c6849d794dcce79a9119a4.cbx ../cetz/temperatures.json 1>.stitch/readme/download/../cetz/temperatures.json
-stitch[0] info      cb05| codeblock system command succeeded
-stitch[0] warn      cb05| purge skipped, out-file has no sha fingerprint
-stitch[0] debug     cb05| purge removed 0 old files
-stitch[0] debug     cb05| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/download/cb05-2d844a0f70f2a275a6c6849d794dcce79a9119a4.cbx, format <n/a>
-stitch[0] debug     cb05| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug     cb06| config stitch=cetz
-stitch[0] debug   stitch| "caption" is not a stitch option, kept as-is
-stitch[0] debug   stitch| "stitch" is not a stitch option, kept as-is
-stitch[0] info      cb06| processing codeblock using config "cetz"
-stitch[0] debug     cb06| using directory .stitch/new/cetz for cbx-file
-stitch[0] debug     cb06| using directory .stitch/new/cetz for art-file
-stitch[0] debug     cb06| using directory .stitch/new/cetz for out-file
-stitch[0] debug     cb06| using directory .stitch/new/cetz for err-file
-stitch[0] debug     cb06| writing out 462 chars to .stitch/new/cetz/cb06-b9597a1abd8a10a947aada444fdfdc88f834411b.cbx
-stitch[0] debug     cb06| codeblock cmd is typst compile .stitch/new/cetz/cb06-b9597a1abd8a10a947aada444fdfdc88f834411b.cbx .stitch/new/cetz/cb06-b9597a1abd8a10a947aada444fdfdc88f834411b.svg
-stitch[0] info      cb06| codeblock system command succeeded
-stitch[0] debug     cb06| purge removed 0 old files
-stitch[0] debug     cb06| include processing inc[1] = {what: "art"}
-stitch[0] debug   stitch| read file .stitch/new/cetz/cb06-b9597a1abd8a10a947aada444fdfdc88f834411b.svg, format <n/a>
-stitch[0] debug     cb06| include any for {what: "art"}
-stitch[0] debug     cb06| include inc[1] = {what: "art"} succeeded
-stitch[0] debug     cb06| include processing inc[2] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/new/cetz/cb06-b9597a1abd8a10a947aada444fdfdc88f834411b.cbx, format <n/a>
-stitch[0] debug     cb06| include inc[2] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug  gnuplot| config gnuplot found by cb id
-stitch[0] info   gnuplot| processing codeblock using config "gnuplot"
-stitch[0] debug  gnuplot| using directory .stitch/readme/gnuplot for cbx-file
-stitch[0] debug  gnuplot| using directory .stitch/readme/gnuplot for art-file
-stitch[0] debug  gnuplot| using directory .stitch/readme/gnuplot for out-file
-stitch[0] debug  gnuplot| using directory .stitch/readme/gnuplot for err-file
-stitch[0] debug  gnuplot| writing out 549 chars to .stitch/readme/gnuplot/gnuplot-cd95521c7416b188f67e714e7bbafbe2ede06f41.cbx
-stitch[0] info   gnuplot| codeblock run skipped, results already exist
-stitch[0] debug  gnuplot| purge removed 0 old files
-stitch[0] debug  gnuplot| include processing inc[1] = {what: "art", how: "fig"}
-stitch[0] debug   stitch| read file .stitch/readme/gnuplot/gnuplot-cd95521c7416b188f67e714e7bbafbe2ede06f41.png, format <n/a>
-stitch[0] debug  gnuplot| include inc[1] = {what: "art", how: "fig"} succeeded
-stitch[0] debug  gnuplot| include processing inc[2] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/gnuplot/gnuplot-cd95521c7416b188f67e714e7bbafbe2ede06f41.cbx, format <n/a>
-stitch[0] debug  gnuplot| include inc[2] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug      csv| config stitch found by link to named section
-stitch[0] info       csv| processing codeblock using config "stitch"
-stitch[0] debug      csv| using directory .stitch/readme/defaults for cbx-file
-stitch[0] debug      csv| using directory .stitch/readme/defaults for art-file
-stitch[0] debug      csv| using directory .stitch/readme/defaults for out-file
-stitch[0] debug      csv| using directory .stitch/readme/defaults for err-file
-stitch[0] debug      csv| writing out 64 chars to .stitch/readme/defaults/csv-0cf995e9972acb4290ac450e0d17004e13f3cdcd.cbx
-stitch[0] warn       csv| codeblock run skipped (exe = no)
-stitch[0] debug      csv| purge removed 0 old files
-stitch[0] debug      csv| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/csv-0cf995e9972acb4290ac450e0d17004e13f3cdcd.cbx, format <n/a>
-stitch[0] debug      csv| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug      csv| include processing inc[2] = {what: "cbx", read: "csv"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/csv-0cf995e9972acb4290ac450e0d17004e13f3cdcd.cbx, format csv
-stitch[0] debug   stitch| data converted to csv
-stitch[0] debug      csv| include any for {what: "cbx", read: "csv"}
-stitch[0] debug      csv| include pandoc fragement for {what: "cbx", read: "csv"}
-stitch[0] debug      csv| include inc[2] = {what: "cbx", read: "csv"} doc fragment succeeded
-stitch[0] debug      csv| include processing inc[3] = {what: "cbx", how: "fcb", read: "csv"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/csv-0cf995e9972acb4290ac450e0d17004e13f3cdcd.cbx, format csv
-stitch[0] debug   stitch| data converted to csv
-stitch[0] debug      csv| include inc[3] = {what: "cbx", how: "fcb", read: "csv"} succeeded
-stitch[0] debug   nested| config stitch found by link to named section
-stitch[0] info    nested| processing codeblock using config "stitch"
-stitch[0] debug   nested| using directory .stitch/readme/defaults for cbx-file
-stitch[0] debug   nested| using directory .stitch/readme/defaults for art-file
-stitch[0] debug   nested| using directory .stitch/readme/defaults for out-file
-stitch[0] debug   nested| using directory .stitch/readme/defaults for err-file
-stitch[0] debug   nested| writing out 2265 chars to .stitch/readme/defaults/nested-6cc3cc1006929a8cccff21a77807e666ae3a252f.cbx
-stitch[0] info    nested| codeblock run skipped, results already exist
-stitch[0] debug   nested| purge removed 0 old files
-stitch[0] debug   nested| include processing inc[1] = {what: "cbx", how: "fcb"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/nested-6cc3cc1006929a8cccff21a77807e666ae3a252f.cbx, format <n/a>
-stitch[0] debug   nested| include inc[1] = {what: "cbx", how: "fcb"} succeeded
-stitch[0] debug   nested| include processing inc[2] = {what: "out", filter: "stitch", read: "markdown"}
-stitch[0] debug   stitch| read file .stitch/readme/defaults/nested-6cc3cc1006929a8cccff21a77807e666ae3a252f.out, format markdown
-stitch[0] debug   stitch| data converted to markdown
-stitch[1] info    stitch| new document ('')
-stitch[1] debug   stitch| "stitch"
-stitch[1] debug   stitch| - stitch.log = debug
-stitch[1] debug   stitch| - stitch.hdr = 1
-stitch[1] debug   stitch| "chunk"
-stitch[1] debug   stitch| - chunk.run = chunk
-stitch[1] debug   stitch| - chunk.inc = {{what: "out"}}
-stitch[1] debug   stitch| - chunk.dir = .stitch/readme/chunk
-stitch[1] debug   stitch| - chunk.cmd = 
-stitch[1] debug   stitch| - chunk.exe = maybe
-stitch[1] debug   stitch| "figlet"
-stitch[1] debug   stitch| - figlet.dir = .stitch/readme/figlet
-stitch[1] debug   stitch| - figlet.cmd = #cbx #arg 1>#out
-stitch[1] debug   stitch| - figlet.inc = {{what: "cbx", how: "fcb"}, {what: "out"}}
-stitch[1] debug   stitch| "boxes"
-stitch[1] debug   stitch| - boxes.dir = .stitch/readme/boxes
-stitch[1] debug   stitch| - boxes.cmd = #cbx #arg 1>#out
-stitch[1] debug   stitch| - boxes.cls = yes
-stitch[1] debug   stitch| - boxes.inc = {{what: "out"}}
-stitch[1] debug   stitch| "defaults"
-stitch[1] debug   stitch| - defaults.dir = .stitch/readme/nested
-stitch[1] debug   stitch| - defaults.cmd = #cbx #arg 1>#out
-stitch[1] debug   stitch| - defaults.cls = yes
-stitch[1] debug   stitch| - defaults.inc = {{what: "cbx", how: "fcb"}, {what: "out"}}
-stitch[1] debug   stitch| "gnuplot"
-stitch[1] debug   stitch| - gnuplot.dir = .stitch/readme/gnuplot
-stitch[1] debug   stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err
-stitch[1] debug   stitch| - gnuplot.inc = {{what: "art", how: "fig"}, {what: "cbx", how: "fcb"}}
-stitch[1] debug   stitch| - gnuplot.run = system
-stitch[1] debug   stitch| "youplot"
-stitch[1] debug   stitch| - youplot.dir = .stitch/readme/youplot
-stitch[1] debug   stitch| - youplot.cmd = #cbx 1>#out
-stitch[1] debug   stitch| "diagon"
-stitch[1] debug   stitch| - diagon.dir = .stitch/readme/diagon
-stitch[1] debug   stitch| - diagon.cmd = diagon #arg <#cbx 1>#out
-stitch[1] debug   stitch| "download"
-stitch[1] debug   stitch| - download.dir = .stitch/readme/download
-stitch[1] debug   stitch| - download.out = #dir/#arg
-stitch[1] debug   stitch| - download.inc = {{what: "cbx", how: "fcb"}}
-stitch[1] debug   stitch| - download.exe = yes
-stitch[1] debug   stitch| "cetz"
-stitch[1] debug   stitch| - cetz.arg = compile
-stitch[1] debug   stitch| - cetz.cmd = typst #arg #cbx #art
-stitch[1] debug   stitch| - cetz.inc = {{what: "art"}, {what: "cbx", how: "fcb"}}
-stitch[1] debug   stitch| - cetz.dir = .stitch/new/cetz
-stitch[1] debug   stitch| stitch log level set to debug
-stitch[1] debug   stitch| chunk log level set to info
-stitch[1] debug   stitch| figlet log level set to info
-stitch[1] debug   stitch| boxes log level set to info
-stitch[1] debug   stitch| defaults log level set to info
-stitch[1] debug   stitch| gnuplot log level set to info
-stitch[1] debug   stitch| youplot log level set to info
-stitch[1] debug   stitch| diagon log level set to info
-stitch[1] debug   stitch| download log level set to info
-stitch[1] debug   stitch| cetz log level set to info
-stitch[1] info    stitch| doc ('') options done
-stitch[1] note    stitch| header nested-report: level shifted from 1 to 2
-stitch[1] debug   nd-csv| config stitch found by link to named section
-stitch[1] info    nd-csv| processing codeblock using config "stitch"
-stitch[1] debug   nd-csv| using directory .stitch/readme/nested for cbx-file
-stitch[1] debug   nd-csv| using directory .stitch/readme/nested for art-file
-stitch[1] debug   nd-csv| using directory .stitch/readme/nested for out-file
-stitch[1] debug   nd-csv| using directory .stitch/readme/nested for err-file
-stitch[1] debug   nd-csv| writing out 21 chars to .stitch/readme/nested/nd-csv-5149580a29832c49d264516178544464d6c34d05.cbx
-stitch[1] warn    nd-csv| codeblock run skipped (exe = no)
-stitch[1] debug   nd-csv| purge removed 0 old files
-stitch[1] debug   nd-csv| include processing inc[1] = {what: "cbx", read: "csv"}
-stitch[1] debug   stitch| read file .stitch/readme/nested/nd-csv-5149580a29832c49d264516178544464d6c34d05.cbx, format csv
-stitch[1] debug   stitch| data converted to csv
-stitch[1] debug   nd-csv| include any for {what: "cbx", read: "csv"}
-stitch[1] debug   nd-csv| include pandoc fragement for {what: "cbx", read: "csv"}
-stitch[1] debug   nd-csv| include inc[1] = {what: "cbx", read: "csv"} doc fragment succeeded
-stitch[1] note    stitch| header the-weather-today: level shifted from 2 to 3
-stitch[1] debug nd-temps| config stitch found by link to named section
-stitch[1] info  nd-temps| processing codeblock using config "stitch"
-stitch[1] debug nd-temps| using directory .stitch/readme/nested for cbx-file
-stitch[1] debug nd-temps| using directory .stitch/readme/nested for art-file
-stitch[1] debug nd-temps| using directory .stitch/readme/nested for out-file
-stitch[1] debug nd-temps| using directory .stitch/readme/nested for err-file
-stitch[1] debug nd-temps| writing out 222 chars to .stitch/readme/nested/nd-temps-2b5ec7f342de94cf6d5887a285a7f5cd19b86705.cbx
-stitch[1] info  nd-temps| codeblock run skipped, results already exist
-stitch[1] debug nd-temps| purge removed 0 old files
-stitch[1] debug nd-temps| include processing inc[1] = {what: "out"}
-stitch[1] debug   stitch| read file .stitch/readme/nested/nd-temps-2b5ec7f342de94cf6d5887a285a7f5cd19b86705.out, format <n/a>
-stitch[1] debug nd-temps| include any for {what: "out"}
-stitch[1] debug nd-temps| include inc[1] = {what: "out"} succeeded
-stitch[1] note    stitch| header gnuplot-again: level shifted from 2 to 3
-stitch[1] debug   nd-gnu| config gnuplot found by link to named section
-stitch[1] info    nd-gnu| processing codeblock using config "gnuplot"
-stitch[1] debug   nd-gnu| using directory .stitch/readme/gnuplot for cbx-file
-stitch[1] debug   nd-gnu| using directory .stitch/readme/gnuplot for art-file
-stitch[1] debug   nd-gnu| using directory .stitch/readme/gnuplot for out-file
-stitch[1] debug   nd-gnu| using directory .stitch/readme/gnuplot for err-file
-stitch[1] debug   nd-gnu| writing out 549 chars to .stitch/readme/gnuplot/nd-gnu-cd95521c7416b188f67e714e7bbafbe2ede06f41.cbx
-stitch[1] info    nd-gnu| codeblock run skipped, results already exist
-stitch[1] debug   nd-gnu| purge removed 0 old files
-stitch[1] debug   nd-gnu| include processing inc[1] = {what: "art", how: "fig"}
-stitch[1] debug   stitch| read file .stitch/readme/gnuplot/nd-gnu-cd95521c7416b188f67e714e7bbafbe2ede06f41.png, format <n/a>
-stitch[1] debug   nd-gnu| include inc[1] = {what: "art", how: "fig"} succeeded
-stitch[1] debug   nd-gnu| include processing inc[2] = {what: "cbx", how: "fcb"}
-stitch[1] debug   stitch| read file .stitch/readme/gnuplot/nd-gnu-cd95521c7416b188f67e714e7bbafbe2ede06f41.cbx, format <n/a>
-stitch[1] debug   nd-gnu| include inc[2] = {what: "cbx", how: "fcb"} succeeded
-stitch[1] note    stitch| header the-stitch-context-provided-to-the-filter: level shifted from 2 to 3
-stitch[1] debug  nd-yaml| config chunk found by link to named section
-stitch[1] info   nd-yaml| processing codeblock using config "chunk"
-stitch[1] debug  nd-yaml| using directory .stitch/readme/chunk for cbx-file
-stitch[1] debug  nd-yaml| using directory .stitch/readme/chunk for art-file
-stitch[1] debug  nd-yaml| using directory .stitch/readme/chunk for out-file
-stitch[1] debug  nd-yaml| using directory .stitch/readme/chunk for err-file
-stitch[1] debug  nd-yaml| writing out 868 chars to .stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.cbx
-stitch[1] info   nd-yaml| codeblock run skipped, results already exist
-stitch[1] debug  nd-yaml| purge removed 0 old files
-stitch[1] debug  nd-yaml| include processing inc[1] = {what: "out"}
-stitch[1] debug   stitch| read file .stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.out, format <n/a>
-stitch[1] debug  nd-yaml| include any for {what: "out"}
-stitch[1] debug  nd-yaml| include inc[1] = {what: "out"} succeeded
-stitch[1] info    stitch| done .. saw 26 codeblocks
-stitch[0] debug   nested| include any for {what: "out", filter: "stitch", read: "markdown"}
-stitch[0] debug   nested| include pandoc fragement for {what: "out", filter: "stitch", read: "markdown"}
-stitch[0] debug   nested| include inc[2] = {what: "out", filter: "stitch", read: "markdown"} doc fragment succeeded
-stitch[0] info    stitch| done .. saw 26 codeblocks
+stitch[0] info     stitch| new document ('')
+stitch[0] debug    stitch| "diagon"
+stitch[0] debug    stitch| - diagon.dir = .stitch/readme/diagon
+stitch[0] debug    stitch| - diagon.cmd = diagon #arg <#cbx 1>#out
+stitch[0] debug    stitch| "boxes"
+stitch[0] debug    stitch| - boxes.dir = .stitch/readme/boxes
+stitch[0] debug    stitch| - boxes.inc = {{what: "out"}}
+stitch[0] debug    stitch| "stitch"
+stitch[0] debug    stitch| - stitch.log = debug
+stitch[0] debug    stitch| "defaults"
+stitch[0] debug    stitch| - defaults.inc = {{how: "fcb", what: "cbx"}, {what: "out"}}
+stitch[0] debug    stitch| - defaults.cmd = #cbx #arg 1>#out
+stitch[0] debug    stitch| - defaults.dir = .stitch/readme/defaults
+stitch[0] debug    stitch| - defaults.cls = yes
+stitch[0] debug    stitch| "chunk"
+stitch[0] debug    stitch| - chunk.exe = maybe
+stitch[0] debug    stitch| - chunk.cmd = 
+stitch[0] debug    stitch| - chunk.inc = {{what: "out"}}
+stitch[0] debug    stitch| - chunk.dir = .stitch/readme/chunk
+stitch[0] debug    stitch| - chunk.run = chunk
+stitch[0] debug    stitch| "youplot"
+stitch[0] debug    stitch| - youplot.dir = .stitch/readme/youplot
+stitch[0] debug    stitch| - youplot.cmd = #cbx 1>#out
+stitch[0] debug    stitch| "gnuplot"
+stitch[0] debug    stitch| - gnuplot.inc = {{how: "fcb", what: "cbx"}, {how: "fig", what: "art"}}
+stitch[0] debug    stitch| - gnuplot.cmd = gnuplot #cbx 1>#art 2>#err
+stitch[0] debug    stitch| - gnuplot.dir = .stitch/readme/gnuplot
+stitch[0] debug    stitch| - gnuplot.run = system
+stitch[0] debug    stitch| "cetz"
+stitch[0] debug    stitch| - cetz.inc = {{how: "fcb", what: "cbx"}, {what: "art"}}
+stitch[0] debug    stitch| - cetz.cmd = typst #arg #cbx #art
+stitch[0] debug    stitch| - cetz.dir = .stitch/new/cetz
+stitch[0] debug    stitch| - cetz.arg = compile
+stitch[0] debug    stitch| "figlet"
+stitch[0] debug    stitch| - figlet.dir = .stitch/readme/figlet
+stitch[0] debug    stitch| "download"
+stitch[0] debug    stitch| - download.exe = yes
+stitch[0] debug    stitch| - download.inc = {{how: "fcb", what: "cbx"}}
+stitch[0] debug    stitch| - download.dir = .stitch/readme/download
+stitch[0] debug    stitch| - download.out = #dir/#arg
+stitch[0] debug    stitch| diagon log level set to info
+stitch[0] debug    stitch| boxes log level set to info
+stitch[0] debug    stitch| stitch log level set to debug
+stitch[0] debug    stitch| chunk log level set to info
+stitch[0] debug    stitch| youplot log level set to info
+stitch[0] debug    stitch| gnuplot log level set to info
+stitch[0] debug    stitch| cetz log level set to info
+stitch[0] debug    stitch| figlet log level set to info
+stitch[0] debug    stitch| download log level set to info
+stitch[0] info     stitch| doc ('') options done
+stitch[0] debug    stitch| "stitch" is not a stitch option, kept as-is
+stitch[0] note    preface| logging now set at "info"
+stitch[0] info    preface| processing codeblock using config "boxes"
+stitch[0] info    preface| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/readme/boxes/preface-acc10363c295522bd3dcbad973bc91ad92e4baf0.out, format <n/a>
+stitch[0] note    figlet1| logging now set at "info"
+stitch[0] info    figlet1| processing codeblock using config "figlet"
+stitch[0] info    figlet1| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/readme/figlet/figlet1-14f93f552722346d90401b5ada19653169695644.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/readme/figlet/figlet1-14f93f552722346d90401b5ada19653169695644.out, format <n/a>
+stitch[0] warn     anon03| config no link found classes {}, attributes {}
+stitch[0] note     anon03| logging now set at "info"
+stitch[0] warn     anon03| (anon03) skipped, codeblock not eligible
+stitch[0] note        arg| logging now set at "debug"
+stitch[0] info        arg| processing codeblock using config "stitch"
+stitch[0] debug       arg| using directory .stitch/readme/defaults for cbx-file
+stitch[0] debug       arg| using directory .stitch/readme/defaults for art-file
+stitch[0] debug       arg| using directory .stitch/readme/defaults for out-file
+stitch[0] debug       arg| using directory .stitch/readme/defaults for err-file
+stitch[0] debug       arg| writing out 266 chars to .stitch/readme/defaults/arg-1ed763f8b12058faa6cacc88e5623bf7310ad07e.cbx
+stitch[0] info        arg| codeblock run skipped, results already exist
+stitch[0] debug       arg| purge removed 0 old files
+stitch[0] debug       arg| include processing inc[1] = {how: "fcb", what: "cbx"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/arg-1ed763f8b12058faa6cacc88e5623bf7310ad07e.cbx, format <n/a>
+stitch[0] debug       arg| include inc[1] = {how: "fcb", what: "cbx"} succeeded
+stitch[0] debug       arg| include processing inc[2] = {what: "out"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/arg-1ed763f8b12058faa6cacc88e5623bf7310ad07e.out, format <n/a>
+stitch[0] debug       arg| include any for {what: "out"}
+stitch[0] debug       arg| include inc[2] = {what: "out"} succeeded
+stitch[0] note        art| logging now set at "info"
+stitch[0] info        art| processing codeblock using config "chunk"
+stitch[0] info        art| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/readme/chunk/art-7f79840fc460ca530237a2816fcbe9cda09dfd72.out, format <n/a>
+stitch[0] note        cbx| logging now set at "info"
+stitch[0] info        cbx| processing codeblock using config "chunk"
+stitch[0] info        cbx| codeblock chunk succeeded
+stitch[0] debug    stitch| read file .stitch/readme/chunk/cbx-743bb39bd8a9b1f9b734db575951f2268ee073a9.out, format <n/a>
+stitch[0] note      silly| logging now set at "debug"
+stitch[0] info      silly| processing codeblock using config "stitch"
+stitch[0] debug     silly| using directory .stitch/readme/defaults for cbx-file
+stitch[0] debug     silly| using directory .stitch/readme/defaults for art-file
+stitch[0] debug     silly| using directory .stitch/readme/defaults for out-file
+stitch[0] debug     silly| using directory .stitch/readme/defaults for err-file
+stitch[0] debug     silly| writing out 0 chars to .stitch/readme/defaults/silly-ba163cb1eaec310566d867d3720a2cddad3706d5.cbx
+stitch[0] info      silly| codeblock run skipped, results already exist
+stitch[0] debug     silly| purge removed 0 old files
+stitch[0] debug     silly| include processing inc[1] = {how: "fcb", what: "cbx"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/silly-ba163cb1eaec310566d867d3720a2cddad3706d5.cbx, format <n/a>
+stitch[0] debug     silly| include inc[1] = {how: "fcb", what: "cbx"} succeeded
+stitch[0] debug     silly| include processing inc[2] = {what: "out"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/silly-ba163cb1eaec310566d867d3720a2cddad3706d5.out, format <n/a>
+stitch[0] debug     silly| include any for {what: "out"}
+stitch[0] debug     silly| include inc[2] = {what: "out"} succeeded
+stitch[0] warn     anon08| config no link found classes {}, attributes {}
+stitch[0] note     anon08| logging now set at "info"
+stitch[0] warn     anon08| (anon08) skipped, codeblock not eligible
+stitch[0] note        cbx| logging now set at "info"
+stitch[0] info        cbx| processing codeblock using config "chunk"
+stitch[0] info        cbx| codeblock chunk succeeded
+stitch[0] debug    stitch| read file .stitch/readme/chunk/cbx-8a59a8ed68cfe76120d056f83c86f44558e06101.out, format <n/a>
+stitch[0] warn     anon10| config no link found classes {}, attributes {}
+stitch[0] note     anon10| logging now set at "info"
+stitch[0] warn     anon10| (anon10) skipped, codeblock not eligible
+stitch[0] note        cbx| logging now set at "info"
+stitch[0] info        cbx| processing codeblock using config "chunk"
+stitch[0] info        cbx| codeblock chunk succeeded
+stitch[0] debug    stitch| read file .stitch/readme/chunk/cbx-a255e3b0484febc736d20987310d0207ef992a29.out, format <n/a>
+stitch[0] warn     anon12| config no link found classes {}, attributes {}
+stitch[0] note     anon12| logging now set at "info"
+stitch[0] warn     anon12| (anon12) skipped, codeblock not eligible
+stitch[0] warn     anon13| config no link found classes {}, attributes {}
+stitch[0] note     anon13| logging now set at "info"
+stitch[0] warn     anon13| (anon13) skipped, codeblock not eligible
+stitch[0] note   doc.meta| logging now set at "info"
+stitch[0] info   doc.meta| processing codeblock using config "chunk"
+stitch[0] info   doc.meta| codeblock chunk succeeded
+stitch[0] debug    stitch| read file .stitch/readme/chunk/doc.meta-34123c9f0d1b9c7020f3fcbf6d8fc42fa55d2792.out, format <n/a>
+stitch[0] note     diagon| logging now set at "info"
+stitch[0] info     diagon| processing codeblock using config "diagon"
+stitch[0] info     diagon| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/readme/diagon/diagon-1d03c05bd4c7e9fbd5258433d5a769691f1a47bb.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/readme/diagon/diagon-1d03c05bd4c7e9fbd5258433d5a769691f1a47bb.out, format <n/a>
+stitch[0] note    youplot| logging now set at "info"
+stitch[0] info    youplot| processing codeblock using config "youplot"
+stitch[0] info    youplot| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/readme/youplot/youplot-204406bf39bd1c19bc49526892925f2d0d990a9f.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/readme/youplot/youplot-204406bf39bd1c19bc49526892925f2d0d990a9f.out, format <n/a>
+stitch[0] debug    stitch| "stitch" is not a stitch option, kept as-is
+stitch[0] debug    stitch| "caption" is not a stitch option, kept as-is
+stitch[0] note       cb03| logging now set at "info"
+stitch[0] info       cb03| processing codeblock using config "cetz"
+stitch[0] info       cb03| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/new/cetz/cb03-7f0170588c575395ea4c577f45bcfe38d0dd6294.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/new/cetz/cb03-7f0170588c575395ea4c577f45bcfe38d0dd6294.png, format <n/a>
+stitch[0] debug    stitch| "stitch" is not a stitch option, kept as-is
+stitch[0] debug    stitch| "caption" is not a stitch option, kept as-is
+stitch[0] note       cb04| logging now set at "info"
+stitch[0] info       cb04| processing codeblock using config "cetz"
+stitch[0] info       cb04| codeblock run skipped, results already exist
+stitch[0] debug    stitch| read file .stitch/new/cetz/cb04-277e2fbd3635326f647851abb36e9c158c050e58.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/new/cetz/cb04-277e2fbd3635326f647851abb36e9c158c050e58.svg, format <n/a>
+stitch[0] debug    stitch| "stitch" is not a stitch option, kept as-is
+stitch[0] note       cb05| logging now set at "info"
+stitch[0] info       cb05| processing codeblock using config "download"
+stitch[0] info       cb05| codeblock system command succeeded
+stitch[0] warn       cb05| purge skipped, out-file has no sha fingerprint
+stitch[0] debug    stitch| read file .stitch/readme/download/cb05-a0e6b6a095249b82f737e8f6a4bd71d5ada08657.cbx, format <n/a>
+stitch[0] debug    stitch| "stitch" is not a stitch option, kept as-is
+stitch[0] debug    stitch| "caption" is not a stitch option, kept as-is
+stitch[0] note       cb06| logging now set at "info"
+stitch[0] info       cb06| processing codeblock using config "cetz"
+stitch[0] info       cb06| codeblock system command succeeded
+stitch[0] debug    stitch| read file .stitch/new/cetz/cb06-89b5ca0bf97ecc82921f8a534c10848f8a817094.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/new/cetz/cb06-89b5ca0bf97ecc82921f8a534c10848f8a817094.svg, format <n/a>
+stitch[0] debug   gnuplot| config gnuplot found by cb id
+stitch[0] note    gnuplot| logging now set at "debug"
+stitch[0] info    gnuplot| processing codeblock using config "gnuplot"
+stitch[0] debug   gnuplot| using directory .stitch/readme/gnuplot for cbx-file
+stitch[0] debug   gnuplot| using directory .stitch/readme/gnuplot for art-file
+stitch[0] debug   gnuplot| using directory .stitch/readme/gnuplot for out-file
+stitch[0] debug   gnuplot| using directory .stitch/readme/gnuplot for err-file
+stitch[0] debug   gnuplot| writing out 549 chars to .stitch/readme/gnuplot/gnuplot-7b0110bbcbb68035bcf67333ef23ea71e326aa28.cbx
+stitch[0] info    gnuplot| codeblock run skipped, results already exist
+stitch[0] debug   gnuplot| purge removed 0 old files
+stitch[0] debug   gnuplot| include processing inc[1] = {how: "fcb", what: "cbx"}
+stitch[0] debug    stitch| read file .stitch/readme/gnuplot/gnuplot-7b0110bbcbb68035bcf67333ef23ea71e326aa28.cbx, format <n/a>
+stitch[0] debug   gnuplot| include inc[1] = {how: "fcb", what: "cbx"} succeeded
+stitch[0] debug   gnuplot| include processing inc[2] = {how: "fig", what: "art"}
+stitch[0] debug    stitch| read file .stitch/readme/gnuplot/gnuplot-7b0110bbcbb68035bcf67333ef23ea71e326aa28.png, format <n/a>
+stitch[0] debug   gnuplot| include inc[2] = {how: "fig", what: "art"} succeeded
+stitch[0] note        csv| logging now set at "debug"
+stitch[0] info        csv| processing codeblock using config "stitch"
+stitch[0] debug       csv| using directory .stitch/readme/defaults for cbx-file
+stitch[0] debug       csv| using directory .stitch/readme/defaults for art-file
+stitch[0] debug       csv| using directory .stitch/readme/defaults for out-file
+stitch[0] debug       csv| using directory .stitch/readme/defaults for err-file
+stitch[0] debug       csv| writing out 64 chars to .stitch/readme/defaults/csv-9391b0ba5bc42e4cccb52d7e524efca9e07df98a.cbx
+stitch[0] warn        csv| codeblock run skipped (exe = no)
+stitch[0] debug       csv| purge removed old file .stitch/readme/defaults/csv-907a1e3f465a272bd6b1f7cb66a1ebc7d0f905c6.cbx
+stitch[0] debug       csv| purge removed 1 old files
+stitch[0] debug       csv| include processing inc[1] = {how: "fcb", what: "cbx"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/csv-9391b0ba5bc42e4cccb52d7e524efca9e07df98a.cbx, format <n/a>
+stitch[0] debug       csv| include inc[1] = {how: "fcb", what: "cbx"} succeeded
+stitch[0] debug       csv| include processing inc[2] = {read: "csv", what: "cbx"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/csv-9391b0ba5bc42e4cccb52d7e524efca9e07df98a.cbx, format csv
+stitch[0] debug    stitch| data converted to csv
+stitch[0] debug       csv| include any for {read: "csv", what: "cbx"}
+stitch[0] debug       csv| include pandoc fragment for {read: "csv", what: "cbx"}
+stitch[0] debug       csv| include inc[2] = {read: "csv", what: "cbx"} doc fragment succeeded
+stitch[0] debug       csv| include processing inc[3] = {read: "csv", what: "cbx", how: "fcb"}
+stitch[0] debug    stitch| read file .stitch/readme/defaults/csv-9391b0ba5bc42e4cccb52d7e524efca9e07df98a.cbx, format csv
+stitch[0] debug    stitch| data converted to csv
+stitch[0] debug       csv| include inc[3] = {read: "csv", what: "cbx", how: "fcb"} succeeded
+stitch[0] debug    stitch| read file .stitch/readme/defaults/nested-e9cf4562893891c8cbe176bc843dec8e6dcb30d9.cbx, format <n/a>
+stitch[0] debug    stitch| read file .stitch/readme/defaults/nested-e9cf4562893891c8cbe176bc843dec8e6dcb30d9.out, format markdown
+stitch[0] debug    stitch| data converted to markdown
+stitch[1] info     stitch| new document ('')
+stitch[0] info     stitch| done .. saw 27 codeblocks

@@ -26,7 +26,7 @@ local hard_coded_opts = {
   run = 'system', -- {system, chunk, no, noop, data (ie cbx=data to be used by inc)}
   old = 'purge', -- {keep, purge}
   -- expandables; #sha & #oid are provided by stitch
-  art = '#dir/#oid-#sha.#fmt', -- artifact (output) file (if any)
+  art = '#dir/#oid-#sha.#fmt', -- artefact (output) file (if any)
   cbx = '#dir/#oid-#sha.cbx', -- the codeblock.text as file on disk
   out = '#dir/#oid-#sha.out', -- capture of stdout (if any)
   err = '#dir/#oid-#sha.err', -- capture of stderr (if any)
@@ -56,13 +56,14 @@ local state = {
 
 --- Prints formatted `msg` to stdout for given `id` at `tier`-level.
 -- nb: using `log(id, 'fatal', ..) is killing.
+-- TODO: log(oid, ..) <- oid's end up being new and log at warn level
 --- @param id string
 --- @param tier string
 --- @param msg string
 local function log(id, tier, msg, ...)
   local level = log_level[tier] or 3 -- unknown tier is warning
   if (log_level[tier] or 0) > (state.log[id] or 0) then return end
-  local prefix = sf('stitch[%s] %-5s %8s| ', #state.stack, tier, id)
+  local prefix = sf('stitch[%s] %-6s %8s| ', #state.stack, tier, id)
   io.output():write(prefix, sf(msg, ...), '\n')
   io.output():flush()
   assert(level ~= 1, sf('fatal error logged by %s', id))
@@ -151,7 +152,7 @@ local function read(filename, format)
 end
 
 --- Returns required `mod` and `name`,`func` on success or `nil` on failure.
--- nb: mod is the result of a succesful rquire, labels dropped while
+-- nb: mod is the result of a successful require, labels dropped while
 -- searching are returned as `func`.
 --- @param name string
 --- @param acc string?
@@ -221,7 +222,7 @@ end
 local function tosha(ccb)
   local keys = {}
   for k, _ in pairs(hard_coded_opts) do
-    -- exclude options that donot affect actual output
+    -- exclude options that donutnot affect actual output
     if not ('exe log old'):match(k) then keys[#keys + 1] = k end
   end
   table.sort(keys)
@@ -357,19 +358,22 @@ function state:saw(ccb)
   return #self.seen
 end
 
---- Pushes a copy of `state.ctx` and `state.ccb` on the stack
-function state:push() self.stack[#self.stack + 1] = { ctx = tcopy(self.ctx), ccb = tcopy(self.ccb) } end
+--- Pushes a copy of current state on the stack
+function state:push()
+  self.stack[#self.stack + 1] = { ctx = tcopy(self.ctx), ccb = tcopy(self.ccb), log = tcopy(self.log) }
+end
 
---- Pops `state.ctx` & `state.ccb` from the stack, popping an empty stack is fatal
+--- Pops previous state from the stack, popping an empty stack is fatal
 function state:pop()
-  local idx = #self.stack
-  if 0 == idx then
+  local ptr = #self.stack
+  if 0 == ptr then
     log('stitch', 'fatal', '*** Cannot pop from empty stack ***')
   else
-    local previous = self.stack[idx]
+    local previous = self.stack[ptr]
     self.ctx = previous.ctx
     self.ccb = previous.ccb
-    self.stack[idx] = nil
+    self.log = previous.log
+    self.stack[ptr] = nil
   end
 end
 
@@ -410,13 +414,6 @@ function state:context(doc)
     end
   end
 
-  -- setup log levels for all sections
-  for name, section in pairs(ctx) do
-    local level = section.log or 'info'
-    state:logger(name, level)
-    log('stitch', 'debug', '%s log level set to %s', name, level)
-  end
-
   -- option resolution order: ctx -> defaults -> hardcoded
   local defaults = ctx.defaults or {}
   setmetatable(defaults, { __index = hard_coded_opts })
@@ -430,6 +427,13 @@ function state:context(doc)
       ctx.stitch[name] = section -- aka ctx[name] is a value, not table
       ctx[name] = nil
     end
+  end
+
+  -- setup log levels for all sections
+  for name, section in pairs(ctx) do
+    local level = section.log or 'info'
+    state:logger(name, level)
+    log('stitch', 'debug', '%s log level set to %s', name, level)
   end
 
   log(lid, 'info', 'doc (%s) options done', meta.title or "''")
@@ -578,7 +582,7 @@ function kb.run:chunk()
     if ok then
       log(oid, 'info', 'codeblock chunk succeeded')
     else
-      log(oid, 'error', 'codeblock chunk failed wih: %s', err)
+      log(oid, 'error', 'codeblock chunk failed with: %s', err)
     end
   end
 end
@@ -596,7 +600,7 @@ function kb.inc:any(idx, dta)
 
   if 'Pandoc' == pd.utils.type(dta) then
     -- try to transfer some attributes to dta.blocks[1]
-    log(self.oid, 'debug', 'include pandoc fragement for %s', tostr(opt.inc[idx]))
+    log(self.oid, 'debug', 'include pandoc fragment for %s', tostr(opt.inc[idx]))
     if dta.blocks[1].attr then
       dta.blocks[1].attributes = fcb.attributes
       dta.blocks[1].classes = fcb.classes
@@ -705,9 +709,9 @@ function kb:filter(data, name)
 
   if 'Pandoc' == pd.utils.type(data) then
     -- NOTE: this overrides (or adds?) shift in headers (doc.meta.stitch.hdr)
-    local hdr = self.opt.hdr or 0
-    data.meta = tmerge(data.meta, state.meta) -- donate this doc's doc.meta
-    data.meta = pd.MetaMap(tmerge(data.meta, { stitch = { hdr = hdr } }, true)) -- enforce cb's hdr
+    data.meta = pd.MetaMap(tmerge(data.meta, state.meta)) -- donate this doc's doc.meta
+    local force = { stitch = { hdr = rawget(self.opt, 'hdr'), log = self.opt.log }, defaults = { log = self.opt.log } }
+    tmerge(data.meta, { stitch = force }, true) -- merge, there might be no doc.meta.stitch
   end
 
   state:push()
@@ -738,7 +742,7 @@ end
 function kb:new(cb)
   local oid = sf('%s', cb.attr.identifier)
   oid = #oid == 0 and sf('anon%02d', #state.seen + 1) or oid
-  state:logger(oid, cb.attr.attributes.log or 'debug') -- if unknown, becomes debug
+  state:logger(oid, cb.attr.attributes.log or 'warn')
   local ccb = parse:ast(cb)
   local cfg = self:config(oid, ccb) -- link to config section
   local bad = cfg == nil
@@ -753,6 +757,8 @@ function kb:new(cb)
     end
     opt[option] = val
   end
+  state:logger(oid, opt.log) -- re-register log level now opt is available
+  log(oid, 'note', 'logging now set at "%s"', opt.log)
 
   local new = {
     cfg = cfg, -- if nil, cb is not eligible for stitch processing
@@ -853,8 +859,8 @@ end
 
 --- Returns true if cbx-file and one or more of art,out,err-files exist
 function kb:total_recall()
-  local artifacts = exists(self.opt.art) or exists(self.opt.out) or exists(self.opt.err)
-  return exists(self.opt.cbx) and artifacts
+  local artefacts = exists(self.opt.art) or exists(self.opt.out) or exists(self.opt.err)
+  return exists(self.opt.cbx) and artefacts
 end
 
 --- Removes old files, returns the number of files removed
