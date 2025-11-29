@@ -45,8 +45,10 @@ all: $(TARGETS:%=%.pdf)
 # 	$(BUSTED)
 
 clean:
-	rm -rf $(EX_DIR)/$(ST_DIR)/*
-	rmdir $(EX_DIR)/$(ST_DIR)
+	rm -rf examples/.stitch/*
+	rm -rf .stitch/readme/*
+	rm .stitch/*
+
 
 
 help: show

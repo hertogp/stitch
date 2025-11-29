@@ -62,11 +62,12 @@ Main [features](#features) include:
 - optionally convert `data` by reading it with pandoc using some format
 - optionally run `data` (or `doc`) through another lua program or filter
 - include 0 or more results (as image, figure, codeblock or doc fragment)
-- granular control on where to store files, upto codeblock levels
+- granular control on where to store intermediate files
+- remove old files during re-run's
 - optionally skip running a codeblock if it hasn't changed
 - shift headers up or down while converting a, possibly included, document
 
-Other lua filters can be found elsewhere as well:
+More filters can be found at:
 - [pandoc repo](https://github.com/pandoc/lua-filters)
 - [pandoc-ext](https://github.com/pandoc-ext/info)
 - [pandoc wiki](https://github.com/jgm/pandoc/wiki/Pandoc-Filters)
