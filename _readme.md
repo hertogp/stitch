@@ -4,6 +4,7 @@ stitch:
   stitch:
     log: debug
   defaults:
+    art: assets/#oid-#sha.#fmt
     cmd: "#cbx #arg 1>#out"
     inc: "cbx:fcb out"
     dir: ".stitch/readme/defaults"

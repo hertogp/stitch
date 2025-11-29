@@ -317,7 +317,7 @@ echo "--------------"
 
 ```
 --------------
-script name  :  .stitch/readme/defaults/arg-1ed763f8b12058faa6cacc88e5623bf7310ad07e.cbx
+script name  :  .stitch/readme/defaults/arg-e25d59975e09780d43d7a3d794ce2e815d3279cf.cbx
 nr of args   :  2
 all args     :  two words
 1st arg      :  two
@@ -745,45 +745,46 @@ _readme.md doc.meta:
 
 monofont: "DejaVu Sans Mono"
 stitch:
-  figlet:
-    dir: ".stitch/readme/figlet"
+  download:
+    inc: "cbx:fcb"
+    exe: "yes"
+    out: "#dir/#arg"
+    dir: ".stitch/readme/download"
   defaults:
+    cmd: "#cbx #arg 1>#out"
+    art: "assets/#oid-#sha.#fmt"
     inc: "cbx:fcb out"
     dir: ".stitch/readme/defaults"
     cls: "yes"
-    cmd: "#cbx #arg 1>#out"
-  diagon:
-    cmd: "diagon #arg <#cbx 1>#out"
-    dir: ".stitch/readme/diagon"
-  chunk:
-    run: "chunk"
-    exe: "maybe"
-    dir: ".stitch/readme/chunk"
-    cmd: ""
+  boxes:
     inc: "out"
+    dir: ".stitch/readme/boxes"
+  youplot:
+    cmd: "#cbx 1>#out"
+    dir: ".stitch/readme/youplot"
   gnuplot:
     inc: "cbx:fcb art:fig"
     dir: ".stitch/readme/gnuplot"
     cmd: "gnuplot #cbx 1>#art 2>#err"
     run: "system"
-  youplot:
-    cmd: "#cbx 1>#out"
-    dir: ".stitch/readme/youplot"
-  download:
-    exe: "yes"
-    dir: ".stitch/readme/download"
-    inc: "cbx:fcb"
-    out: "#dir/#arg"
+  stitch:
+    log: "debug"
   cetz:
     inc: "cbx:fcb art"
     dir: ".stitch/readme/cetz"
     cmd: "typst #arg #cbx #art"
     arg: "compile"
-  stitch:
-    log: "debug"
-  boxes:
+  figlet:
+    dir: ".stitch/readme/figlet"
+  diagon:
+    cmd: "diagon #arg <#cbx 1>#out"
+    dir: ".stitch/readme/diagon"
+  chunk:
+    exe: "maybe"
+    cmd: ""
     inc: "out"
-    dir: ".stitch/readme/boxes"
+    dir: ".stitch/readme/chunk"
+    run: "chunk"
 ```
 
 ## [Diagon](https://github.com/ArthurSonzogni/Diagon)
@@ -949,12 +950,11 @@ for plotting, charts & tree layout.
 ````
 
 <figure id="cb03-2-art"
-data-sha="61ffe9437e8438b2d340e932d608c967a8a614a7" data-stitch="cetz"
-data-oid="cb03">
-<img
-src=".stitch/readme/cetz/cb03-61ffe9437e8438b2d340e932d608c967a8a614a7.png"
-id="cb03-2-art" data-sha="61ffe9437e8438b2d340e932d608c967a8a614a7"
-data-stitch="cetz" data-oid="cb03" alt="Karl&#39;s picture" />
+data-sha="7d0de738965c1077a3a30dce774622466ba6161f" data-oid="cb03"
+data-stitch="cetz">
+<img src="assets/cb03-7d0de738965c1077a3a30dce774622466ba6161f.png"
+id="cb03-2-art" data-sha="7d0de738965c1077a3a30dce774622466ba6161f"
+data-oid="cb03" data-stitch="cetz" alt="Karl&#39;s picture" />
 <figcaption aria-hidden="true">Karl's picture</figcaption>
 </figure>
 
@@ -1002,13 +1002,11 @@ drawing diagrams and arrows. Revisiting the flowchart shown earlier with
 ```
 ````
 
-<figure id="cb04-2-art"
-data-sha="dbe9f852ccaaaf276607062b93c838fb90fc12bc" data-stitch="cetz"
-data-oid="cb04">
-<img
-src=".stitch/readme/cetz/cb04-dbe9f852ccaaaf276607062b93c838fb90fc12bc.svg"
-id="cb04-2-art" data-sha="dbe9f852ccaaaf276607062b93c838fb90fc12bc"
-data-stitch="cetz" data-oid="cb04" alt="Stitch" />
+<figure id="cb04-2-art" data-stitch="cetz" data-oid="cb04"
+data-sha="8a639bc07552f9949370a00a685848b28ec603d4">
+<img src="assets/cb04-8a639bc07552f9949370a00a685848b28ec603d4.svg"
+id="cb04-2-art" data-stitch="cetz" data-oid="cb04"
+data-sha="8a639bc07552f9949370a00a685848b28ec603d4" alt="Stitch" />
 <figcaption aria-hidden="true">Stitch</figcaption>
 </figure>
 
@@ -1047,13 +1045,11 @@ following codeblock to create a graph.
 ```
 ````
 
-<figure id="cb06-2-art"
-data-sha="1fd39e18893df7c1dd6364365472c21750aa9345" data-stitch="cetz"
-data-oid="cb06">
-<img
-src=".stitch/readme/cetz/cb06-1fd39e18893df7c1dd6364365472c21750aa9345.svg"
-id="cb06-2-art" data-sha="1fd39e18893df7c1dd6364365472c21750aa9345"
-data-stitch="cetz" data-oid="cb06"
+<figure id="cb06-2-art" data-stitch="cetz" data-oid="cb06"
+data-sha="463873ec4bd68b81fd5210dd28296170866af311">
+<img src="assets/cb06-463873ec4bd68b81fd5210dd28296170866af311.svg"
+id="cb06-2-art" data-stitch="cetz" data-oid="cb06"
+data-sha="463873ec4bd68b81fd5210dd28296170866af311"
 alt="Temperature (C) today by Lilaq" />
 <figcaption aria-hidden="true">Temperature (C) today by
 Lilaq</figcaption>
@@ -1081,13 +1077,11 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 ```
 ````
 
-<figure id="gnuplot-2-art" class="gnuplot"
-data-sha="7b0110bbcbb68035bcf67333ef23ea71e326aa28" data-oid="gnuplot">
-<img
-src=".stitch/readme/gnuplot/gnuplot-7b0110bbcbb68035bcf67333ef23ea71e326aa28.png"
-id="gnuplot-2-art" class="gnuplot"
-data-sha="7b0110bbcbb68035bcf67333ef23ea71e326aa28"
-data-oid="gnuplot" />
+<figure id="gnuplot-2-art" class="gnuplot" data-oid="gnuplot"
+data-sha="b1b553db4d2fbd438f98d977a68926b8ff63593b">
+<img src="assets/gnuplot-b1b553db4d2fbd438f98d977a68926b8ff63593b.png"
+id="gnuplot-2-art" class="gnuplot" data-oid="gnuplot"
+data-sha="b1b553db4d2fbd438f98d977a68926b8ff63593b" />
 <figcaption aria-hidden="true"></figcaption>
 </figure>
 
@@ -1367,11 +1361,10 @@ splot cos(u)+.5*cos(u)*cos(v),sin(u)+.5*sin(u)*cos(v),.5*sin(v) with lines,\
 ````
 
 <figure id="nd-gnu-2-art" class="gnuplot"
-data-sha="7b0110bbcbb68035bcf67333ef23ea71e326aa28" data-oid="nd-gnu">
-<img
-src=".stitch/readme/gnuplot/nd-gnu-7b0110bbcbb68035bcf67333ef23ea71e326aa28.png"
+data-sha="b1b553db4d2fbd438f98d977a68926b8ff63593b" data-oid="nd-gnu">
+<img src="assets/nd-gnu-b1b553db4d2fbd438f98d977a68926b8ff63593b.png"
 id="nd-gnu-2-art" class="gnuplot"
-data-sha="7b0110bbcbb68035bcf67333ef23ea71e326aa28" data-oid="nd-gnu" />
+data-sha="b1b553db4d2fbd438f98d977a68926b8ff63593b" data-oid="nd-gnu" />
 <figcaption aria-hidden="true"></figcaption>
 </figure>
 
@@ -1382,62 +1375,63 @@ data-sha="7b0110bbcbb68035bcf67333ef23ea71e326aa28" data-oid="nd-gnu" />
 In doc.meta
 ---
 stitch:
-  figlet:
-    dir: ".stitch/readme/figlet"
   youplot:
     dir: ".stitch/readme/youplot"
     cmd: "#cbx 1>#out"
-  gnuplot:
-    dir: ".stitch/readme/gnuplot"
-    cmd: "gnuplot #cbx 1>#art 2>#err"
-    run: "system"
-    inc:
-      [1]:
-        how: "fcb"
-        what: "cbx"
-      [2]:
-        how: "fig"
-        what: "art"
+  figlet:
+    dir: ".stitch/readme/figlet"
   boxes:
     dir: ".stitch/readme/boxes"
     inc:
       [1]:
         what: "out"
-  diagon:
-    dir: ".stitch/readme/diagon"
-    cmd: "diagon #arg <#cbx 1>#out"
-  download:
-    out: "#dir/#arg"
-    exe: "yes"
-    dir: ".stitch/readme/download"
+  gnuplot:
+    dir: ".stitch/readme/gnuplot"
+    cmd: "gnuplot #cbx 1>#art 2>#err"
     inc:
       [1]:
-        how: "fcb"
         what: "cbx"
-  cetz:
-    arg: "compile"
-    cmd: "typst #arg #cbx #art"
-    dir: ".stitch/readme/cetz"
-    inc:
-      [1]:
         how: "fcb"
-        what: "cbx"
       [2]:
         what: "art"
+        how: "fig"
+    run: "system"
   chunk:
-    exe: "maybe"
     dir: ".stitch/readme/chunk"
-    cmd: ""
-    run: "chunk"
     inc:
       [1]:
         what: "out"
+    cmd: ""
+    exe: "maybe"
+    run: "chunk"
+  cetz:
+    dir: ".stitch/readme/cetz"
+    cmd: "typst #arg #cbx #art"
+    arg: "compile"
+    inc:
+      [1]:
+        what: "cbx"
+        how: "fcb"
+      [2]:
+        what: "art"
+  download:
+    dir: ".stitch/readme/download"
+    exe: "yes"
+    out: "#dir/#arg"
+    inc:
+      [1]:
+        what: "cbx"
+        how: "fcb"
+  diagon:
+    dir: ".stitch/readme/diagon"
+    cmd: "diagon #arg <#cbx 1>#out"
   stitch:
-    log: "silent"
     hdr: "1"
-  defaults:
     log: "silent"
+  defaults:
     dir: ".stitch/readme/nested"
+    log: "silent"
+    art: "assets/#oid-#sha.#fmt"
     cmd: "#cbx #arg 1>#out"
     cls: "yes"
     inc:
@@ -1447,91 +1441,92 @@ stitch:
       [2]:
         what: "out"
   hardcoded:
-    hdr: "0"
-    out: "#dir/#oid-#sha.out"
-    err: "#dir/#oid-#sha.err"
-    cbx: "#dir/#oid-#sha.cbx"
-    cmd: "#cbx #arg #art 1>#out 2>#err"
+    exe: "maybe"
     cls: "no"
     inc:
       [1]:
-        how: "fcb"
         what: "cbx"
+        how: "fcb"
       [2]:
         what: "out"
       [3]:
-        how: "img"
         what: "art"
+        how: "img"
       [4]:
         what: "err"
-    log: "info"
+    hdr: "0"
+    cmd: "#cbx #arg #art 1>#out 2>#err"
+    arg: ""
     art: "#dir/#oid-#sha.#fmt"
     dir: ".stitch"
+    log: "info"
+    out: "#dir/#oid-#sha.out"
+    cbx: "#dir/#oid-#sha.cbx"
+    err: "#dir/#oid-#sha.err"
     fmt: "png"
     old: "purge"
     run: "system"
-    arg: ""
-    exe: "maybe"
 ...
 
 codeblock opt:
 {
-  art: ".stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.png"
-  sha: "2f038112f364995920cad613df5ba2278a6d5085"
-  cbx: ".stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.cbx"
   oid: "nd-yaml"
+  art: "assets/nd-yaml-92b956cbdad99c306bbaf2ffe489d9673e322dbe.png"
+  cbx: ".stitch/readme/chunk/nd-yaml-92b956cbdad99c306bbaf2ffe489d9673e322dbe.cbx"
+  sha: "92b956cbdad99c306bbaf2ffe489d9673e322dbe"
   cmd: "."
-  err: ".stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.err"
-  out: ".stitch/readme/chunk/nd-yaml-2f038112f364995920cad613df5ba2278a6d5085.out"
+  out: ".stitch/readme/chunk/nd-yaml-92b956cbdad99c306bbaf2ffe489d9673e322dbe.out"
+  err: ".stitch/readme/chunk/nd-yaml-92b956cbdad99c306bbaf2ffe489d9673e322dbe.err"
 }
 
 ...
 
 state.meta
 {
+monofont: "DejaVu Sans Mono"
 stitch:
-  figlet:
-    dir: ".stitch/readme/figlet"
   youplot:
     dir: ".stitch/readme/youplot"
     cmd: "#cbx 1>#out"
-  defaults:
-    log: "silent"
-    dir: ".stitch/readme/nested"
-    cmd: "#cbx #arg 1>#out"
-    cls: "yes"
-    inc: "cbx:fcb out"
+  figlet:
+    dir: ".stitch/readme/figlet"
   boxes:
     dir: ".stitch/readme/boxes"
     inc: "out"
+  gnuplot:
+    dir: ".stitch/readme/gnuplot"
+    cmd: "gnuplot #cbx 1>#art 2>#err"
+    run: "system"
+    inc: "cbx:fcb art:fig"
+  download:
+    dir: ".stitch/readme/download"
+    exe: "yes"
+    out: "#dir/#arg"
+    inc: "cbx:fcb"
+  stitch:
+    hdr: "1"
+    log: "silent"
+  chunk:
+    dir: ".stitch/readme/chunk"
+    run: "chunk"
+    cmd: ""
+    exe: "maybe"
+    inc: "out"
+  defaults:
+    dir: ".stitch/readme/nested"
+    log: "silent"
+    art: "assets/#oid-#sha.#fmt"
+    cmd: "#cbx #arg 1>#out"
+    cls: "yes"
+    inc: "cbx:fcb out"
   diagon:
     dir: ".stitch/readme/diagon"
     cmd: "diagon #arg <#cbx 1>#out"
-  download:
-    dir: ".stitch/readme/download"
-    out: "#dir/#arg"
-    exe: "yes"
-    inc: "cbx:fcb"
   cetz:
     dir: ".stitch/readme/cetz"
     cmd: "typst #arg #cbx #art"
     arg: "compile"
     inc: "cbx:fcb art"
-  stitch:
-    log: "silent"
-    hdr: "1"
-  chunk:
-    exe: "maybe"
-    dir: ".stitch/readme/chunk"
-    cmd: ""
-    run: "chunk"
-    inc: "out"
-  gnuplot:
-    run: "system"
-    cmd: "gnuplot #cbx 1>#art 2>#err"
-    dir: ".stitch/readme/gnuplot"
-    inc: "cbx:fcb art:fig"
-monofont: "DejaVu Sans Mono"
 author: "nested"
 }
 ```
