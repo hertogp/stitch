@@ -2,7 +2,7 @@ PANDOC   = pandoc
 BUSTED   = busted
 FILTER   = --lua-filter stitch.lua
 EX_DIR   = examples
-ST_DIR   = .stitch
+STITCH_DIR   = .stitch
 FROM     = --from markdown
 EXTS     = inline_code_attributes+lists_without_preceding_blankline
 UNICODE  = -V mainfont="DejaVu Serif" -V mainfontfallback="NotoColorEmoji:mode=harf"
@@ -12,8 +12,8 @@ A4       = -V papersize:a4
 EXAMPLES = $(sort $(wildcard $(EX_DIR)/*.md))
 TARGETS  = $(EXAMPLES:examples/%.md=%)
 ALLPDFS  = $(EXAMPLES:examples/%.md=%.pdf)
-PDFLOGS  = $(ST_DIR)/readme/readme.pdf.log
-GFMLOGS  = $(ST_DIR)/readme/readme.gfm.log
+PDFLOGS  = $(STITCH_DIR)/readme.pdf.log
+GFMLOGS  = $(STITCH_DIR)/readme.gfm.log
 TOCDEPTH = --toc-depth=4
 
 default: show
@@ -26,8 +26,9 @@ readme: readme.pdf
 	$(PANDOC) $(FILTER) $(FROM)+$(EXTS) _readme.md -t gfm -o README.md 2>&1 | tee $(GFMLOGS)
 
 readme.pdf:
-	@echo "creating examples/README.pdf, logging to $(PDFLOGS)"
-	$(PANDOC) $(FILTER) $(ENGINE) $(A4) $(FROM)+$(EXTS) _readme.md -t pdf -o $(EX_DIR)/README.pdf 2>&1 | tee $(PDFLOGS)
+	@echo "creating README.pdf, logging to $(PDFLOGS)"
+	mkdir -p .stitch
+	$(PANDOC) $(FILTER) $(ENGINE) $(A4) $(FROM)+$(EXTS) _readme.md -t pdf -o README.pdf 2>&1 | tee $(PDFLOGS)
 
 ex%:
 	cd $(EX_DIR); $(PANDOC) $(FILTER) $(FROM)+${EXTS} $@.md -o $@.html
@@ -46,8 +47,7 @@ all: $(TARGETS:%=%.pdf)
 
 clean:
 	rm -rf examples/.stitch/*
-	rm -rf .stitch/readme/*
-	rm .stitch/*
+	rm -rf .stitch
 
 
 
@@ -73,5 +73,5 @@ show:
 	@echo "make <target>  (one of the individual targets, see above)"
 	@echo "make show      (this output)"
 	@echo "make all       (make all individual targets)"
-	@echo "make clean     (removes directory $(EX_DIR)/$(ST_DIR)) and its contents"
+	@echo "make clean     (removes directory $(EX_DIR)/$(STITCH_DIR)) and its contents"
 	@echo "make test      (runs busted)"

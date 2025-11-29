@@ -385,17 +385,13 @@ function state:context(doc)
   local lid = state:logger('stitch', loglevel)
   if not doc.meta.stitch then log(lid, 'warn', 'doc.meta has no stitch config') end
 
-  local ctx = tcopy(meta.stitch or {}) -- tcopy so we don't destroy meta.stitch itself
-  ctx.stitch = ctx.stitch or {} -- ensure stitch's own section in ctx
+  -- create ctx moving toplevel stitch.x into stitch.stitch.x
+  local ctx = tcopy(meta.stitch or {}) -- tcopy so we don't destroy doc.meta.stitch
+  ctx.stitch = ctx.stitch or {} -- ensure ctx.stitch.stitch section
   for k, v in pairs(ctx) do
     if 'table' ~= type(v) then
-      ctx[k] = nil -- remove toplevel ctx.option (not a table)
-      if ctx.stitch[k] then
-        local msg = 'stitch top level "%s=%s" overruled by section stitch: "%s=%s"'
-        log('stitch', 'warn', msg, k, tostr(v), k, tostr(ctx.stitch[k]))
-      else
-        ctx.stitch[k] = v -- move toplevel ctx.option into ctx.stitch table
-      end
+      if ctx[k] then log('stitch', 'warn', 'prefer stitch.stitch.%s over stitch.%s', k, k) end
+      ctx.stitch[k] = ctx.stitch[k] or v
     end
   end
 
@@ -427,13 +423,6 @@ function state:context(doc)
       ctx.stitch[name] = section -- aka ctx[name] is a value, not table
       ctx[name] = nil
     end
-  end
-
-  -- setup log levels for all sections
-  for name, section in pairs(ctx) do
-    local level = section.log or 'info'
-    state:logger(name, level)
-    log('stitch', 'debug', '%s log level set to %s', name, level)
   end
 
   log(lid, 'info', 'doc (%s) options done', meta.title or "''")
@@ -905,7 +894,7 @@ function kb:purge()
 end
 
 --- Returns true if `ccb` can be processed by stitch, false otherwise
-function kb:is_eligible() return self.cfg ~= nil end
+function kb:is_eligible() return self.cfg ~= nil and not self.bad end
 
 --- Returns true if setup succeeded, false otherwise
 --- Creates the necessary directories as well as the cbx-file
@@ -976,7 +965,6 @@ end
 
 local function Pandoc(doc)
   local lid = state:logger('stitch', 'info')
-  -- log(lid, 'info', "new document ('%s')", tostr(parse_elm_by['Inlines'](doc.meta.title)))
   log(lid, 'info', "new document ('%s')", tostr(parse.elm['Inlines'](doc.meta.title)))
 
   state:context(doc)
